@@ -73,6 +73,10 @@ msgstr "{0}× JMA"
 msgid "{0}× JTWC"
 msgstr "{0}× JTWC"
 
+#: src/app/Shell.tsx
+msgid "{AUTHOR}'s portfolio"
+msgstr "{AUTHOR}'s portfolio"
+
 #: src/features/storm-search/StormBrowser.tsx
 #: src/routes/index.tsx
 msgid "{d}s"
@@ -97,6 +101,10 @@ msgstr "10 m wind speed"
 #: src/features/replay/PlayerControls.tsx
 msgid "6 hours"
 msgstr "6 hours"
+
+#: src/app/Shell.tsx
+msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
+msgstr "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
 
 #: src/app/Shell.tsx
 #: src/routes/about.tsx
@@ -150,6 +158,10 @@ msgstr "At this storm's peak the field's strongest wind was {0} m/s against {1} 
 msgid "Back one hour"
 msgstr "Back one hour"
 
+#: src/routes/storm.$sid.tsx
+msgid "Back to all storms"
+msgstr "Back to all storms"
+
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Backends"
 msgstr "Backends"
@@ -175,6 +187,10 @@ msgstr "between the {0} and {1} fixes"
 #: src/features/compare/CompareView.tsx
 msgid "Both replays move together: the scrubbers count hours from each storm's first frame. Colours use the same fixed scale for every storm."
 msgstr "Both replays move together: the scrubbers count hours from each storm's first frame. Colours use the same fixed scale for every storm."
+
+#: src/routes/storm.$sid.tsx
+msgid "Breadcrumb"
+msgstr "Breadcrumb"
 
 #: src/routes/index.tsx
 msgid "Browse"
@@ -352,6 +368,12 @@ msgstr "Go to end"
 msgid "Go to start"
 msgstr "Go to start"
 
+#: src/app/errors.tsx
+#: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storm.$sid.tsx
+msgid "Go to the home page"
+msgstr "Go to the home page"
+
 #: src/features/replay/labels.ts
 msgid "Gust"
 msgstr "Gust"
@@ -372,7 +394,13 @@ msgstr "High contrast"
 msgid "Hit my town"
 msgstr "Hit my town"
 
-#: src/app/errors.tsx
+#: src/app/Shell.tsx
+msgctxt "brand link suffix"
+msgid "home"
+msgstr "home"
+
+#: src/app/Shell.tsx
+#: src/routes/storm.$sid.tsx
 msgid "Home"
 msgstr "Home"
 
@@ -505,6 +533,10 @@ msgstr "Loading the catalogue…"
 #: src/features/replay/IntensityPanel.tsx
 msgid "Lowest sea-level pressure"
 msgstr "Lowest sea-level pressure"
+
+#: src/app/Shell.tsx
+msgid "Main"
+msgstr "Main"
 
 #. placeholder {0}: detail.name
 #: src/features/replay/StormReplay.tsx
@@ -713,10 +745,6 @@ msgstr "Season"
 msgid "Second storm"
 msgstr "Second storm"
 
-#: src/app/Shell.tsx
-msgid "Sections"
-msgstr "Sections"
-
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by"
 msgstr "Served by"
@@ -766,6 +794,7 @@ msgstr "Storm name or year"
 
 #: src/app/Shell.tsx
 #: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storm.$sid.tsx
 #: src/routes/storms.tsx
 msgid "Storms"
 msgstr "Storms"
@@ -871,6 +900,8 @@ msgid "Try a larger radius."
 msgstr "Try a larger radius."
 
 #: src/app/errors.tsx
+#: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storm.$sid.tsx
 msgid "Try again"
 msgstr "Try again"
 
