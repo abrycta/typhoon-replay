@@ -68,8 +68,10 @@ vN/manifest.json                         provenance of every input, attribution,
 vN/storms/<sid>/summary.json             storm detail + frame manifest (paths relative to the repo root)
 vN/storms/<sid>/track.json               observed fixes + hourly interpolated track (columnar)
 vN/storms/<sid>/og.png                   1200x630 share image
-vN/storms/<sid>/<sid>.s<k>.tyf           frames, 7-day segments (see below)
-vN/storms/<sid>/<sid>.s<k>.<var>.webp    the same frames as lossless WebP sprite sheets
+vN/selection.json                        which storms have frames, and the documented score
+frames/<sid>/<sha>.field.<var>.webp      replay frames (lossy WebP, hourly), shared by all versions
+frames/<sid>/<sha>.exact.<var>.webp      exact values every 3 hours at 0.5 deg (lossless WebP)
+frames/<sid>/<sha>.tyf                   the same frames, lossless TYF1 (only some storms)
 vN/places/index.json, <shard>.json       places per PH province / JP prefecture with their storm exposure
 vN/places/<shard>.geojson                display boundaries (at most 1,500 vertices per place)
 vN/stats/seasons.json                    per season: storms by intensity class, PH/JP landfalls, ACE, strongest
@@ -85,15 +87,20 @@ when nothing about that storm changed. Rolling back means pointing `latest.json`
 
 ### Frames
 
-Storm-following 81 x 81 windows at 0.25 deg (about +-10 deg around the best-track centre), hourly. Five
-variables quantised to uint8: `wind` (10 m speed, 0.3 m/s steps), `gust` (hourly max 10 m gust, 0.4 m/s),
-`mslp` (0.65 hPa from 870), `rain` (mean precipitation rate in the hour, square-root coded, mm/h), `wdir`
-(direction the wind blows towards, 360/256 deg). 255 = no data.
+Storm-following 81 x 81 windows at 0.25 deg (about +-10 deg around the best-track centre), hourly, for the
+storms listed in `vN/selection.json` (a documented score: landfall, intensity, land crossed, PAGASA name,
+recency, with a floor per decade). Values are uint8 codes: `wind` (10 m speed, 0.3 m/s steps), `gust`
+(hourly max 10 m gust, 0.4 m/s), `mslp` (0.65 hPa from 870), `tp` (mean precipitation rate in the hour,
+square-root coded, mm/h), `u`/`v` (0.6 m/s from -76.2), `wdir` (360/256 deg). 255 = no data.
 
-`.tyf`: `"TYF1"`, uint32 header length, JSON header (variables, encodings, per-frame time and NW corner),
-then `uint8[frames][vars][81][81]`. One hour is one contiguous byte range, so a client can fetch any hour
-with a single HTTP range request (Hugging Face `resolve` URLs answer 206 with CORS). The WebP sheets hold
-the same bytes: one greyscale lossless sheet per variable and segment, frames row-major in a grid.
+- `field` sheets (lossy WebP, quality 80, one per variable, hourly) are for drawing and animation.
+- `exact` sheets (lossless WebP, every 3rd hour, every other cell) carry exact values for readouts; the
+  per-hour maxima near the centre and the ERA5-vs-best-track ratios are numbers in `summary.json`.
+- `.tyf` (`"TYF1"`, uint32 header length, JSON header, `uint8[frames][vars][81][81]`) is lossless and
+  range-friendly: one hour is one contiguous byte range.
+
+Frame files are named by their sha256 and stored once under `frames/<sid>/`; every version's
+`summary.json` points at them with paths relative to the storm directory.
 
 ERA5 is read chunk by chunk from NSF NCAR's ERA5 copy (AWS, with OSDF as a mirror), falling back to
 ARCO-ERA5 on Google Cloud for months NCAR has not published yet. `manifest.json` records which served.

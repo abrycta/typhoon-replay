@@ -113,9 +113,14 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
 - **Immutable versions.** Each run that publishes builds data version `N` (an integer, next after the
   published one) under `v<N>/`: `index.json`, `manifest.json`, `storms/<sid>/…`, `places/…`, `tables/*.parquet`.
   Nothing under an existing `v<N>/` is modified afterwards; the version is tagged `data-v<N>`.
-- **Incremental.** A storm whose summary, track and frames are unchanged keeps pointing at the earlier
-  version's folder (`index.json` `path`), and frames are rebuilt only when IBTrACS changed the storm's
-  hourly track (`trackHash`). A weekly refresh therefore uploads a few storms, not 18 GB.
+- **Incremental, no duplication.** Frame files are content-addressed (`frames/<sid>/<sha256-prefix>.*`) and
+  live outside the version directories, so a version only references them. A storm whose summary, track
+  and OG image are unchanged keeps pointing at the earlier version's folder (`index.json` `path`), and
+  frames are rebuilt only when IBTrACS changed the storm's hourly track (`trackHash`). A weekly refresh
+  therefore uploads a few storms' files plus the version's small documents. Uploads go in commits of at
+  most 99 files.
+- **Size.** Frames are lossy WebP for drawing (about 1.3 kB per storm-hour) plus lossless 3-hourly 0.5 deg
+  grids for exact readouts (about 1.2 kB); frames go to the ~1,000 storms chosen by `typhoon.selection`.
 - **Gates first.** `dataset.check` verifies every file's checksum against the manifest, the 25 MiB per-file
   cap, `.tyf` headers, WebP sheets byte-identical to the `.tyf` planes, nodata, plausible ERA5 ratios and
   referential integrity of the tables; `pytest -m data` checks the catalogue, places and exposure. Batch jobs
