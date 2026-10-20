@@ -1,4 +1,6 @@
 import { type GeoJSONSource, type LngLatBoundsLike, Map as MaplibreMap, type Map as MlMap, NavigationControl } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
 import { useEffect, useRef, useState } from "react";
 
 import { type FrameStore, hourAt, type TyfHeader } from "@/data";
@@ -232,7 +234,7 @@ export default function ReplayMap(props: ReplayMapProps) {
     });
     const particleInk = themeKey.startsWith("dark") ? [0.95, 0.95, 0.92, 0.7] : [0.1, 0.11, 0.13, 0.55];
     const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
-    fl.setParticles({ enabled: particles, color: particleInk as [number, number, number, number], res: lowEnd ? 64 : 96 });
+    fl.setParticles({ enabled: particles, color: particleInk as [number, number, number, number], res: lowEnd ? 48 : 72 });
   }, [header, layer, particles, themeKey, styleVersion]);
 
   // Drive the layer from the clock (fractional position, every animation frame).
@@ -288,5 +290,10 @@ export default function ReplayMap(props: ReplayMapProps) {
     };
   }, [particles]);
 
-  return <div ref={container} className={className} data-testid="replay-map" data-field-layer={layer} />;
+  // MapLibre's (unlayered) CSS sets position on the map element, so layout classes go on a wrapper.
+  return (
+    <div className={className} data-testid="replay-map" data-field-layer={layer}>
+      <div ref={container} style={{ width: "100%", height: "100%" }} />
+    </div>
+  );
 }

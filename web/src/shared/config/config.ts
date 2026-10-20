@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 
 /**
  * Runtime configuration, read from /config.json at startup (build once, deploy anywhere:
@@ -19,16 +19,16 @@ const Data = z.object({
   /** Dataset root (any static host with CORS). Trailing slash added if missing. */
   baseUrl: z.string(),
   /** Pointer file relative to baseUrl naming the current version directory. */
-  pointer: z.string().default("latest.json"),
+  pointer: z._default(z.string(), "latest.json"),
   /** Tried in order when the primary dataset is unreachable (e.g. the bundled fixture). */
-  fallbackBaseUrls: z.array(z.string()).default([]),
+  fallbackBaseUrls: z._default(z.array(z.string()), []),
 });
 
 export const AppConfig = z.object({
-  siteUrl: z.string().default("https://typhoon.krtmtthw.dev"),
+  siteUrl: z._default(z.string(), "https://typhoon.krtmtthw.dev"),
   data: Data,
-  backends: z.array(Backend).min(1),
-  defaultBackend: BackendId.default("java"),
+  backends: z.array(Backend).check(z.minLength(1)),
+  defaultBackend: z._default(BackendId, "java"),
 });
 export type AppConfig = z.infer<typeof AppConfig>;
 

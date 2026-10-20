@@ -11,131 +11,131 @@ msgstr ""
 #. placeholder {1}: url.radius
 #: src/features/town-history/TownHistory.tsx
 msgid "{0} h within {1} km"
-msgstr ""
+msgstr "{1} km 以内に {0} 時間"
 
 #. placeholder {0}: h.closestApproachKm.toFixed(0)
 #. placeholder {1}: formatDate(h.closestApproachAt, lang)
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "{0} km · {1}"
-msgstr ""
+msgstr "{0} km · {1}"
 
 #. placeholder {0}: h.closestApproachKm.toFixed(0)
 #. placeholder {1}: formatDate(h.closestApproachAt, lang)
 #: src/features/town-history/TownHistory.tsx
 msgid "{0} km away on {1}"
-msgstr ""
+msgstr "{1} に {0} km まで接近"
 
 #. placeholder {0}: h.maxWindKtWithinRadius
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "{0} kt"
-msgstr ""
+msgstr "{0} kt"
 
 #. placeholder {0}: jtwc.maxWindKt.toFixed(0)
 #. placeholder {1}: ktToMs(jtwc.maxWindKt).toFixed(0)
 #: src/routes/storm.$sid.tsx
 msgid "{0} kt ({1} m/s) JTWC 1-min"
-msgstr ""
+msgstr "{0} kt（{1} m/s）JTWC 1分平均"
 
 #. placeholder {0}: jma.maxWindKt.toFixed(0)
 #: src/routes/storm.$sid.tsx
 msgid "{0} kt JMA 10-min"
-msgstr ""
+msgstr "{0} kt 気象庁 10分平均"
 
 #. placeholder {0}: h.maxWindKtWithinRadius.toFixed(0)
 #: src/features/town-history/TownHistory.tsx
 msgid "{0} kt max wind"
-msgstr ""
+msgstr "最大風速 {0} kt"
 
 #. placeholder {0}: results.length
 #. placeholder {1}: storms.length
 #: src/features/storm-search/StormBrowser.tsx
 msgid "{0} of {1} storms"
-msgstr ""
+msgstr "{1} 件中 {0} 件"
 
 #. placeholder {0}: search.data?.length ?? 0
 #: src/features/town-history/TownHistory.tsx
 msgid "{0} places found"
-msgstr ""
+msgstr "{0} 件の地点"
 
 #. placeholder {0}: stormTitle(d.data, lang)
 #. placeholder {1}: d.data.season
 #: src/routes/index.tsx
 msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
-msgstr ""
+msgstr "{0}（{1}年）: ERA5 の 10 m 風速（再解析・参考）とベストトラック。"
 
 #. placeholder {0}: ratioJma.toFixed(2)
 #: src/features/replay/IntensityPanel.tsx
 msgid "{0}× JMA"
-msgstr ""
+msgstr "気象庁の {0} 倍"
 
 #. placeholder {0}: ratioJtwc.toFixed(2)
 #: src/features/replay/IntensityPanel.tsx
 msgid "{0}× JTWC"
-msgstr ""
+msgstr "JTWC の {0} 倍"
 
 #: src/features/storm-search/StormBrowser.tsx
 #: src/routes/index.tsx
 msgid "{d}s"
-msgstr ""
+msgstr "{d}年代"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "{s} h/s"
-msgstr ""
+msgstr "{s} 時間/秒"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "1 hour"
-msgstr ""
+msgstr "1時間"
 
 #: src/features/replay/labels.ts
 msgid "10 m wind gust"
-msgstr ""
+msgstr "10 m 瞬間風速"
 
 #: src/features/replay/labels.ts
 msgid "10 m wind speed"
-msgstr ""
+msgstr "10 m 風速"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "6 hours"
-msgstr ""
+msgstr "6時間"
 
 #: src/app/Shell.tsx
 #: src/routes/about.tsx
 msgid "About"
-msgstr ""
+msgstr "概要"
 
 #: src/routes/about.tsx
 msgid "About Typhoon Replay"
-msgstr ""
+msgstr "Typhoon Replay について"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "Affected places"
-msgstr ""
+msgstr "影響を受けた地点"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "All"
-msgstr ""
+msgstr "すべて"
 
 #. placeholder {0}: storms.length
 #: src/routes/index.tsx
 msgid "All {0} storms"
-msgstr ""
+msgstr "全 {0} 件の台風"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Any"
-msgstr ""
+msgstr "指定なし"
 
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "API: not used yet"
-msgstr ""
+msgstr "API: 未使用"
 
 #. placeholder {0}: formatDate(m.dataAsOf, lang)
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "as of {0}"
-msgstr ""
+msgstr "{0} 時点"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "asleep"
-msgstr ""
+msgstr "休止中"
 
 #. placeholder {0}: check.atPeak.era5WindMs.toFixed(1)
 #. placeholder {1}: check.atPeak.jtwcMs?.toFixed(1) ?? "?"
@@ -144,801 +144,801 @@ msgstr ""
 #. placeholder {4}: check.atPeak.ratioToJma?.toFixed(2) ?? "?"
 #: src/features/replay/IntensityPanel.tsx
 msgid "At this storm's peak the field's strongest wind was {0} m/s against {1} m/s (JTWC) and {2} m/s (JMA): {3}× and {4}×."
-msgstr ""
+msgstr "この台風の最盛期、場の最大風速は {0} m/s で、JTWC の {1} m/s、気象庁の {2} m/s に対しそれぞれ {3} 倍と {4} 倍でした。"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Back one hour"
-msgstr ""
+msgstr "1時間戻る"
 
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Backends"
-msgstr ""
+msgstr "バックエンド"
 
 #: src/routes/about.tsx
 msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
-msgstr ""
+msgstr "背景地図: OpenFreeMap、© OpenStreetMap contributors（ODbL）。代替の海岸線は Natural Earth（パブリックドメイン）。"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Best track"
-msgstr ""
+msgstr "ベストトラック"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Best-track intensity"
-msgstr ""
+msgstr "ベストトラックの強度"
 
 #. placeholder {0}: formatShort(hour.between[0], lang, tz)
 #. placeholder {1}: formatShort(hour.between[1], lang, tz)
 #: src/features/replay/IntensityPanel.tsx
 msgid "between the {0} and {1} fixes"
-msgstr ""
+msgstr "{0} と {1} の観測値の間"
 
 #: src/features/compare/CompareView.tsx
 msgid "Both replays move together: the scrubbers count hours from each storm's first frame. Colours use the same fixed scale for every storm."
-msgstr ""
+msgstr "2つのリプレイは連動します。時刻は各台風の最初のフレームからの経過時間です。色はすべての台風で同じ固定スケールです。"
 
 #: src/routes/index.tsx
 msgid "Browse"
-msgstr ""
+msgstr "一覧"
 
 #: src/routes/index.tsx
 msgid "Browse by decade and country"
-msgstr ""
+msgstr "年代と国で探す"
 
 #: src/app/errors.tsx
 msgid "Browse storms"
-msgstr ""
+msgstr "台風を探す"
 
 #: src/routes/storms.tsx
 msgid "Catalogue"
-msgstr ""
+msgstr "カタログ"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Centre"
-msgstr ""
+msgstr "中心位置"
 
 #. placeholder {0}: b.label
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Check {0} now"
-msgstr ""
+msgstr "{0} を今すぐ確認"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "checking"
-msgstr ""
+msgstr "確認中"
 
 #: src/features/compare/CompareView.tsx
 msgid "Choose a storm"
-msgstr ""
+msgstr "台風を選択"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "City or municipality"
-msgstr ""
+msgstr "市区町村"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
-msgstr ""
+msgstr "ベストトラック中心の最接近です。風速は各機関のベストトラック値で、ERA5 の場ではありません。"
 
 #: src/app/Shell.tsx
 #: src/routes/compare.tsx
 msgid "Compare"
-msgstr ""
+msgstr "比較"
 
 #: src/routes/index.tsx
 msgid "Compare Haiyan and Rai"
-msgstr ""
+msgstr "ハイエンとライを比較"
 
 #: src/routes/compare.tsx
 msgid "Compare two storms"
-msgstr ""
+msgstr "2つの台風を比較"
 
 #. placeholder {0}: last.contractVersion
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "contract {0}"
-msgstr ""
+msgstr "契約 {0}"
 
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
-msgstr ""
+msgstr "この時刻へのリンクをコピー"
 
 #: src/features/compare/CompareView.tsx
 msgid "Could not load {sid}."
-msgstr ""
+msgstr "{sid} を読み込めませんでした。"
 
 #: src/routes/about.tsx
 msgid "Data sources"
-msgstr ""
+msgstr "データの出典"
 
 #. placeholder {0}: ds.data.version
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "Data v{0}"
-msgstr ""
+msgstr "データ v{0}"
 
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "Dataset unavailable"
-msgstr ""
+msgstr "データセットを利用できません"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Decade"
-msgstr ""
+msgstr "年代"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "down"
-msgstr ""
+msgstr "停止"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
-msgstr ""
+msgstr "中心付近の ERA5 の場"
 
 #: src/routes/storm.$sid.tsx
 msgid "ERA5 field replay"
-msgstr ""
+msgstr "ERA5 の場のリプレイ"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "ERA5 max wind ({unit})"
-msgstr ""
+msgstr "ERA5 最大風速（{unit}）"
 
 #: src/features/replay/FieldLegend.tsx
 msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
-msgstr ""
+msgstr "ERA5 再解析（約28 km 格子）。参考情報です。すべての台風で同じスケール。"
 
 #: src/routes/about.tsx
 msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
-msgstr ""
+msgstr "ERA5: Copernicus Climate Change Service、CC BY 4.0。Copernicus Climate Change Service の情報を加工して含みます。"
 
 #: src/app/errors.tsx
 msgid "Error"
-msgstr ""
+msgstr "エラー"
 
 #: src/routes/index.tsx
 msgid "Featured replay"
-msgstr ""
+msgstr "注目のリプレイ"
 
 #: src/routes/compare.tsx
 msgid "Field"
-msgstr ""
+msgstr "場"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Field ÷ best track"
-msgstr ""
+msgstr "場 ÷ ベストトラック"
 
 #: src/features/replay/StormReplay.tsx
 msgid "Field frames could not be loaded"
-msgstr ""
+msgstr "場のフレームを読み込めませんでした"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Field layer"
-msgstr ""
+msgstr "場のレイヤー"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Field replay"
-msgstr ""
+msgstr "場のリプレイ"
 
 #: src/routes/index.tsx
 msgid "Find a storm"
-msgstr ""
+msgstr "台風を探す"
 
 #: src/features/compare/CompareView.tsx
 msgid "First storm"
-msgstr ""
+msgstr "1つ目の台風"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Forward one hour"
-msgstr ""
+msgstr "1時間進む"
 
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Four interchangeable backends implement one contract. Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 s. The replay never needs them."
-msgstr ""
+msgstr "交換可能な4つのバックエンドが同じ契約を実装しています。無料枠のサーバーは15分間アクセスがないと休止し、最初のリクエストに30〜60秒かかることがあります。リプレイはバックエンドを必要としません。"
 
 #: src/features/replay/StormReplay.tsx
 msgid "frames {progress}%"
-msgstr ""
+msgstr "フレーム {progress}%"
 
 #: src/features/backend-switch/ApiStatus.tsx
 msgid "Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 seconds. Replays and search keep working meanwhile."
-msgstr ""
+msgstr "無料枠のサーバーは15分間アクセスがないと休止し、最初のリクエストに30〜60秒かかることがあります。その間もリプレイと検索は使えます。"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "From the API."
-msgstr ""
+msgstr "API から取得。"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "From the static dataset."
-msgstr ""
+msgstr "静的データセットから取得。"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Go to end"
-msgstr ""
+msgstr "最後へ"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Go to start"
-msgstr ""
+msgstr "最初へ"
 
 #: src/features/replay/labels.ts
 msgid "Gust"
-msgstr ""
+msgstr "瞬間風速"
 
 #: src/routes/index.tsx
 msgid "Haiyan, Yolanda, Hagibis, 2019…"
-msgstr ""
+msgstr "ハイエン、ヨランダ、ハギビス、2019…"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Haiyan, Yolanda, 台風第19号, 2019…"
-msgstr ""
+msgstr "Haiyan、Yolanda、台風第19号、2019…"
 
 #: src/shared/ui/contrast-toggle.tsx
 msgid "High contrast"
-msgstr ""
+msgstr "ハイコントラスト"
 
 #: src/routes/town.tsx
 msgid "Hit my town"
-msgstr ""
+msgstr "わが町"
 
 #: src/app/errors.tsx
 msgid "Home"
-msgstr ""
+msgstr "ホーム"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
-msgstr ""
+msgstr "1時間ごとの経路、ベストトラックの強度、ERA5 の風速。時刻を選ぶとリプレイがその時刻に移動します。"
 
 #: src/routes/about.tsx
 msgid "How it works"
-msgstr ""
+msgstr "しくみ"
 
 #: src/routes/about.tsx
 msgid "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
-msgstr ""
+msgstr "IBTrACS v04r01: NOAA 国立環境情報センター、パブリックドメイン。"
 
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
 msgid "interpolated"
-msgstr ""
+msgstr "補間"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Interpolated"
-msgstr ""
+msgstr "補間値"
 
 #. placeholder {0}: formatShort(h.between[0], lang, tz)
 #. placeholder {1}: formatShort(h.between[1], lang, tz)
 #: src/features/replay/TimelineTable.tsx
 msgid "interpolated ({0}–{1})"
-msgstr ""
+msgstr "補間（{0}–{1}）"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Japan"
-msgstr ""
+msgstr "日本"
 
 #: src/features/replay/labels.ts
 msgid "JMA (10-min mean)"
-msgstr ""
+msgstr "気象庁（10分平均）"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "JMA 10-min ({unit})"
-msgstr ""
+msgstr "気象庁 10分平均（{unit}）"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "JMA central pressure"
-msgstr ""
+msgstr "気象庁 中心気圧"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "JMA hPa"
-msgstr ""
+msgstr "気象庁 hPa"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "JMA, 10-min mean"
-msgstr ""
+msgstr "気象庁・10分平均"
 
 #: src/features/replay/labels.ts
 msgid "JTWC (1-min mean)"
-msgstr ""
+msgstr "JTWC（1分平均）"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "JTWC 1-min ({unit})"
-msgstr ""
+msgstr "JTWC 1分平均（{unit}）"
 
 #: src/routes/about.tsx
 msgid "JTWC winds are 1-minute means; JMA and PAGASA winds are 10-minute means, so their numbers are not directly comparable. Colour scales are fixed for every storm so that storms from different decades can be compared."
-msgstr ""
+msgstr "JTWC の風速は1分平均、気象庁と PAGASA は10分平均のため、数値は直接比較できません。色のスケールはすべての台風で固定しており、年代の異なる台風も比較できます。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "JTWC, 1-min mean"
-msgstr ""
+msgstr "JTWC・1分平均"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Landfall"
-msgstr ""
+msgstr "上陸"
 
 #: src/routes/index.tsx
 msgid "Landfall in Japan"
-msgstr ""
+msgstr "日本に上陸"
 
 #. placeholder {0}: formatDate(l.at, lang)
 #: src/routes/storm.$sid.tsx
 msgid "landfall in Japan {0}"
-msgstr ""
+msgstr "{0} 日本に上陸"
 
 #: src/routes/index.tsx
 msgid "Landfall in the Philippines"
-msgstr ""
+msgstr "フィリピンに上陸"
 
 #. placeholder {0}: formatDate(l.at, lang)
 #: src/routes/storm.$sid.tsx
 msgid "landfall in the Philippines {0}"
-msgstr ""
+msgstr "{0} フィリピンに上陸"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Landfall: Japan"
-msgstr ""
+msgstr "上陸: 日本"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Landfall: Philippines"
-msgstr ""
+msgstr "上陸: フィリピン"
 
 #. placeholder {0}: health[selected]?.detail ?? ""
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Last check: {0}"
-msgstr ""
+msgstr "最終確認: {0}"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Layers"
-msgstr ""
+msgstr "レイヤー"
 
 #: src/routes/about.tsx
 msgid "Licences"
-msgstr ""
+msgstr "ライセンス"
 
 #: src/routes/storm.$sid.tsx
 msgid "Link copied"
-msgstr ""
+msgstr "リンクをコピーしました"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Loading frames…"
-msgstr ""
+msgstr "フレームを読み込み中…"
 
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "Loading sources…"
-msgstr ""
+msgstr "出典を読み込み中…"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Loading the catalogue…"
-msgstr ""
+msgstr "カタログを読み込み中…"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Lowest sea-level pressure"
-msgstr ""
+msgstr "最低海面気圧"
 
 #. placeholder {0}: detail.name
 #: src/features/replay/StormReplay.tsx
 msgid "Map of {0}'s track with the ERA5 field ({layerName}) at {timeLabel}"
-msgstr ""
+msgstr "{timeLabel} の {0} の経路と ERA5 の場（{layerName}）の地図"
 
 #: src/routes/about.tsx
 msgid "Map rendering: MapLibre GL JS (BSD-3-Clause). Particle technique after mapbox/webgl-wind (ISC)."
-msgstr ""
+msgstr "地図描画: MapLibre GL JS（BSD-3-Clause）。粒子表現は mapbox/webgl-wind（ISC）に基づきます。"
 
 #: src/features/replay/StormReplay.tsx
 msgid "Map unavailable"
-msgstr ""
+msgstr "地図を表示できません"
 
 #: src/app/Shell.tsx
 msgid "My town"
-msgstr ""
+msgstr "わが町"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "n/a"
-msgstr ""
+msgstr "なし"
 
 #: src/features/replay/StormReplay.tsx
 msgid "no"
-msgstr ""
+msgstr "なし"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No best-track fix at this hour."
-msgstr ""
+msgstr "この時刻のベストトラック値はありません。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "no best-track wind to compare"
-msgstr ""
+msgstr "比較するベストトラック風速がありません"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
-msgstr ""
+msgstr "{radius} km 以内に対象地点はありません。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No field data at this hour."
-msgstr ""
+msgstr "この時刻の場のデータはありません。"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "No storms in the archive passed this close"
-msgstr ""
+msgstr "この距離まで接近した台風は記録にありません"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "No storms match"
-msgstr ""
+msgstr "該当する台風がありません"
 
 #: src/app/errors.tsx
 msgid "Not found"
-msgstr ""
+msgstr "見つかりません"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "not loaded yet"
-msgstr ""
+msgstr "未読み込み"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "not reported"
-msgstr ""
+msgstr "報告なし"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "observed"
-msgstr ""
+msgstr "観測"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Observed fix"
-msgstr ""
+msgstr "観測値"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Observed fixes only"
-msgstr ""
+msgstr "観測値のみ"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Off"
-msgstr ""
+msgstr "オフ"
 
 #: src/routes/index.tsx
 msgid "Open the full replay"
-msgstr ""
+msgstr "リプレイを開く"
 
 #: src/routes/about.tsx
 msgid "PAGASA local names: compiled from Wikipedia, CC BY-SA 4.0."
-msgstr ""
+msgstr "PAGASA の現地名: Wikipedia より作成、CC BY-SA 4.0。"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Particles are off because your system asks for reduced motion. You can still turn them on."
-msgstr ""
+msgstr "システムで「視差効果を減らす」が設定されているため粒子をオフにしています。オンにすることもできます。"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Pause"
-msgstr ""
+msgstr "一時停止"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Pause replay"
-msgstr ""
+msgstr "リプレイを一時停止"
 
 #: src/routes/storm.$sid.tsx
 msgid "peak"
-msgstr ""
+msgstr "最盛期"
 
 #. placeholder {0}: s.peakWindKt.toFixed(0)
 #. placeholder {1}: (s.peakWindAgency ?? "").toUpperCase()
 #: src/features/storm-search/StormList.tsx
 msgid "peak {0} kt ({1})"
-msgstr ""
+msgstr "最大 {0} kt（{1}）"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Philippines"
-msgstr ""
+msgstr "フィリピン"
 
 #: src/routes/index.tsx
 msgid "Philippines · Japan · since 1940"
-msgstr ""
+msgstr "フィリピン・日本・1940年以降"
 
 #: src/features/compare/CompareView.tsx
 msgid "Pick a storm"
-msgstr ""
+msgstr "台風を選んでください"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Places"
-msgstr ""
+msgstr "地点"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "Places whose centre the best track passed within {radius} km of, closest first."
-msgstr ""
+msgstr "ベストトラックが中心から {radius} km 以内を通過した地点（近い順）。"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Play"
-msgstr ""
+msgstr "再生"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Play replay"
-msgstr ""
+msgstr "リプレイを再生"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "play/pause"
-msgstr ""
+msgstr "再生/一時停止"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Playback speed"
-msgstr ""
+msgstr "再生速度"
 
 #: src/features/replay/labels.ts
 msgid "Pressure"
-msgstr ""
+msgstr "気圧"
 
 #: src/features/replay/labels.ts
 msgid "Rain"
-msgstr ""
+msgstr "雨"
 
 #: src/features/replay/labels.ts
 msgid "Rainfall rate"
-msgstr ""
+msgstr "降水強度"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "reanalysis context"
-msgstr ""
+msgstr "再解析・参考"
 
 #: src/routes/about.tsx
 msgid "Reanalysis is context, not the storm's strength"
-msgstr ""
+msgstr "再解析は参考情報であり、台風の強さではありません"
 
 #: src/routes/index.tsx
 msgid "Recent storms"
-msgstr ""
+msgstr "最近の台風"
 
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
-msgstr ""
+msgstr "どの台風も、1時間ごとにリプレイ"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
-msgstr ""
+msgstr "リプレイの時刻"
 
 #: src/features/backend-switch/ApiStatus.tsx
 msgid "Replays, search and compare do not need it. You can try another backend, or the mock that runs in your browser."
-msgstr ""
+msgstr "リプレイ、検索、比較には不要です。別のバックエンドか、ブラウザ内で動くモックを試せます。"
 
 #: src/routes/compare.tsx
 msgid "Same colour scale, same clock. The URL keeps both storms, the layer and the hour."
-msgstr ""
+msgstr "同じ色スケール、同じ時計。URL に2つの台風、レイヤー、時刻が保存されます。"
 
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "sample data"
-msgstr ""
+msgstr "サンプルデータ"
 
 #: src/features/replay/labels.ts
 msgid "Sea-level pressure"
-msgstr ""
+msgstr "海面気圧"
 
 #: src/routes/index.tsx
 msgid "Search"
-msgstr ""
+msgstr "検索"
 
 #: src/routes/town.tsx
 msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. Answered by the API backend you pick in the header."
-msgstr ""
+msgstr "フィリピンまたは日本の市区町村を検索し、指定した距離以内を通過した台風を一覧します。ヘッダーで選んだ API バックエンドが応答します。"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Season"
-msgstr ""
+msgstr "シーズン"
 
 #: src/features/compare/CompareView.tsx
 msgid "Second storm"
-msgstr ""
+msgstr "2つ目の台風"
 
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by"
-msgstr ""
+msgstr "応答元"
 
 #. placeholder {0}: last.impl
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by {0}"
-msgstr ""
+msgstr "応答元: {0}"
 
 #. placeholder {0}: current?.label ?? selected
 #. placeholder {1}: label(state)
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by {0}, {1}. Change backend"
-msgstr ""
+msgstr "応答元 {0}（{1}）。バックエンドを変更"
 
 #: src/routes/compare.tsx
 msgid "Side by side"
-msgstr ""
+msgstr "並べて表示"
 
 #: src/app/Shell.tsx
 msgid "Skip to content"
-msgstr ""
+msgstr "本文へスキップ"
 
 #: src/app/errors.tsx
 msgid "Something went wrong"
-msgstr ""
+msgstr "問題が発生しました"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Source"
-msgstr ""
+msgstr "出典"
 
 #: src/routes/storm.$sid.tsx
 msgid "Sources"
-msgstr ""
+msgstr "出典"
 
 #: src/app/Shell.tsx
 msgid "Sources and licences"
-msgstr ""
+msgstr "出典とライセンス"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Speed"
-msgstr ""
+msgstr "速度"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Storm name or year"
-msgstr ""
+msgstr "台風名または年"
 
 #: src/app/Shell.tsx
 #: src/features/storm-search/StormBrowser.tsx
 #: src/routes/storms.tsx
 msgid "Storms"
-msgstr ""
+msgstr "台風"
 
 #. placeholder {0}: url.radius
 #: src/features/town-history/TownHistory.tsx
 msgid "Storms within {0} km"
-msgstr ""
+msgstr "{0} km 以内の台風"
 
 #. placeholder {0}: url.radius
 #. placeholder {1}: placeLabel(selected, lang)
 #: src/features/town-history/TownHistory.tsx
 msgid "Storms within {0} km of {1}"
-msgstr ""
+msgstr "{1} から {0} km 以内の台風"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Strongest 10 m wind within {km} km"
-msgstr ""
+msgstr "{km} km 以内の 10 m 最大風速"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Tacloban, Naha, 那覇…"
-msgstr ""
+msgstr "タクロバン、那覇、Naha…"
 
 #: src/features/backend-switch/ApiStatus.tsx
 msgid "The {name} API is unavailable"
-msgstr ""
+msgstr "{name} API を利用できません"
 
 #: src/features/replay/StormReplay.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
-msgstr ""
+msgstr "地図には台風に追従する ERA5 の場の範囲、線で示したベストトラック（点は観測値）、現在の中心（観測値は塗りつぶし、補間値は中抜きの円）を表示します。下のタイムライン表に同じデータを文字で示しています。"
 
 #: src/app/errors.tsx
 msgid "The page failed to render. Reloading usually helps."
-msgstr ""
+msgstr "ページを表示できませんでした。再読み込みすると直ることがあります。"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "The place list is unavailable right now (the API may be asleep). The replay is unaffected."
-msgstr ""
+msgstr "地点の一覧は現在利用できません（API が休止中の可能性があります）。リプレイには影響しません。"
 
 #. placeholder {0}: snap.error
 #: src/features/replay/StormReplay.tsx
 msgid "The replay continues with the best track only. ({0})"
-msgstr ""
+msgstr "ベストトラックのみでリプレイを続けます。（{0}）"
 
 #: src/routes/about.tsx
 msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") is answered by one of four interchangeable API backends (Java, Node, Rust, Go) that share one contract; a mock runs in your browser when they are asleep. The replay never depends on them."
-msgstr ""
+msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードし WebGL で描画します。地点検索（「わが町」）は同じ契約を共有する4つの交換可能な API バックエンド（Java、Node、Rust、Go）のいずれかが応答し、休止中はブラウザ内のモックが動きます。リプレイはこれらに依存しません。"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "The storm catalogue could not be loaded"
-msgstr ""
+msgstr "台風カタログを読み込めませんでした"
 
 #: src/routes/about.tsx
 msgid "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours that are interpolated between best-track fixes."
-msgstr ""
+msgstr "風速、瞬間風速、雨、気圧の場は約28 km 格子の ERA5 再解析です。再解析は強い台風の眼の壁雲をならしてしまいます。ハイエンの最盛期、場の 10 m 最大風速は JTWC の1分平均ベストトラック風速の 0.31 倍、気象庁の10分平均の 0.42 倍でした。そのため各リプレイでは場の横にベストトラックの強度を示し、機関と平均時間を明記し、観測値の間を補間した時刻を区別して表示します。"
 
 #: src/app/errors.tsx
 msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
-msgstr ""
+msgstr "このアドレスには何もありません。台風 ID が誤っているか、まだ収録されていない可能性があります。"
 
 #: src/features/replay/StormReplay.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
-msgstr ""
+msgstr "このブラウザは WebGL 地図を描画できないため、経路を簡易図で表示しています。すべてのデータはタイムライン表にあります。"
 
 #: src/app/errors.tsx
 msgid "This page blew away"
-msgstr ""
+msgstr "このページは吹き飛ばされました"
 
 #: src/routes/storm.$sid.tsx
 msgid "This storm could not be loaded"
-msgstr ""
+msgstr "この台風を読み込めませんでした"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Time"
-msgstr ""
+msgstr "時刻"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Time zone"
-msgstr ""
+msgstr "タイムゾーン"
 
 #: src/features/replay/StormReplay.tsx
 msgid "Timeline"
-msgstr ""
+msgstr "タイムライン"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
-msgstr ""
+msgstr "タイムライン表"
 
 #: src/features/compare/CompareView.tsx
 msgid "track only"
-msgstr ""
+msgstr "経路のみ"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Track only"
-msgstr ""
+msgstr "経路のみ"
 
 #: src/routes/storm.$sid.tsx
 msgid "Track only: field frames not published yet"
-msgstr ""
+msgstr "経路のみ: 場のフレームは未公開"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Try a larger radius."
-msgstr ""
+msgstr "距離を広げてください。"
 
 #: src/app/errors.tsx
 msgid "Try again"
-msgstr ""
+msgstr "再試行"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Try another name (international, PAGASA or Japanese) or clear a filter."
-msgstr ""
+msgstr "別の名前（国際名、PAGASA 名、日本名）を試すか、絞り込みを解除してください。"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Type at least two letters."
-msgstr ""
+msgstr "2文字以上入力してください。"
 
 #: src/routes/storm.$sid.tsx
 msgid "Typhoon replay"
-msgstr ""
+msgstr "台風リプレイ"
 
 #: src/app/Shell.tsx
 msgid "Typhoon Replay home"
-msgstr ""
+msgstr "Typhoon Replay ホーム"
 
 #: src/routes/index.tsx
 #: src/routes/town.tsx
 msgid "Typhoons that hit my town"
-msgstr ""
+msgstr "わが町を襲った台風"
 
 #: src/routes/storms.tsx
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
-msgstr ""
+msgstr "フィリピンと日本に上陸、または接近した台風。"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "up"
-msgstr ""
+msgstr "稼働中"
 
 #: src/features/backend-switch/ApiStatus.tsx
 msgid "Use the mock backend"
-msgstr ""
+msgstr "モックのバックエンドを使う"
 
 #: src/features/backend-switch/ApiStatus.tsx
 msgid "Waking the {name} API…"
-msgstr ""
+msgstr "{name} API を起動中…"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "waking up"
-msgstr ""
+msgstr "起動中"
 
 #: src/routes/about.tsx
 msgid "Where the data comes from, what it can and cannot tell you, and the licences that apply."
-msgstr ""
+msgstr "データの出所、データからわかること・わからないこと、適用されるライセンス。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
-msgstr ""
+msgstr "なぜ場は台風より弱いのか？"
 
 #: src/features/replay/labels.ts
 msgid "Wind"
-msgstr ""
+msgstr "風"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "Wind and rain fields are ERA5 reanalysis on a grid of about 28 km. For intense typhoons it smooths the eye wall: at Haiyan's peak, ERA5's strongest 10 m wind was about a third of the JTWC best-track estimate (0.31×) and under half of JMA's 10-minute estimate (0.42×), and its central pressure was 88 hPa too high. Use the best-track intensity for peak strength and the field for spatial extent and timing."
-msgstr ""
+msgstr "風と雨の場は約28 km 格子の ERA5 再解析です。強い台風では眼の壁雲がならされます。ハイエンの最盛期、ERA5 の 10 m 最大風速は JTWC ベストトラック推定値の約3分の1（0.31倍）、気象庁の10分平均推定値の半分未満（0.42倍）で、中心気圧は 88 hPa 高すぎました。最盛期の強さにはベストトラックの強度を、範囲とタイミングには場を参照してください。"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Wind particles"
-msgstr ""
+msgstr "風の粒子"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Wind units"
-msgstr ""
+msgstr "風速の単位"
 
 #: src/routes/index.tsx
 msgid "Wind, gusts, rain and pressure from ERA5 reanalysis, with the official best track beside them. Search a storm, compare two, or see which typhoons passed your town."
-msgstr ""
+msgstr "ERA5 再解析の風、瞬間風速、雨、気圧を、公式のベストトラックと並べて表示します。台風を検索し、2つを比較し、わが町を通った台風を調べられます。"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Within"
-msgstr ""
+msgstr "距離"

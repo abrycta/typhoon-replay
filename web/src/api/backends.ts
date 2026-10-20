@@ -94,7 +94,12 @@ function setHealth(id: BackendId, h: BackendHealth) {
 let mockStarted: Promise<void> | undefined;
 /** Mock mode: start the MSW service worker on first use (lazy chunk, never in the main bundle). */
 export function ensureMock(): Promise<void> {
-  mockStarted ??= import("./mocks/browser").then((m) => m.startMockWorker());
+  mockStarted ??= import("./mocks/browser")
+    .then((m) => m.startMockWorker())
+    .catch((e: unknown) => {
+      mockStarted = undefined; // allow a retry
+      throw e;
+    });
   return mockStarted;
 }
 

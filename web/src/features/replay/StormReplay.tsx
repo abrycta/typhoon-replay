@@ -95,8 +95,11 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     if (syncIndex !== undefined && syncIndex !== state.index) clock.seek(Math.min(syncIndex, times.length - 1));
   }, [syncIndex, clock, state.index, times.length]);
   useEffect(() => {
-    onIndex?.(state.index);
-  }, [state.index, onIndex]);
+    // Read the clock, not the render's state: a sync seek in the same commit has already moved it.
+    const i = clock.snapshot.index;
+    if (syncIndex === undefined || i !== syncIndex) onIndex?.(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.index, onIndex, clock]);
 
   // Keep the URL's time in step while paused (scrubs, steps, jumps), never on every playing frame.
   useEffect(() => {

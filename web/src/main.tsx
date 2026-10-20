@@ -13,6 +13,9 @@ import { applySavedContrast } from "@/shared/ui/contrast";
 const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing from index.html");
 
+// Web fonts: a separate stylesheet so ~600 @font-face rules never block the first paint (fallback fonts first).
+void import("./fonts.css");
+
 applySavedContrast();
 const locale = initialLocale();
 

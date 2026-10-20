@@ -1,11 +1,10 @@
-/* Akari on Tailwind v4, wired as Akari's shadcn.css header prescribes. */
+/* Akari on Tailwind v4, wired as Akari's shadcn.css header prescribes. Akari's fonts.css (~600 @font-face
+   rules, ~250 kB gzipped) is loaded separately and non-blocking from main.tsx; MapLibre's CSS loads with the map. */
 @layer theme, base, akari, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@abrycta/akari/css/fonts.css";
 @import "@abrycta/akari/css/shadcn.css";
-@import "maplibre-gl/dist/maplibre-gl.css" layer(components);
 
 @layer base {
   * {

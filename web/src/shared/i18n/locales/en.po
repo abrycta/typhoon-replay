@@ -133,7 +133,7 @@ msgstr "API: not used yet"
 msgid "as of {0}"
 msgstr "as of {0}"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "asleep"
 msgstr "asleep"
 
@@ -201,7 +201,7 @@ msgstr "Centre"
 msgid "Check {0} now"
 msgstr "Check {0} now"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "checking"
 msgstr "checking"
 
@@ -260,7 +260,7 @@ msgstr "Dataset unavailable"
 msgid "Decade"
 msgstr "Decade"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "down"
 msgstr "down"
 
@@ -895,7 +895,7 @@ msgstr "Typhoons that hit my town"
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "up"
 msgstr "up"
 
@@ -907,7 +907,7 @@ msgstr "Use the mock backend"
 msgid "Waking the {name} API…"
 msgstr "Waking the {name} API…"
 
-#: src/features/backend-switch/BackendSwitch.tsx
+#: src/features/backend-switch/health-label.ts
 msgid "waking up"
 msgstr "waking up"
 

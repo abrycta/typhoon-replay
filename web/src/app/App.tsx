@@ -16,7 +16,7 @@ export function App({ config, locale }: { config: AppConfig; locale: Locale }) {
   return (
     <ConfigContext.Provider value={config}>
       <QueryClientProvider client={queryClient}>
-        <AkariProvider defaultLang={locale} toaster>
+        <AkariProvider defaultLang={locale} toaster={false}>
           <LinguiBridge>
             <RouterProvider router={router} />
           </LinguiBridge>
