@@ -28,10 +28,11 @@ on:
         description: Parallel batches (GitHub Free runs up to 20 jobs at once)
         default: "20"
         required: true
-      selected:
-        description: Only the storms chosen by typhoon.selection (about 1,000)
-        type: boolean
-        default: true
+      scope:
+        description: "selected = the ~1,000 storms chosen by typhoon.selection; all = the whole catalogue (~2,058)"
+        type: choice
+        options: [selected, all]
+        default: selected
       storms:
         description: "Optional storm list file under pipeline/ (e.g. curated/replay-v1.txt)"
         default: ""
@@ -100,11 +101,11 @@ jobs:
           BATCHES: ${{ inputs.batches }}
           STORMS: ${{ inputs.storms }}
           MODE: ${{ inputs.mode }}
-          SELECTED: ${{ inputs.selected }}
+          SCOPE: ${{ inputs.scope }}
         run: |
           version=$(uv run python -m typhoon publish next-version)
           args=(--batches "$BATCHES" --mode "$MODE" --previous "$HF_ROOT" --out ../data/plan.json)
-          if [ "$SELECTED" = "true" ]; then args+=(--selected); fi
+          if [ "$SCOPE" = "selected" ]; then args+=(--selected); fi
           if [ -n "$STORMS" ]; then args+=(--list "$STORMS"); fi
           uv run python -m typhoon plan "${args[@]}"
           {
