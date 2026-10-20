@@ -3,15 +3,19 @@
 #
 #   prepare   IBTrACS refresh + places + JMA + crosswalk + catalogue + exposure, data-quality gates,
 #             the next data version number, and a storm-hour-balanced batch plan
-#   frames    matrix over batches: ERA5 windows -> .tyf + WebP per storm, validated, uploaded straight to
-#             v<N>/storms/<sid>/ on the dataset (invisible until the flip); only frames.json goes back
-#   publish   assemble v<N>/ (index, summaries, tracks, OG images, place shards, tables, manifest),
-#             gates, upload, verify sizes + HTTP Range + CORS, then README.md + latest.json in one commit
+#   frames    matrix over batches: ERA5 windows -> lossy WebP fields + lossless 3-hourly exact grids per storm,
+#             validated, uploaded content-addressed to frames/<sid>/ (unreferenced until a version is
+#             published); only frames.json goes back to the publish job
+#   publish   assemble v<N>/ (index, summaries, tracks, OG images, place shards, stats, tables, manifest),
+#             gates, upload (commits of <= 99 files), verify sizes + HTTP Range + CORS, then README.md +
+#             latest.json in one commit
 #
-# Estimates for the full catalogue (2,058 storms, 424,872 storm-hours; measured locally at about 0.55 s
-# and 3.5 MB of NCAR reads per storm-hour): ~1.5 TB anonymous egress from NCAR's AWS bucket, ~65 runner
-# hours, so ~3.5 h wall with 20 batches in parallel (each ~21,000 storm-hours, ~3 h; job cap 6 h); output
-# ~14 GB of .tyf + ~4 GB of WebP. Disk per batch stays under 2 GB (frames are uploaded per storm).
+# Default scope: the ~1,000 storms chosen by typhoon.selection (score + decade floor; 242,409 storm-hours as
+# of IBTrACS 2026-10-20). Measured locally: ~0.6 s and ~3.5 MB of NCAR reads per storm-hour. Estimates:
+# ~0.85 TB anonymous egress from NCAR's AWS bucket, ~40 runner-hours, so ~2.5 h wall with 20 batches
+# (each ~12,000 storm-hours, ~2 h; job cap 6 h); published frames ~0.65 GB (2.6 kB per storm-hour: lossy
+# fields ~1.3 kB + exact grids ~1.2 kB). Disk per batch stays under 1 GB. The whole catalogue (2,058
+# storms, 424,872 storm-hours) would be ~1.5 TB egress, ~70 runner-hours, ~1.1 GB of frames.
 #
 # Secrets: ARCHIVE_READ_TOKEN (installs the private archivekit; archive fallback) and HF_TOKEN (write
 # access to permission-alluring/typhoon-replay). Without them the jobs skip with a notice.
@@ -24,8 +28,12 @@ on:
         description: Parallel batches (GitHub Free runs up to 20 jobs at once)
         default: "20"
         required: true
+      selected:
+        description: Only the storms chosen by typhoon.selection (about 1,000)
+        type: boolean
+        default: true
       storms:
-        description: "Storm list file under pipeline/ (e.g. curated/replay-v1.txt); empty = whole catalogue"
+        description: "Optional storm list file under pipeline/ (e.g. curated/replay-v1.txt)"
         default: ""
         required: false
       mode:
@@ -92,9 +100,11 @@ jobs:
           BATCHES: ${{ inputs.batches }}
           STORMS: ${{ inputs.storms }}
           MODE: ${{ inputs.mode }}
+          SELECTED: ${{ inputs.selected }}
         run: |
           version=$(uv run python -m typhoon publish next-version)
           args=(--batches "$BATCHES" --mode "$MODE" --previous "$HF_ROOT" --out ../data/plan.json)
+          if [ "$SELECTED" = "true" ]; then args+=(--selected); fi
           if [ -n "$STORMS" ]; then args+=(--list "$STORMS"); fi
           uv run python -m typhoon plan "${args[@]}"
           {
@@ -153,7 +163,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
           BATCH: ${{ matrix.batch }}
         run: |
-          uv run python -m typhoon frames --plan ../data/plan.json --batch "$BATCH" --upload-version "$VERSION"
+          uv run python -m typhoon frames --plan ../data/plan.json --batch "$BATCH" --upload
           df -h . | tail -1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

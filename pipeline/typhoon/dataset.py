@@ -44,12 +44,13 @@ import shapely
 from . import catalog, exposure, og, sources, stats, tables
 from . import places as places_mod
 from .config import BUILD, ERA5_HONESTY, HF_REPO, PROCESSED, ensure_dir
-from .frames import MAX_FILE_BYTES, parse_tyf, unsprite
+from .frames import ENC, MAX_FILE_BYTES, parse_tyf, unsheet, var_meta
 from .frames import OUT as FRAMES_DIR
 from .track import AGENCY_COLUMNS, lon180
 
 log = logging.getLogger("typhoon.dataset")
 SCHEMA = "typhoon-replay/dataset@1"
+FRAMES_ROOT = "frames"   # content-addressed frame files, shared by every data version
 INDEX_MAX_BYTES = 2_500_000   # raw; about 200 kB gzipped
 
 
@@ -179,55 +180,43 @@ def rel(path: str, storm_base: str) -> str:
     return path[len(storm_base):] if path.startswith(storm_base) else "../../../" + path
 
 
-def frames_entry(meta: dict[str, Any], base: str) -> dict[str, Any]:
-    """frames.json -> the frames record with dataset-root paths (stored in frames-index.json)."""
-    segs = meta["segments"]
-    first = segs[0]
-    out: dict[str, Any] = {
-        "format": "tyf", "path": base + first["tyf"]["file"], "bytes": first["tyf"]["bytes"],
-        "sha256": first["tyf"]["sha256"], "headerBytes": first["tyf"]["headerBytes"],
-        "frameBytes": first["tyf"]["frameBytes"], "frames": meta["frames"], "start": meta["start"], "end": meta["end"],
-        "nx": meta["nx"], "ny": meta["ny"], "resDeg": meta["resDeg"], "nodata": meta["nodata"],
-        "vars": meta["vars"], "servedBy": meta["servedBy"], "credit": meta["credit"],
-        "quantisation": meta["quantisation"], "era5VsBestTrack": meta["era5VsBestTrack"],
-    }
-    if len(segs) == 1 and "webp" in first:
-        out["webp"] = {k: {kk: (base + vv if kk == "file" else vv) for kk, vv in v.items()}
-                       for k, v in first["webp"].items()}
-        for v in out["webp"].values():
-            v["path"] = v.pop("file")
-    if len(segs) > 1:
-        out["segments"] = [{"index": sg["index"], "frames": sg["frames"], "start": sg["start"], "end": sg["end"],
-                            "path": base + sg["tyf"]["file"], "bytes": sg["tyf"]["bytes"], "sha256": sg["tyf"]["sha256"],
-                            "headerBytes": sg["tyf"]["headerBytes"],
-                            "webp": {k: dict(v, path=base + v["file"]) for k, v in sg.get("webp", {}).items()}}
-                           for sg in segs]
-    return out
+def frames_entry(meta: dict[str, Any], sid: str) -> dict[str, Any]:
+    """frames.json -> the frames record, with dataset-root paths frames/<sid>/<content-addressed file>."""
+    base = f"{FRAMES_ROOT}/{sid}/"
+    m = json.loads(json.dumps(meta))
+    files = m.pop("files")
+    for k in ("field", "exact"):
+        for v in files[k]["vars"]:
+            v["path"] = base + v.pop("file")
+    if "tyf" in files:
+        files["tyf"]["path"] = base + files["tyf"].pop("file")
+    m.pop("sid", None)
+    return dict(m, **files)
 
 
 def frame_files(fr: dict[str, Any]) -> list[tuple[str, int, str]]:
     """(root path, bytes, sha256) of every file a frames record references."""
-    out = [(fr["path"], fr["bytes"], fr["sha256"])]
-    for v in fr.get("webp", {}).values():
-        out.append((v["path"], v["bytes"], v["sha256"]))
-    for sg in fr.get("segments", [])[1:]:
-        out.append((sg["path"], sg["bytes"], sg["sha256"]))
-    for sg in fr.get("segments", []):
-        out += [(v["path"], v["bytes"], v["sha256"]) for v in sg.get("webp", {}).values()]
-    return list(dict.fromkeys(out))
+    out = [(v["path"], v["bytes"], v["sha256"]) for k in ("field", "exact") for v in fr[k]["vars"]]
+    if "tyf" in fr:
+        out.append((fr["tyf"]["path"], fr["tyf"]["bytes"], fr["tyf"]["sha256"]))
+    return out
 
 
 def summary_frames(fr: dict[str, Any], storm_base: str) -> dict[str, Any]:
-    """The summary's `frames`: paths relative to the storm directory, cross-check moved out."""
+    """The summary's `frames` (web/docs/DATA-LAYOUT.md): format/path/bytes/... of the .tyf when there is one,
+    plus the WebP sets and the per-frame geometry; paths relative to the storm directory."""
     out = json.loads(json.dumps(fr))
     out.pop("era5VsBestTrack", None)
-    out["path"] = rel(out["path"], storm_base)
-    for v in out.get("webp", {}).values():
-        v["path"] = rel(v["path"], storm_base)
-    for sg in out.get("segments", []):
-        sg["path"] = rel(sg["path"], storm_base)
-        for v in sg.get("webp", {}).values():
+    for k in ("field", "exact"):
+        for v in out[k]["vars"]:
             v["path"] = rel(v["path"], storm_base)
+    tyf = out.pop("tyf", None)
+    if tyf:
+        out.update(format="tyf", path=rel(tyf["path"], storm_base), bytes=tyf["bytes"], sha256=tyf["sha256"],
+                   headerBytes=tyf["headerBytes"], frameBytes=tyf["frameBytes"],
+                   vars=[{k: v for k, v in var_meta(e).items()} for e in ENC])
+    else:
+        out["format"] = "webp"
     return out
 
 
@@ -377,7 +366,7 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     empty_lf = lfs.iloc[0:0]
     index_rows: list[dict[str, Any]] = []
     frames_index: dict[str, Any] = {}
-    remote_files: dict[str, dict[str, Any]] = {}
+    frame_refs: dict[str, dict[str, Any]] = {}   # every frame file this version references
     replay: dict[str, dict[str, Any]] = {}
     reused = reused_frames = 0
     for row in st.sort_values(["season", "started_at", "sid"]).itertuples(index=False):
@@ -389,14 +378,18 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         fr = None
         if sid in local:
             rp = local[sid]
-            fr = frames_entry(rp["meta"], base)
+            fr = frames_entry(rp["meta"], sid)
             for path, nbytes, sha in frame_files(fr):
-                if frames_uploaded:
-                    remote_files[path] = {"bytes": nbytes, "sha256": sha}
-                else:
-                    shutil.copy2(rp["dir"] / path[len(base):], sdir / path[len(base):])
+                frame_refs[path] = {"bytes": nbytes, "sha256": sha}
+                if not frames_uploaded:
+                    dst = out_root / path
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    if not dst.exists():
+                        shutil.copy2(rp["dir"] / Path(path).name, dst)
         elif sid in prev_frames and prev_frames[sid]["trackHash"] == th:
-            fr = json.loads(json.dumps(prev_frames[sid]["frames"]))   # root paths into the older version
+            fr = json.loads(json.dumps(prev_frames[sid]["frames"]))   # already published under frames/
+            for path, nbytes, sha in frame_files(fr):
+                frame_refs[path] = {"bytes": nbytes, "sha256": sha, "published": True}
             reused_frames += 1
         if fr:
             h = fr["era5VsBestTrack"]
@@ -439,13 +432,17 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables/",
         "framesIndex": f"{base_v}frames-index.json", "era5Note": ERA5_HONESTY,
         "stats": {k: f"{base_v}stats/{k}.json" for k in ("seasons", "climatology", "admin", "records")},
+        "selection": f"{base_v}selection.json",
     }
     (vdir / "index.json").write_bytes(dumps(index))
     (vdir / "frames-index.json").write_bytes(dumps(frames_index))
     write_places(vdir, base_v, pl, ex, st)
     write_stats(vdir, st, st_stats, lfs, pl, ex)
+    sel_json = PROCESSED / "catalog/selection.json"
+    if sel_json.exists():
+        (vdir / "selection.json").write_bytes(sel_json.read_bytes())
     tinfo = tables.build_tables(vdir / "tables", replay, st_stats)
-    write_manifest(vdir, version, index, tinfo, local, reused, remote_files, len(replay), reused_frames)
+    write_manifest(vdir, version, index, tinfo, local, reused, frame_refs, len(replay), reused_frames)
     log.info("built %s: %d storms, %d with frames (%d built now, %d reused), %d storm folders reused",
              vdir, len(index_rows), len(replay), len(local), reused_frames, reused)
     return vdir
@@ -548,8 +545,8 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
     for p in sorted(vdir.rglob("*")):
         if p.is_file() and p.name != "manifest.json":
             files[str(p.relative_to(vdir.parent))] = {"bytes": p.stat().st_size, "sha256": sha256_file(p)}
-    for k, v in remote_files.items():   # frames uploaded by the batch jobs (checked there, verified remotely)
-        files[k] = dict(v, uploadedByBatch=True)
+    for k, v in remote_files.items():   # content-addressed frames outside the version directory
+        files[k] = dict(v, shared=True)
     fi = json.loads((vdir / "frames-index.json").read_text())
     ratios = [v["frames"]["era5VsBestTrack"].get("headlineRatio") for v in fi.values()]
     ratios = [r for r in ratios if r is not None]
@@ -581,9 +578,18 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
                  "framesReusedFromPrevious": reused_frames,
                  "medianHeadlineRatio": round(float(np.median(ratios)), 3) if ratios else None},
         "counts": {"storms": len(index["storms"]), "reusedStormFolders": reused, "tables": tinfo},
+        "frameSelection": selection_summary(),
         "files": files,
     }
     (vdir / "manifest.json").write_bytes(json.dumps(manifest, ensure_ascii=False, indent=1).encode())
+
+
+def selection_summary() -> dict[str, Any] | None:
+    p = PROCESSED / "catalog/selection.json"
+    if not p.exists():
+        return None
+    d = json.loads(p.read_text())
+    return {k: v for k, v in d.items() if k != "selectedSids"} | {"list": "selection.json"}
 
 
 def ibtracs_as_of(run: sources.RunManifest) -> str | None:
@@ -604,8 +610,8 @@ def check(vdir: Path) -> dict[str, Any]:
     man = json.loads((vdir / "manifest.json").read_text())
     for rel, f in man["files"].items():
         p = root / rel
-        if f.get("uploadedByBatch"):
-            continue  # validated by its batch job; publish.verify checks the remote size
+        if f.get("shared") and not p.exists():
+            continue  # a frame file uploaded by a batch job or published earlier; publish.verify checks it
         if not p.exists():
             problems.append(f"missing {rel}")
             continue
@@ -642,20 +648,20 @@ def check(vdir: Path) -> dict[str, Any]:
             problems.append(f"{sid}: no ERA5 honesty ratio")
         elif not 0.05 < h["headlineRatio"] < 1.5:
             problems.append(f"{sid}: implausible ERA5 ratio {h['headlineRatio']}")
-        tyf = root / fr["path"]
-        if not tyf.exists():
-            continue  # uploaded by a batch job, or reused from an earlier version
-        hdr, q = parse_tyf(tyf.read_bytes())
-        if hdr["sid"] != sid or (not fr.get("segments") and hdr["frames"] != fr["frames"]):
-            problems.append(f"{sid}: bad tyf header")
-        nod = float((q[:, :4] == 255).mean())
-        if nod > 0.01:
-            problems.append(f"{sid}: {nod:.1%} nodata")
-        names = [v["name"] for v in hdr["vars"]]
-        for name, w in fr.get("webp", {}).items():
-            back = unsprite((root / w["path"]).read_bytes(), hdr["frames"], hdr["ny"], hdr["nx"], w["cols"])
-            if not np.array_equal(back, q[:, names.index(name)]):
-                problems.append(f"{sid}: webp {name} differs from tyf")
+        if "tyf" in fr and (root / fr["tyf"]["path"]).exists():
+            hdr, q = parse_tyf((root / fr["tyf"]["path"]).read_bytes())
+            if hdr["sid"] != sid or hdr["frames"] != fr["frames"]:
+                problems.append(f"{sid}: bad tyf header")
+            nod = float((q[:, :4] == 255).mean())
+            if nod > 0.01:
+                problems.append(f"{sid}: {nod:.1%} nodata")
+            ex = fr["exact"]
+            names = [v["name"] for v in hdr["vars"]]
+            for v in ex["vars"]:
+                back = unsheet((root / v["path"]).read_bytes(), ex["frames"], ex["tileHeight"], ex["tileWidth"],
+                               ex["cols"], ex["tileStride"])
+                if not np.array_equal(back, q[ex["frameIndex"], names.index(v["name"])][:, ::2, ::2]):
+                    problems.append(f"{sid}: exact {v['name']} differs from tyf")
     # tables
     import pyarrow.parquet as pq
 

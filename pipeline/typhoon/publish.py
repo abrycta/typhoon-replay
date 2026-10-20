@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -52,39 +53,82 @@ def resolve_url(path: str, revision: str = "main") -> str:
     return f"https://huggingface.co/datasets/{HF_REPO}/resolve/{revision}/{path}"
 
 
+COMMIT_FILES = 99   # Hugging Face recommends commits of under 100 files
+
+
+def remote_paths(prefix: str) -> dict[str, int]:
+    """path -> size of every file under `prefix` in the dataset repo ({} if absent)."""
+    try:
+        return {f.path: f.size for f in api().list_repo_tree(HF_REPO, repo_type="dataset", path_in_repo=prefix,
+                                                             recursive=True) if hasattr(f, "size")}
+    except Exception:  # noqa: BLE001  (404 for a prefix that does not exist yet)
+        return {}
+
+
+def push(root: Path, rels: list[str], message: str) -> int:
+    """Upload files (paths relative to `root` = repo paths) in commits of at most COMMIT_FILES files."""
+    from huggingface_hub import CommitOperationAdd
+
+    a = api()
+    n = 0
+    for i in range(0, len(rels), COMMIT_FILES):
+        chunk = rels[i:i + COMMIT_FILES]
+        ops = [CommitOperationAdd(path_in_repo=r, path_or_fileobj=str(root / r)) for r in chunk]
+        for k in range(5):
+            try:
+                a.create_commit(HF_REPO, repo_type="dataset", operations=ops,
+                                commit_message=f"{message} ({i // COMMIT_FILES + 1}/{-(-len(rels) // COMMIT_FILES)})")
+                break
+            except Exception as e:
+                if k == 4:
+                    raise
+                log.warning("commit failed (%s); retrying", e)
+                time.sleep(15 * (k + 1))
+        n += len(chunk)
+        log.info("uploaded %d/%d files", n, len(rels))
+    return n
+
+
 def upload(version: int, root: Path = BUILD) -> None:
+    """Upload v<N>/ and every referenced frame file not yet in the repo (frames are content-addressed)."""
     a = api()
     a.create_repo(HF_REPO, repo_type="dataset", private=False, exist_ok=True)
     vdir = root / f"v{version}"
     if not (vdir / "manifest.json").exists():
         raise SystemExit(f"{vdir} is not built")
-    log.info("uploading %s to %s", vdir, HF_REPO)
-    a.upload_large_folder(repo_id=HF_REPO, repo_type="dataset", folder_path=str(root),
-                          allow_patterns=[f"v{version}/**"], num_workers=4)
+    man = json.loads((vdir / "manifest.json").read_text())
+    have = remote_paths("frames")
+    frames = [r for r, f in man["files"].items() if r.startswith("frames/") and have.get(r) != f["bytes"]
+              and (root / r).exists()]
+    version_files = sorted(str(p.relative_to(root)) for p in vdir.rglob("*") if p.is_file())
+    log.info("uploading %d new frame files and %d files of v%d to %s", len(frames), len(version_files), version, HF_REPO)
+    push(root, sorted(frames), "frames")
+    push(root, version_files, f"v{version}")
 
 
 def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> dict[str, Any]:
     """Every manifest file exists remotely with the right size; Range and CORS work on a frame file."""
-    a = api()
     man = json.loads((root / f"v{version}" / "manifest.json").read_text())
-    remote = {f.path: f.size for f in a.list_repo_tree(HF_REPO, repo_type="dataset", path_in_repo=f"v{version}",
-                                                       recursive=True) if hasattr(f, "size")}
+    remote = remote_paths(f"v{version}") | remote_paths("frames")
     bad = [p for p, f in man["files"].items() if remote.get(p) != f["bytes"]]
     if f"v{version}/manifest.json" not in remote:
         bad.append(f"v{version}/manifest.json")
     if bad:
         raise SystemExit(f"{len(bad)} files missing or wrong size remotely, e.g. {bad[:5]}")
-    tyf = sample or next(p for p in man["files"] if p.endswith(".tyf"))
+    tyf = sample or next((p for p in man["files"] if p.endswith(".tyf")),
+                         next(p for p in man["files"] if p.endswith(".webp")))
     info = man["files"][tyf]
     hdr_len = None
     with httpx.Client(follow_redirects=True, timeout=60) as c:
         r = c.get(resolve_url(tyf), headers={"Range": "bytes=0-7", "Origin": "https://typhoon-replay.pages.dev"})
-        hdr_len = int.from_bytes(r.content[4:8], "little")
+        is_tyf = tyf.endswith(".tyf")
+        hdr_len = int.from_bytes(r.content[4:8], "little") if is_tyf else 0
         cors = r.headers.get("access-control-allow-origin")
         first = r.status_code
         # one hour of frames, by range, as the web loader does
-        start = 8 + hdr_len + 10 * 5 * 81 * 81
-        r2 = c.get(resolve_url(tyf), headers={"Range": f"bytes={start}-{start + 5 * 81 * 81 - 1}",
+        start = 8 + hdr_len + 10 * 5 * 81 * 81 if is_tyf else 100
+        size = 5 * 81 * 81 if is_tyf else 1000
+        r2 = c.get(resolve_url(tyf), headers={"Range": f"bytes={start}-{start + size - 1}",
                                               "Origin": "https://typhoon-replay.pages.dev"})
         pre = c.options(resolve_url(tyf), headers={"Origin": "https://typhoon-replay.pages.dev",
                                                    "Access-Control-Request-Method": "GET",
@@ -94,8 +138,8 @@ def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> di
            "content_range": r2.headers.get("content-range"), "cors_allow_origin": cors,
            "preflight_status": pre.status_code,
            "preflight_allow_headers": pre.headers.get("access-control-allow-headers"),
-           "magic_ok": r.content[:4] == b"TYF1"}
-    if not (first == 206 and r2.status_code == 206 and len(r2.content) == 5 * 81 * 81 and cors and out["magic_ok"]):
+           "magic_ok": r.content[:4] == (b"TYF1" if is_tyf else b"RIFF")}
+    if not (first == 206 and r2.status_code == 206 and len(r2.content) == size and cors and out["magic_ok"]):
         raise SystemExit(f"range/CORS check failed: {out}")
     return out
 

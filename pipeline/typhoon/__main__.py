@@ -9,6 +9,7 @@ Stages, in order (each reads the previous stages' Parquet under data/processed/)
     crosswalk [build|scrape]   PAGASA names (curated seed + Wikipedia season pages)
     catalog                    storm catalogue, hourly tracks, landfalls
     exposure                   place x storm exposure bands
+    selection [--target 1000]  which storms get frames (documented score, decade floor)
     prepare [--refresh]        all of the above, in order (what CI's prepare job runs)
     plan --batches N [--list FILE] [--mode all|missing|changed --previous ROOT]   balanced batches
     frames --sid S | --list FILE | --batch I --plan FILE   ERA5 frames per storm
@@ -41,10 +42,14 @@ def prepare(refresh: bool) -> None:
     crosswalk.build()
     catalog.build()
     exposure.build()
+    from . import selection
+
+    selection.build()
     man.write(RUN_MANIFEST)
 
 
-def plan(batches: int, list_file: Path | None, previous: str | None, mode: str = "all") -> dict[str, list[str]]:
+def plan(batches: int, list_file: Path | None, previous: str | None, mode: str = "all",
+         selected: bool = False) -> dict[str, list[str]]:
     """Greedy longest-first split of storms into `batches` with balanced storm-hours.
 
     mode "all": every selected storm; "missing" (backfill): storms whose published frames are absent or
@@ -58,6 +63,11 @@ def plan(batches: int, list_file: Path | None, previous: str | None, mode: str =
     st = catalog.load("storms")
     if list_file:
         st = st[st.sid.isin(read_list(list_file))]
+    if selected:
+        from . import selection
+
+        sel = selection.load()
+        st = st[st.sid.isin(sel[sel.selected].index)]
     if mode != "all":
         prev_index, prev_frames = load_previous(previous)
         known = set()
@@ -91,7 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     if cmd == "sources":
         from .sources import main as m
         return m(rest)
-    if cmd in ("ibtracs", "places", "jma", "crosswalk", "catalog", "exposure", "frames", "dataset", "publish", "dbload"):
+    if cmd in ("ibtracs", "places", "jma", "crosswalk", "catalog", "exposure", "selection", "frames", "dataset", "publish",
+               "dbload"):
         import importlib
 
         mod = importlib.import_module(f"typhoon.{cmd}")
@@ -108,9 +119,10 @@ def main(argv: list[str] | None = None) -> int:
         ap.add_argument("--list", type=Path)
         ap.add_argument("--mode", choices=["all", "missing", "changed"], default="all")
         ap.add_argument("--previous", help="dataset root (URL or dir) of the published version, for --mode")
+        ap.add_argument("--selected", action="store_true", help="only storms chosen by typhoon.selection")
         ap.add_argument("--out", type=Path)
         a = ap.parse_args(rest)
-        p = plan(a.batches, a.list, a.previous, a.mode)
+        p = plan(a.batches, a.list, a.previous, a.mode, a.selected)
         text = json.dumps(p)
         if a.out:
             a.out.write_text(text)

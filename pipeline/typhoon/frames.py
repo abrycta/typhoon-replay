@@ -1,21 +1,26 @@
-"""Quantised ERA5 replay frames per storm: `.tyf` segments and lossless WebP sprite sheets.
+"""Quantised ERA5 replay frames per storm, in three published forms.
 
-Usage: uv run python -m typhoon.frames --sid 2013306N07162 [--sid ...] [--formats tyf,webp]
+Usage: uv run python -m typhoon.frames --sid 2013306N07162 [--sid ...] [--formats webp,tyf]
 
-Both formats carry the same uint8 values (the WebP sheets are byte-exact copies of the .tyf planes):
+1. field  (always): lossy WebP sprite sheets, hourly, one per variable: wind, gust, mslp, tp, u, v.
+   Greyscale, quality FIELD_QUALITY, tiles of 81 x 81 placed on a 96 px stride (edge-padded, so the
+   codec's 16 px blocks never mix two hours). About 1.2 kB per storm-hour for all six variables. For
+   drawing and animation only: values are within about +-1 m/s (p99 +-2) of the exact ones.
+2. exact  (always): lossless WebP sheets, every 3rd hour, every other cell (0.5 deg, 41 x 41): wind, gust,
+   mslp, tp, wdir. Exact quantised values for numeric readouts (hover, legends). About 1.2 kB per storm-hour.
+   The per-hour maxima near the centre and the ERA5-vs-best-track ratios are computed before quantisation
+   and stored as numbers in frames.json (`series`, `era5VsBestTrack`).
+3. tyf    (optional, the original spike format): frames.tyf, uint8[frames][vars][81][81] lossless,
+   33 kB per storm-hour; one hour per HTTP range. Kept for the storms the web app already reads it for.
 
-frames.tyf (little-endian), one file per storm (split only past SEGMENT_HOURS, the 25 MiB cap)
-  bytes 0-3   magic b"TYF1"
-  bytes 4-7   uint32 header length H (UTF-8 JSON, space-padded so the data starts on an 8-byte boundary)
-  bytes 8..   JSON header (vars, encodings, per-frame time and NW corner, credit, ...)
-  data        uint8[frames][vars][ny][nx], row 0 = north edge, col 0 = west edge
-  Frame i of variable v starts at 8 + H + (i * nvars + v) * ny * nx: one hour is one contiguous range,
-  so a client can fetch any hour with a single HTTP range request and decode it on its own.
+Every file name starts with the first 16 hex digits of its sha256: files are content-addressed and are
+published once under frames/<sid>/, outside the data versions (typhoon.dataset).
 
-WebP sprite sheets (<var>.webp), one per variable: greyscale (L) lossless, tiles of nx x ny laid out
-row-major in a `cols` x `rows` grid (frame i at column i % cols, row i // cols); the same uint8 values.
+.tyf layout (little-endian): b"TYF1", uint32 header length H, JSON header (space-padded to 8 bytes), then
+uint8[frames][vars][ny][nx], row 0 = north edge. Frame i of variable v starts at 8 + H + (i*nvars+v)*ny*nx.
 
-Decoding (header.vars[*]):
+Sprite sheets: frame k (k-th published hour) is the tile at column k % cols, row k // cols, its top-left
+pixel at (col * stride, row * stride). Decoding per variable (`vars[*]`):
   linear: value = offset + q * scale        (q == 255 -> nodata)
   sqrt:   value = (q * scale) ** 2          (precipitation: finer steps for light rain)
   angle:  degrees = q * 360 / 256           (direction the wind blows towards, clockwise from north)
@@ -157,11 +162,12 @@ def honesty(fields: dict[str, np.ndarray], nw_lat: np.ndarray, nw_lon: np.ndarra
         dlon = ((off[None, :] + clon - hourly.lon.iloc[i] + 180) % 360) - 180
         dx = dlon * math.cos(math.radians(hourly.lat.iloc[i]))
         m = np.hypot(dy, dx) <= radius_deg
-        wind, gust, p = fields["wind"][i][m], fields["gust"][i][m], fields["mslp"][i][m]
+        wind, gust, p, tp = fields["wind"][i][m], fields["gust"][i][m], fields["mslp"][i][m], fields["tp"][i][m]
         rows.append({"time": hourly.time.iloc[i],
                      "era5_wind": float(np.nanmax(wind)) if np.isfinite(wind).any() else np.nan,
                      "era5_gust": float(np.nanmax(gust)) if np.isfinite(gust).any() else np.nan,
                      "era5_mslp": float(np.nanmin(p)) if np.isfinite(p).any() else np.nan,
+                     "era5_tp": float(np.nanmax(tp)) if np.isfinite(tp).any() else np.nan,
                      "jtwc": hourly.jtwc_wind_kt.iloc[i] * KT, "jma": hourly.jma_wind_kt.iloc[i] * KT,
                      "jma_p": hourly.jma_pressure_hpa.iloc[i], "jtwc_p": hourly.jtwc_pressure_hpa.iloc[i]})
     df = pd.DataFrame(rows)
@@ -209,144 +215,233 @@ def honesty(fields: dict[str, np.ndarray], nw_lat: np.ndarray, nw_lon: np.ndarra
             "typhoonHoursMedianRatioToJtwc": (out.get("jtwc") or {}).get("medianRatioTyphoonHours"),
             "typhoonHoursMedianRatioToJma": (out.get("jma") or {}).get("medianRatioTyphoonHours"),
         }.items() if v is not None}
+    out["series"] = {
+        "note": f"Per frame, within {radius_deg:g} deg of the best-track centre, from the unquantised ERA5 fields.",
+        "era5MaxWindMs": [r(x, 1) for x in df.era5_wind], "era5MaxGustMs": [r(x, 1) for x in df.era5_gust],
+        "era5MinMslpHpa": [r(x, 1) for x in df.era5_mslp], "era5MaxRainMmh": [r(x, 1) for x in df.era5_tp]}
     return out
 
 
 # ----------------------------------------------------------------------------- per storm
 
+FIELD_QUALITY = 80
+TILE_STRIDE = 96
+EXACT_STEP_H, EXACT_STRIDE = 3, 2
+UV = (Enc("u", "m/s", "linear", 0.6, -76.2, "10 m eastward wind (analysis); -76.2..76.2"),
+      Enc("v", "m/s", "linear", 0.6, -76.2, "10 m northward wind (analysis); -76.2..76.2"))
+FIELD_VARS = ("wind", "gust", "mslp", "tp", "u", "v")
+EXACT_VARS = ("wind", "gust", "mslp", "tp", "wdir")
+ENCODINGS = {e.name: e for e in (*ENC, *UV)}
+
+
+def var_meta(e: Enc) -> dict[str, Any]:
+    return {"name": e.name, "units": e.units, "encoding": e.kind, "scale": e.scale, "offset": e.offset,
+            "description": e.description}
+
+
+def sheet(q: np.ndarray, stride: int) -> tuple[np.ndarray, int, int]:
+    """Tiles q[t, h, w] on a stride x stride grid, each edge-padded (no codec block spans two frames)."""
+    t, h, w = q.shape
+    cols = math.ceil(math.sqrt(t))
+    rows = math.ceil(t / cols)
+    s = np.zeros((rows * stride, cols * stride), np.uint8)
+    for i in range(t):
+        r, c = divmod(i, cols)
+        s[r * stride:(r + 1) * stride, c * stride:(c + 1) * stride] = np.pad(
+            q[i], ((0, stride - h), (0, stride - w)), mode="edge")
+    return s, cols, rows
+
+
+def unsheet(data: bytes, frames: int, ny: int, nx: int, cols: int, stride: int) -> np.ndarray:
+    im = np.asarray(Image.open(io.BytesIO(data)).convert("L"))
+    out = np.empty((frames, ny, nx), np.uint8)
+    for i in range(frames):
+        r, c = divmod(i, cols)
+        out[i] = im[r * stride:r * stride + ny, c * stride:c * stride + nx]
+    return out
+
+
+def encode_webp(s: np.ndarray, quality: int | None) -> bytes:
+    buf = io.BytesIO()
+    if quality is None:
+        Image.fromarray(s, "L").save(buf, format="WEBP", lossless=True, quality=100, method=4, exact=True)
+    else:
+        Image.fromarray(s, "L").save(buf, format="WEBP", quality=quality, method=6)
+    return buf.getvalue()
+
+
+def uv_codes(wind: np.ndarray, wdir: np.ndarray) -> dict[str, np.ndarray]:
+    u, v = wind * np.sin(np.radians(wdir)), wind * np.cos(np.radians(wdir))
+    return {"u": quantise(u, UV[0]), "v": quantise(v, UV[1])}
+
+
 def iso(t: Any) -> str:
     return pd.Timestamp(t).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def write_frames(sid: str, q: np.ndarray, hours: np.ndarray, nw_lat: np.ndarray, nw_lon: np.ndarray,
-                 storm: dict[str, Any], served: dict[str, Any], qerr: dict[str, Any], check: dict[str, Any],
-                 out: Path, formats: tuple[str, ...] = ("tyf", "webp")) -> dict[str, Any]:
-    """Write frames.tyf (+ <var>.webp sheets) for one storm and its frames.json manifest.
+def _named(out: Path, data: bytes, suffix: str) -> dict[str, Any]:
+    h = sha256(data)
+    name = f"{h[:16]}.{suffix}"
+    (out / name).write_bytes(data)
+    return {"file": name, "bytes": len(data), "sha256": h}
 
-    One file per storm (what the web app reads). Only a storm longer than SEGMENT_HOURS, which would pass
-    the 25 MiB per-file cap, is split into frames.s<k>.tyf segments.
+
+def write_frames(sid: str, codes: dict[str, np.ndarray], hours: np.ndarray, nw_lat: np.ndarray, nw_lon: np.ndarray,
+                 storm: dict[str, Any], served: dict[str, Any], qerr: dict[str, Any], check: dict[str, Any],
+                 out: Path, formats: tuple[str, ...] = ("webp",)) -> dict[str, Any]:
+    """Write a storm's published frame files (content-addressed names) and its frames.json manifest.
+
+    `codes` holds uint8 codes per variable ([T, 81, 81]) for wind, gust, mslp, tp, wdir, u, v.
     """
     for old in out.glob("*"):
         if old.name != "provenance.json":
             old.unlink()
+    T = len(hours)
     years = sorted({int(str(h)[:4]) for h in hours})
     credit = ERA5_CREDIT.format(years=f"{years[0]}" if years[0] == years[-1] else f"{years[0]}-{years[-1]}")
     unix = hours.astype("datetime64[s]").astype("int64").tolist()
-    nseg = math.ceil(len(hours) / SEGMENT_HOURS)
-    var_meta = [{"name": e.name, "units": e.units, "encoding": e.kind, "scale": e.scale, "offset": e.offset,
-                 "description": e.description} for e in ENC]
-    segs = []
-    for s in range(nseg):
-        a, b = s * SEGMENT_HOURS, min((s + 1) * SEGMENT_HOURS, len(hours))
-        stem = "frames" if nseg == 1 else f"frames.s{s}"
-        seg: dict[str, Any] = {"index": s, "frames": b - a, "start": iso(hours[a]), "end": iso(hours[b - 1]),
-                               "firstFrame": a}
+    files: dict[str, Any] = {}
+    # 1. field: lossy, hourly
+    fvars = []
+    for n in FIELD_VARS:
+        s, cols, rows = sheet(codes[n], TILE_STRIDE)
+        data = encode_webp(s, FIELD_QUALITY)
+        back = unsheet(data, T, era5.N, era5.N, cols, TILE_STRIDE)
+        err = np.abs(back.astype(int) - codes[n].astype(int))[codes[n] != NODATA]
+        fvars.append(dict(var_meta(ENCODINGS[n]), **_named(out, data, f"field.{n}.webp"),
+                          maxCodeError=int(err.max()) if err.size else 0))
+    files["field"] = {"kind": "webp-lossy", "quality": FIELD_QUALITY, "stepHours": 1, "frames": T, "cols": cols,
+                      "rows": rows, "tileWidth": era5.N, "tileHeight": era5.N, "tileStride": TILE_STRIDE,
+                      "resDeg": 0.25, "vars": fvars,
+                      "note": "For drawing only; read numbers from `exact`, `series` or `era5VsBestTrack`."}
+    # 2. exact: lossless, 3-hourly, 0.5 deg
+    idx = np.arange(0, T, EXACT_STEP_H)
+    evars = []
+    for n in EXACT_VARS:
+        sub = codes[n][idx][:, ::EXACT_STRIDE, ::EXACT_STRIDE]
+        s, ecols, erows = sheet(sub, sub.shape[1])
+        data = encode_webp(s, None)
+        assert np.array_equal(unsheet(data, len(idx), sub.shape[1], sub.shape[2], ecols, sub.shape[1]), sub)
+        evars.append(dict(var_meta(ENCODINGS[n]), **_named(out, data, f"exact.{n}.webp")))
+    files["exact"] = {"kind": "webp-lossless", "stepHours": EXACT_STEP_H, "frameIndex": idx.tolist(),
+                      "frames": len(idx), "cols": ecols, "rows": erows, "tileWidth": sub.shape[2],
+                      "tileHeight": sub.shape[1], "tileStride": sub.shape[1], "cellStride": EXACT_STRIDE,
+                      "resDeg": 0.25 * EXACT_STRIDE, "vars": evars,
+                      "note": "Exact quantised values every 3rd hour at every other cell of the field grid "
+                              "(same NW corner); for numeric readouts."}
+    # 3. tyf: the lossless spike format
+    if "tyf" in formats:
+        q = np.stack([codes[e.name] for e in ENC], axis=1)
         header = {
             "format": "TYF1", "version": 1, "sid": sid, "name": storm.get("name"), "season": storm.get("season"),
-            "segment": s, "segments": nseg, "first_frame": a, "frames": b - a, "nx": era5.N, "ny": era5.N,
-            "res_deg": 0.25, "nodata": NODATA, "layout": "uint8[frames][vars][ny][nx], row 0 north, col 0 west",
-            "vars": var_meta, "time": unix[a:b],
-            "nw_lat": [round(float(x), 2) for x in nw_lat[a:b]],
-            "nw_lon": [round(float(lon180(x)), 2) for x in nw_lon[a:b]],
+            "frames": T, "nx": era5.N, "ny": era5.N, "res_deg": 0.25, "nodata": NODATA,
+            "layout": "uint8[frames][vars][ny][nx], row 0 north, col 0 west", "vars": [var_meta(e) for e in ENC],
+            "time": unix, "nw_lat": [round(float(x), 2) for x in nw_lat],
+            "nw_lon": [round(float(lon180(x)), 2) for x in nw_lon],
             "source": "ERA5 hourly single levels, 0.25 deg (NSF NCAR ds633.0 / ARCO-ERA5)", "served_by": served,
             "credit": credit, "licence": "CC BY 4.0",
         }
-        if "tyf" in formats:
-            blob, hlen = tyf_bytes(q[a:b], header)
-            assert len(blob) < MAX_FILE_BYTES
-            (out / f"{stem}.tyf").write_bytes(blob)
-            seg["tyf"] = {"file": f"{stem}.tyf", "bytes": len(blob), "sha256": sha256(blob), "headerBytes": hlen,
-                          "frameBytes": len(ENC) * era5.N * era5.N}
-        if "webp" in formats:
-            seg["webp"] = {}
-            for vi, e in enumerate(ENC):
-                data, cols, rows = sprite(q[a:b, vi])
-                assert np.array_equal(unsprite(data, b - a, era5.N, era5.N, cols), q[a:b, vi]), "webp not lossless"
-                name = f"{e.name}.webp" if nseg == 1 else f"{e.name}.s{s}.webp"
-                (out / name).write_bytes(data)
-                seg["webp"][e.name] = {"file": name, "bytes": len(data), "sha256": sha256(data), "cols": cols,
-                                       "rows": rows, "tileWidth": era5.N, "tileHeight": era5.N}
-        segs.append(seg)
+        blob, hlen = tyf_bytes(q, header)
+        if len(blob) < MAX_FILE_BYTES:
+            files["tyf"] = dict(_named(out, blob, "tyf"), headerBytes=hlen, frameBytes=len(ENC) * era5.N * era5.N)
+        else:
+            log.warning("%s: .tyf would be %d bytes (> 25 MiB); published as WebP only", sid, len(blob))
     meta = {
-        "sid": sid, "frames": len(hours), "start": segs[0]["start"], "end": segs[-1]["end"], "nx": era5.N,
-        "ny": era5.N, "resDeg": 0.25, "segmentHours": SEGMENT_HOURS, "formats": list(formats), "vars": var_meta,
-        "nodata": NODATA, "segments": segs, "servedBy": served, "credit": credit, "quantisation": qerr,
-        "era5VsBestTrack": check,
+        "sid": sid, "frames": T, "start": iso(hours[0]), "end": iso(hours[-1]), "nx": era5.N, "ny": era5.N,
+        "resDeg": 0.25, "nodata": NODATA, "time": unix, "nwLat": [round(float(x), 2) for x in nw_lat],
+        "nwLon": [round(float(lon180(x)), 2) for x in nw_lon], "files": files, "servedBy": served,
+        "credit": credit, "quantisation": qerr, "series": check.pop("series", None), "era5VsBestTrack": check,
     }
     (out / "frames.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     return meta
 
 
-def quantisation_report(q: np.ndarray, fields: dict[str, np.ndarray]) -> dict[str, Any]:
+def quantisation_report(codes: dict[str, np.ndarray], fields: dict[str, np.ndarray]) -> dict[str, Any]:
     qerr: dict[str, Any] = {}
-    for vi, e in enumerate(ENC):
+    for e in ENC:
         if e.kind == "angle":
             continue
-        d = dequantise(q[:, vi], e) - fields[e.name]
+        d = dequantise(codes[e.name], e) - fields[e.name]
         ok = np.isfinite(d)
         qerr[e.name] = {"maxAbs": round(float(np.abs(d[ok]).max()), 4) if ok.any() else None,
-                        "clipped": int((q[:, vi] == 254).sum()), "nodata": int((q[:, vi] == NODATA).sum())}
+                        "clipped": int((codes[e.name] == 254).sum()), "nodata": int((codes[e.name] == NODATA).sum())}
     return qerr
 
 
-def build_storm(sid: str, hourly: pd.DataFrame, storm: dict[str, Any], *, formats: tuple[str, ...] = ("tyf", "webp"),
+def build_storm(sid: str, hourly: pd.DataFrame, storm: dict[str, Any], *, formats: tuple[str, ...] = ("webp",),
                 manifest: sources.RunManifest | None = None, out_root: Path = OUT) -> dict[str, Any]:
     """Read ERA5 windows along the hourly track, write the frame files, return the frames manifest."""
     hourly = hourly.sort_values("time").reset_index(drop=True)
     hours = hourly.time.dt.tz_convert("UTC").dt.tz_localize(None).to_numpy().astype("datetime64[h]")
     w = era5.read_windows(hours, hourly.lat.to_numpy(), hourly.lon.to_numpy(), manifest=manifest)
     fields = physical_fields(w)
-    q = np.stack([quantise(fields[e.name], e) for e in ENC], axis=1)       # T, V, ny, nx
+    codes = {e.name: quantise(fields[e.name], e) for e in ENC}
+    u, v = w.fields["u10"], w.fields["v10"]
+    codes["u"], codes["v"] = quantise(u, UV[0]), quantise(v, UV[1])
     served = {k: {lk: v.count(lk) for lk in dict.fromkeys(v)} for k, v in w.served.items()}
-    return write_frames(sid, q, hours, w.nw_lat, w.nw_lon, storm, served, quantisation_report(q, fields),
+    return write_frames(sid, codes, hours, w.nw_lat, w.nw_lon, storm, served, quantisation_report(codes, fields),
                         honesty(fields, w.nw_lat, w.nw_lon, hourly), ensure_dir(out_root / sid), formats)
 
 
-def repack(d: Path, hourly: pd.DataFrame, storm: dict[str, Any]) -> dict[str, Any]:
-    """Rewrite a storm built with an older file layout (7-day segments, `rain`, camelCase header keys) in
-    the current layout, without re-reading ERA5. The cross-check is recomputed from the stored values."""
+def repack(d: Path, hourly: pd.DataFrame, storm: dict[str, Any], formats: tuple[str, ...]) -> dict[str, Any]:
+    """Rewrite a storm built in an earlier layout from its stored .tyf codes, without re-reading ERA5.
+    The cross-check and series are recomputed from the stored (quantised) values."""
     meta = json.loads((d / "frames.json").read_text())
+    if "files" in meta and "tyf" in meta["files"]:
+        tyfs = [meta["files"]["tyf"]["file"]]
+    else:
+        tyfs = [seg["tyf"]["file"] for seg in meta["segments"]]
     parts, lat, lon, times = [], [], [], []
-    for seg in meta["segments"]:
-        h, q = parse_tyf((d / seg["tyf"]["file"]).read_bytes())
+    for f in tyfs:
+        h, q = parse_tyf((d / f).read_bytes())
         parts.append(q)
         lat += h.get("nw_lat") or h["nwLat"]
         lon += h.get("nw_lon") or h["nwLon"]
         times += h["time"]
     q = np.concatenate(parts)
+    names = [v["name"] for v in h["vars"]]
+    codes = {("tp" if n == "rain" else n): q[:, i] for i, n in enumerate(names)}
+    fields = {e.name: dequantise(codes[e.name], e) for e in ENC}
+    codes.update(uv_codes(fields["wind"], fields["wdir"]))
     hours = np.array(times, dtype="datetime64[s]").astype("datetime64[h]")
     nw_lat, nw_lon = np.array(lat, float), np.array(lon, float) % 360
-    fields = {e.name: dequantise(q[:, vi], e) for vi, e in enumerate(ENC)}
     hourly = hourly.sort_values("time").reset_index(drop=True)
     assert len(hourly) == len(hours), f"{d.name}: track has {len(hourly)} hours, frames {len(hours)}"
-    return write_frames(d.name, q, hours, nw_lat, nw_lon, storm, meta["servedBy"], meta["quantisation"],
-                        honesty(fields, nw_lat, nw_lon, hourly), d, tuple(meta.get("formats", ("tyf", "webp"))))
+    return write_frames(d.name, codes, hours, nw_lat, nw_lon, storm, meta["servedBy"], meta["quantisation"],
+                        honesty(fields, nw_lat, nw_lon, hourly), d, formats)
 
 
 def validate_storm(d: Path) -> None:
-    """Gate before a storm's frames leave the machine: header, sizes, checksums, nodata, WebP == tyf."""
+    """Gate before a storm's frames leave the machine: names = content, sizes, exact == tyf, lossy bounds."""
     meta = json.loads((d / "frames.json").read_text())
-    for seg in meta["segments"]:
-        if "tyf" not in seg:
-            continue
-        blob = (d / seg["tyf"]["file"]).read_bytes()
-        if sha256(blob) != seg["tyf"]["sha256"] or len(blob) >= MAX_FILE_BYTES:
-            raise ValueError(f"{d.name}: bad tyf segment {seg['index']}")
-        h, q = parse_tyf(blob)
-        if h["frames"] != seg["frames"]:
-            raise ValueError(f"{d.name}: frame count mismatch in segment {seg['index']}")
+    files = meta["files"]
+    entries = [*files["field"]["vars"], *files["exact"]["vars"]] + ([files["tyf"]] if "tyf" in files else [])
+    for f in entries:
+        data = (d / f["file"]).read_bytes()
+        if sha256(data) != f["sha256"] or not f["file"].startswith(f["sha256"][:16]) or len(data) >= MAX_FILE_BYTES:
+            raise ValueError(f"{d.name}: {f['file']} does not match its manifest entry")
+    for f in files["field"]["vars"]:
+        if f["maxCodeError"] > 40:
+            raise ValueError(f"{d.name}: lossy {f['name']} off by {f['maxCodeError']} codes")
+    if "tyf" in files:
+        h, q = parse_tyf((d / files["tyf"]["file"]).read_bytes())
+        if h["frames"] != meta["frames"]:
+            raise ValueError(f"{d.name}: tyf frame count")
         nod = float((q[:, :4] == NODATA).mean())
         if nod > 0.01:
-            raise ValueError(f"{d.name}: {nod:.1%} nodata in segment {seg['index']}")
+            raise ValueError(f"{d.name}: {nod:.1%} nodata")
+        ex = files["exact"]
         names = [v["name"] for v in h["vars"]]
-        for name, w in seg.get("webp", {}).items():
-            back = unsprite((d / w["file"]).read_bytes(), seg["frames"], h["ny"], h["nx"], w["cols"])
-            if not np.array_equal(back, q[:, names.index(name)]):
-                raise ValueError(f"{d.name}: webp {name} differs from tyf in segment {seg['index']}")
+        for f in ex["vars"]:
+            back = unsheet((d / f["file"]).read_bytes(), ex["frames"], ex["tileHeight"], ex["tileWidth"], ex["cols"],
+                           ex["tileStride"])
+            if not np.array_equal(back, q[ex["frameIndex"], names.index(f["name"])][:, ::2, ::2]):
+                raise ValueError(f"{d.name}: exact {f['name']} differs from tyf")
 
 
-def upload_storm(d: Path, version: int) -> None:
-    """Push one storm's frame files to v<version>/storms/<sid>/ (retrying concurrent-commit conflicts)."""
+def upload_storm(d: Path) -> None:
+    """Push one storm's content-addressed frame files to frames/<sid>/ (retrying concurrent-commit conflicts).
+    They are invisible to the app until a summary.json of a published version references them."""
     from huggingface_hub import HfApi
 
     from .config import HF_REPO
@@ -355,8 +450,8 @@ def upload_storm(d: Path, version: int) -> None:
     for k in range(5):
         try:
             HfApi(token=token()).upload_folder(
-                repo_id=HF_REPO, repo_type="dataset", folder_path=str(d), path_in_repo=f"v{version}/storms/{d.name}",
-                allow_patterns=["*.tyf", "*.webp"], commit_message=f"v{version}: frames for {d.name}")
+                repo_id=HF_REPO, repo_type="dataset", folder_path=str(d), path_in_repo=f"frames/{d.name}",
+                allow_patterns=["*.tyf", "*.webp"], commit_message=f"frames for {d.name}")
             return
         except Exception as e:  # noqa: BLE001  concurrent batch commits can conflict: retry
             log.warning("upload of %s failed (%s), retry %d", d.name, e, k + 1)
@@ -381,15 +476,15 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sid", action="append", default=[])
     ap.add_argument("--list", type=Path, help="file of SIDs (e.g. curated/replay-v1.txt)")
-    ap.add_argument("--formats", default="tyf,webp")
+    ap.add_argument("--formats", default="webp", help="webp (always) plus optionally tyf")
     ap.add_argument("--skip-existing", action="store_true", help="skip storms whose frames.json exists")
     ap.add_argument("--repack", action="store_true",
                     help="rewrite already-built storms in the current file layout (no ERA5 reads)")
     ap.add_argument("--plan", type=Path, help="batch plan JSON from `python -m typhoon plan`")
     ap.add_argument("--batch", help="batch number within --plan")
-    ap.add_argument("--upload-version", type=int,
-                    help="after building and validating each storm, upload its frame files to v<N>/storms/<sid>/ "
-                         "on the Hugging Face dataset (invisible until latest.json flips)")
+    ap.add_argument("--upload", action="store_true",
+                    help="after building and validating each storm, upload its frame files to frames/<sid>/ on the "
+                         "Hugging Face dataset (content-addressed; referenced only once a version is published)")
     a = ap.parse_args(argv)
     sids = a.sid + (read_list(a.list) if a.list else [])
     if a.plan:
@@ -402,7 +497,8 @@ def main(argv: list[str] | None = None) -> None:
             continue
         if a.repack:
             if (OUT / sid / "frames.json").exists():
-                repack(OUT / sid, hr[hr.sid == sid], {"name": st.loc[sid, "name"], "season": int(st.loc[sid, "season"])})
+                repack(OUT / sid, hr[hr.sid == sid], {"name": st.loc[sid, "name"], "season": int(st.loc[sid, "season"])},
+                       tuple(a.formats.split(",")))
                 validate_storm(OUT / sid)
                 log.info("repacked %s", sid)
             continue
@@ -414,8 +510,8 @@ def main(argv: list[str] | None = None) -> None:
                         formats=tuple(a.formats.split(",")), manifest=man)
         man.write(OUT / sid / "provenance.json")
         validate_storm(OUT / sid)
-        if a.upload_version:
-            upload_storm(OUT / sid, a.upload_version)
+        if a.upload:
+            upload_storm(OUT / sid)
         h = m["era5VsBestTrack"]
         log.info("[%d/%d] %s %s: %d frames in %.0f s, %.0f MB read, ratio %s (%s), served %s", n, len(sids), sid,
                  st.loc[sid, "name"], m["frames"], time.time() - t0,

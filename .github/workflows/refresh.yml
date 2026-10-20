@@ -88,7 +88,7 @@ jobs:
           version=$(uv run python -m typhoon publish next-version)
           echo "VERSION=$version" >> "$GITHUB_ENV"
           uv run python -m typhoon plan --batches 1 --mode changed --previous "$HF_ROOT" --out ../data/plan.json
-          uv run python -m typhoon frames --plan ../data/plan.json --batch 0 --upload-version "$version"
+          uv run python -m typhoon frames --plan ../data/plan.json --batch 0 --upload
       - name: Assemble, check, upload, verify, flip
         if: steps.changed.outputs.go == 'true'
         working-directory: pipeline

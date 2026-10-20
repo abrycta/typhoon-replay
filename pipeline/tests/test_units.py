@@ -218,3 +218,40 @@ def test_max_intensification_over_24_hours() -> None:
     h = pd.DataFrame({"time": t, "jtwc_wind_kt": w, "jma_wind_kt": np.nan})
     kt, at = stats.max_intensification(h)
     assert kt == 80.0 and at == "2021-12-15T12:00:00Z"
+
+
+def synthetic_codes(T: int = 10) -> dict[str, np.ndarray]:
+    yy, xx = np.mgrid[0:81, 0:81]
+    r = np.hypot(yy - 40, xx - 40)
+    wind = np.stack([np.clip(60 - np.abs(r - 8 - k * 0.2) * 2, 0, 76) for k in range(T)])
+    wdir = np.stack([(np.degrees(np.arctan2(xx - 40, yy - 40)) + 90) % 360 for _ in range(T)])
+    fields = {"wind": wind, "gust": wind * 1.3, "mslp": 1000 - wind, "tp": wind / 4, "wdir": wdir}
+    codes = {e.name: frames.quantise(fields[e.name], e) for e in frames.ENC}
+    codes.update(frames.uv_codes(frames.dequantise(codes["wind"], frames.ENC[0]),
+                                 frames.dequantise(codes["wdir"], frames.ENC[4])))
+    return codes
+
+
+def test_padded_sheets_round_trip() -> None:
+    q = np.random.default_rng(5).integers(0, 255, (7, 81, 81), dtype=np.uint8)
+    s, cols, rows = frames.sheet(q, 96)
+    assert s.shape == (rows * 96, cols * 96)
+    data = frames.encode_webp(s, None)
+    assert np.array_equal(frames.unsheet(data, 7, 81, 81, cols, 96), q)
+
+
+def test_write_frames_is_content_addressed_and_valid(tmp_path) -> None:
+    T = 10
+    codes = synthetic_codes(T)
+    hours = np.arange(np.datetime64("2013-11-07T00", "h"), np.datetime64("2013-11-07T10", "h"))
+    check = {"headlineRatio": 0.3, "series": {"era5MaxWindMs": [1.0] * T}}
+    meta = frames.write_frames("2013306N07162", codes, hours, np.full(T, 20.0), np.full(T, 120.0),
+                               {"name": "Haiyan", "season": 2013}, {}, {}, check, tmp_path, ("webp", "tyf"))
+    frames.validate_storm(tmp_path)
+    f = meta["files"]
+    assert [v["name"] for v in f["field"]["vars"]] == ["wind", "gust", "mslp", "tp", "u", "v"]
+    assert f["exact"]["frameIndex"] == [0, 3, 6, 9] and f["exact"]["tileWidth"] == 41
+    for v in [*f["field"]["vars"], *f["exact"]["vars"], f["tyf"]]:
+        assert v["file"].startswith(v["sha256"][:16]) and (tmp_path / v["file"]).stat().st_size == v["bytes"]
+    assert all(v["maxCodeError"] <= 40 for v in f["field"]["vars"])
+    assert meta["series"] == {"era5MaxWindMs": [1.0] * T} and "series" not in meta["era5VsBestTrack"]
