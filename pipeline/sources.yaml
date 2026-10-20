@@ -76,6 +76,7 @@ sources:
     checks:
       bytes: { min: 90000000, max: 300000000 }
       rows: { min: 240000, max: 400000 }
+      profile: { key: SID, group: SEASON, numeric: [LAT, LON, WMO_WIND, WMO_PRES, USA_WIND], unique: [SID, ISO_TIME] }
       header_rows: 2
       header_sha256: 96873ede925e7a2fe34a12b9c331e67385166e1cac671d4247a6adc7f9749e98
       required_columns: &ibtracs_cols [SID, SEASON, NUMBER, BASIN, SUBBASIN, NAME, ISO_TIME, NATURE,
@@ -85,7 +86,7 @@ sources:
         TOKYO_PRES, TOKYO_R50_LONG, TOKYO_R30_LONG, TOKYO_LAND, CMA_WIND, HKO_WIND, KMA_WIND,
         STORM_SPEED, STORM_DIR]
       shrink_tolerance: 0.02
-    archived: { enabled: true, retention: all }
+    archived: { enabled: true, retention: all, max_age_days: 21 }
 
   - id: ibtracs-all
     description: IBTrACS v04r01 best tracks, all basins (cross-basin checks, future basins)
@@ -111,11 +112,12 @@ sources:
     checks:
       bytes: { min: 250000000, max: 700000000 }
       rows: { min: 650000, max: 1200000 }
+      profile: { key: SID, group: SEASON, numeric: [LAT, LON, WMO_WIND, WMO_PRES, USA_WIND], unique: [SID, ISO_TIME] }
       header_rows: 2
       header_sha256: 96873ede925e7a2fe34a12b9c331e67385166e1cac671d4247a6adc7f9749e98
       required_columns: *ibtracs_cols
       shrink_tolerance: 0.02
-    archived: { enabled: true, retention: all }
+    archived: { enabled: true, retention: all, max_age_days: 21 }
 
   # ------------------------------------------------------------------ reanalysis (listed, never archived raw)
   # ERA5 is read as storm-following windows straight from public buckets (HTTP range requests of the
