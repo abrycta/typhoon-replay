@@ -176,7 +176,7 @@ jobs:
           docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e BASE_URL=http://localhost:8081 \
             -e TR_SITE_ORIGIN="$SITE_ORIGIN" -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
             --config-file /c/conformance/schemathesis/backend.toml run /c/dist/openapi.json \
-            --exclude-checks positive_data_acceptance --exclude-operation-id completeLogin
+            --exclude-checks positive_data_acceptance --exclude-operation-id completeLogin --request-retries 3
 
       - name: Compatibility table
         if: always()
