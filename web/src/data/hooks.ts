@@ -7,6 +7,8 @@ import type { StormDetail } from "@/shared/model/types";
 import { loadIndex, loadManifest, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset, stormRoot } from "./dataset";
 import { frameSource, sourceKey } from "./frames/source";
 import { FrameStore } from "./frames/store";
+import { preparePlaces } from "./place-search";
+import { loadPlaceIndex, loadPlaceShard } from "./places";
 
 const STATIC = { staleTime: Infinity, gcTime: 30 * 60_000, retry: 1 } as const;
 
@@ -51,6 +53,23 @@ export function useStormTrack(sid: string | undefined) {
     enabled: !!ds.data && !!sid,
     ...STATIC,
   });
+}
+
+/** The static place search index, prepared for searching. Load it only where place search is used. */
+export function usePlaceIndex(enabled = true) {
+  const ds = useDataset();
+  const q = useQuery({
+    queryKey: ["places", ds.data?.root],
+    queryFn: async () => preparePlaces(await loadPlaceIndex(ds.data as ResolvedDataset)),
+    enabled: enabled && !!ds.data,
+    ...STATIC,
+  });
+  return { ...q, error: ds.error ?? q.error, isPending: ds.isPending || q.isPending };
+}
+
+/** One place shard (its places and their storm exposure). */
+export function usePlaceShard(url: string | undefined) {
+  return useQuery({ queryKey: ["place-shard", url], queryFn: () => loadPlaceShard(url as string), enabled: !!url, ...STATIC });
 }
 
 /** Opens the storm's frames (WebP preferred, else .tyf) in a worker for as long as the component is mounted. */

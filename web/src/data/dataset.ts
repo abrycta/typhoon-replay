@@ -38,7 +38,7 @@ export class DataError extends Error {
 
 type Fetch = typeof fetch;
 
-async function getJson<T>(url: string, f: Fetch, timeoutMs = 10000): Promise<T> {
+export async function getJson<T>(url: string, f: Fetch, timeoutMs = 10000): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {

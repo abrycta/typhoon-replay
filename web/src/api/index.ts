@@ -1,53 +1,19 @@
-// Public surface of the API layer. Features import from "@/api" only; nothing outside src/api may
-// import openapi-fetch, msw or src/api/generated (lint rule).
-import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+// Public surface of the API layer. Only the under-the-hood feature may import it (lint rule): every visitor
+// page runs from static files. Nothing outside src/api may import src/api/generated or call a backend.
+import { type ApiResult, sendRequest } from "./request";
 
-import type { BackendId } from "@/shared/config/config";
+export { bodyKey, type MatchState, matchStates, normaliseBody } from "./compare";
+export { type ApiPath, type ApiResult, classify, type ContractPath, type ResultKind, sendRequest, type SendOptions } from "./request";
+export { retryDecision, type RetryDecision, sendUntilAwake, WAKE_CAP_MS, type WakeOutcome, type WakeProgress } from "./wake";
 
-import { displayHealth, probeBackend, useBackends } from "./backends";
-import { metaQuery, placeSearchQuery, placeStormsQuery, type RadiusKm, stormPlacesQuery } from "./queries";
-
-export { ApiError } from "./client";
-export {
-  displayHealth,
-  initBackends,
-  probeBackend,
-  selectBackend,
-  useBackends,
-  type BackendHealth,
-  type HealthState,
-} from "./backends";
-export { useLastResponse, type ResponseInfo } from "./info";
-export type { RadiusKm } from "./queries";
-
-/** The selected backend, probed once when a feature that needs the API mounts. */
-export function useApiBackend(): { id: BackendId; state: ReturnType<typeof displayHealth> } {
-  const { selected, health } = useBackends();
-  const h = health[selected];
-  const state = displayHealth(h);
-  useEffect(() => {
-    if (state === "asleep" || state === "unknown") void probeBackend(selected);
-  }, [selected, state]);
-  return { id: selected, state };
-}
-
-export function usePlaceSearch(q: string) {
-  const { id } = useApiBackend();
-  return useQuery(placeSearchQuery(id, q));
-}
-
-export function usePlaceStorms(placeId: string | undefined, radiusKm: RadiusKm) {
-  const { id } = useApiBackend();
-  return useQuery({ ...placeStormsQuery(id, placeId ?? "", radiusKm), enabled: !!placeId });
-}
-
-export function useStormPlaces(sid: string, opts: { enabled: boolean; radiusKm?: RadiusKm }) {
-  const { id } = useApiBackend();
-  return useQuery({ ...stormPlacesQuery(id, sid, opts.radiusKm), enabled: opts.enabled });
-}
-
-export function useMeta(enabled: boolean) {
-  const { selected } = useBackends();
-  return useQuery({ ...metaQuery(selected), enabled });
+/** One GET /healthz at low priority, started when the browser is idle: wakes a sleeping backend early. */
+export function wakePing(baseUrl: string, signal?: AbortSignal): Promise<ApiResult | undefined> {
+  return new Promise((resolve) => {
+    const go = () => {
+      if (signal?.aborted) return resolve(undefined);
+      sendRequest(baseUrl, "/healthz", { priority: "low", signal }).then(resolve, () => resolve(undefined));
+    };
+    if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 2000 });
+    else setTimeout(go, 200);
+  });
 }

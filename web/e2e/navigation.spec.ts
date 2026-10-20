@@ -7,7 +7,8 @@ const PAGES = [
   { name: "home", path: "/", current: "Home" },
   { name: "storms", path: "/storms", current: "Storms" },
   { name: "compare", path: `/compare?a=${HAIYAN}&b=2021346N05145`, current: "Compare" },
-  { name: "town", path: "/town?backend=mock", current: "My town" },
+  { name: "town", path: "/town", current: "My town" },
+  { name: "under the hood", path: "/under-the-hood", current: "Under the hood" },
   { name: "about", path: "/about", current: "About" },
   { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}`, current: undefined },
   { name: "404", path: "/no/such/page", current: undefined },
@@ -87,10 +88,10 @@ test("storm load error offers retry, the catalogue and home", async ({ page }) =
   await expect(page).toHaveURL(/\/$/);
 });
 
-test("backend unavailable: the town page still has the header nav", async ({ page }) => {
+test("every API blocked: the town page still works and has the header nav", async ({ page }) => {
   await page.route("**/api/**", (r) => r.abort());
-  await page.goto("/town?backend=java");
-  await expect(page.getByTestId("api-status")).toContainText("unavailable");
+  await page.goto("/town?q=tacloban&place=PH-0831600000");
+  await expect(page.getByTestId("town-hits")).toContainText("Haiyan (Yolanda) 2013");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
 });

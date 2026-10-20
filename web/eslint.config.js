@@ -6,11 +6,11 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 // Architecture rules (web/docs/ARCHITECTURE-RESEARCH.md §2), readable by a reviewer:
-//   - only src/api talks to a backend; features use its public index ("@/api") only;
-//   - src/data (static frames, tracks, index) never imports src/api: the replay works with every backend asleep;
-//   - features never import each other; routes compose them;
-//   - replay, compare, storm-search and dataset-info are static-only features (no "@/api").
-const STATIC_FEATURES = ["replay", "compare", "storm-search", "dataset-info"];
+//   - only src/api talks to a backend, and only the under-the-hood feature may import it (through "@/api"):
+//     every visitor page (home, storms, storm, compare, town, about) runs from static files;
+//   - src/data (static frames, tracks, index, places) never imports src/api: the site works with every backend asleep;
+//   - features never import each other; routes compose them; app and routes never import src/api.
+const API_FEATURES = ["under-the-hood"];
 
 export default tseslint.config(
   { ignores: ["dist", ".wrangler", "node_modules", "src/routeTree.gen.ts", "src/api/generated", "public/mockServiceWorker.js", "test-results", "playwright-report"] },
@@ -49,10 +49,10 @@ export default tseslint.config(
         {
           default: "disallow",
           policies: [
-            { from: { element: { type: "app" } }, allow: { to: { element: { types: { anyOf: ["app", "routes", "feature", "api", "data", "shared"] } } } } },
-            { from: { element: { type: "routes" } }, allow: { to: { element: { types: { anyOf: ["app", "routes", "feature", "api", "data", "shared"] } } } } },
-            { from: { element: { type: "feature" } }, allow: { to: { element: { types: { anyOf: ["data", "shared", "api"] } } } } },
-            { from: { element: { type: "feature", captured: { name: STATIC_FEATURES } } }, disallow: { to: { element: { type: "api" } } } },
+            { from: { element: { type: "app" } }, allow: { to: { element: { types: { anyOf: ["app", "routes", "feature", "data", "shared"] } } } } },
+            { from: { element: { type: "routes" } }, allow: { to: { element: { types: { anyOf: ["app", "routes", "feature", "data", "shared"] } } } } },
+            { from: { element: { type: "feature" } }, allow: { to: { element: { types: { anyOf: ["data", "shared"] } } } } },
+            { from: { element: { type: "feature", captured: { name: API_FEATURES } } }, allow: { to: { element: { type: "api" } } } },
             { from: { element: { type: "api" } }, allow: { to: { element: { types: { anyOf: ["api", "shared"] } } } } },
             { from: { element: { type: "data" } }, allow: { to: { element: { types: { anyOf: ["data", "shared"] } } } } },
             { from: { element: { type: "shared" } }, allow: { to: { element: { type: "shared" } } } },

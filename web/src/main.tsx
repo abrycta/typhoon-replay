@@ -3,7 +3,6 @@ import "./index.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { initBackends } from "@/api";
 import { App } from "@/app/App";
 import { BootError } from "@/app/BootError";
 import { loadConfig } from "@/shared/config/config";
@@ -21,7 +20,6 @@ const locale = initialLocale();
 
 Promise.all([loadConfig(), activateLocale(locale)])
   .then(([config]) => {
-    initBackends(config.backends, config.defaultBackend, new URLSearchParams(location.search).get("backend") ?? undefined);
     createRoot(root).render(
       <StrictMode>
         <App config={config} locale={locale} />

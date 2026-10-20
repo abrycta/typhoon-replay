@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as StormsRouteImport } from './routes/storms'
 import { Route as TownRouteImport } from './routes/town'
+import { Route as UnderTheHoodRouteImport } from './routes/under-the-hood'
 import { Route as StormSidRouteImport } from './routes/storm.$sid'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const TownRoute = TownRouteImport.update({
   path: '/town',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UnderTheHoodRoute = UnderTheHoodRouteImport.update({
+  id: '/under-the-hood',
+  path: '/under-the-hood',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StormSidRoute = StormSidRouteImport.update({
   id: '/storm/$sid',
   path: '/storm/$sid',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareRoute
   '/storms': typeof StormsRoute
   '/town': typeof TownRoute
+  '/under-the-hood': typeof UnderTheHoodRoute
   '/storm/$sid': typeof StormSidRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareRoute
   '/storms': typeof StormsRoute
   '/town': typeof TownRoute
+  '/under-the-hood': typeof UnderTheHoodRoute
   '/storm/$sid': typeof StormSidRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,28 @@ export interface FileRoutesById {
   '/compare': typeof CompareRoute
   '/storms': typeof StormsRoute
   '/town': typeof TownRoute
+  '/under-the-hood': typeof UnderTheHoodRoute
   '/storm/$sid': typeof StormSidRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/compare' | '/storms' | '/town' | '/storm/$sid'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/compare'
+    | '/storms'
+    | '/town'
+    | '/under-the-hood'
+    | '/storm/$sid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/compare' | '/storms' | '/town' | '/storm/$sid'
+  to:
+    | '/'
+    | '/about'
+    | '/compare'
+    | '/storms'
+    | '/town'
+    | '/under-the-hood'
+    | '/storm/$sid'
   id:
     | '__root__'
     | '/'
@@ -84,6 +107,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/storms'
     | '/town'
+    | '/under-the-hood'
     | '/storm/$sid'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +117,7 @@ export interface RootRouteChildren {
   CompareRoute: typeof CompareRoute
   StormsRoute: typeof StormsRoute
   TownRoute: typeof TownRoute
+  UnderTheHoodRoute: typeof UnderTheHoodRoute
   StormSidRoute: typeof StormSidRoute
 }
 
@@ -133,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TownRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/under-the-hood': {
+      id: '/under-the-hood'
+      path: '/under-the-hood'
+      fullPath: '/under-the-hood'
+      preLoaderRoute: typeof UnderTheHoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/storm/$sid': {
       id: '/storm/$sid'
       path: '/storm/$sid'
@@ -149,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareRoute: CompareRoute,
   StormsRoute: StormsRoute,
   TownRoute: TownRoute,
+  UnderTheHoodRoute: UnderTheHoodRoute,
   StormSidRoute: StormSidRoute,
 }
 export const routeTree = rootRouteImport

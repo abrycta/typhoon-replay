@@ -66,33 +66,26 @@ test("compare keeps both storms and the hour in the URL", async ({ page }) => {
   await expect(page).toHaveURL(/a=2019278N16165/);
 });
 
-test("hit my town against the mock backend, with X-Backend-Impl in the footer", async ({ page }) => {
-  await page.goto("/town?backend=mock");
-  await page.getByLabel("City or municipality").fill("tacloban");
-  await page.getByRole("button", { name: /Tacloban City/ }).click();
-  await expect(page.getByTestId("town-hits")).toContainText("Haiyan (Yolanda) 2013");
-  await expect(page.getByTestId("served-by")).toContainText("Served by mock");
-  await expect(page).toHaveURL(/place=PH-0831600000/);
-});
-
 test("graceful degradation: the replay works with every API blocked", async ({ page }) => {
   await page.route("**/api/**", (r) => r.abort());
   await page.goto(`/storm/${HAIYAN}?t=${PEAK}`);
   await waitForReplay(page);
   await expect(page.getByTestId("honesty-ratio")).toContainText("0.31×");
-  await page.goto("/town?backend=java");
-  await expect(page.getByTestId("api-status")).toContainText("unavailable");
 });
 
-test("backend switch shows per-backend status without probing all of them", async ({ page }) => {
-  const probes: string[] = [];
-  page.on("request", (r) => r.url().includes("/healthz") && probes.push(r.url()));
-  await page.goto("/about");
-  await page.getByTestId("backend-switch").click();
-  for (const id of ["java", "node", "rust", "go", "mock"]) await expect(page.getByTestId(`backend-${id}`)).toBeVisible();
-  expect(probes).toEqual([]);
-  await page.getByTestId("backend-mock").click();
-  await expect(page.getByTestId("backend-switch")).toHaveAccessibleName(/Served by Mock/);
+test("storm header: one landfall phrase per country; each landfall in the timeline", async ({ page }) => {
+  test.slow(); // a full storm page with a software-rendered map; under CI load this alone can take ~40 s
+  // Header and timeline come from summary.json and track.json; the ERA5 field is not needed. Reduced motion keeps
+  // the software-rendered map from animating particles, which starves the main thread on a loaded CI machine.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`/storm/${HAIYAN}?t=${PEAK}`);
+  const lede = page.getByTestId("storm-lede");
+  await expect(lede).toContainText("landfall in the Philippines 8 Nov 2013");
+  expect((await lede.textContent())!.match(/in the Philippines/g)).toHaveLength(1);
+  // The timeline table sits below the map; give it the time the replay tests give the first frame.
+  const marks = page.getByTestId("timeline-landfall");
+  await expect(marks).toHaveCount(1, { timeout: 30_000 });
+  await expect(marks).toHaveText("Landfall in the Philippines at 8 Nov, 08:00"); // 00:00 UTC in the default local time (GMT+8)
 });
 
 test("errors: unknown storm and unknown page show the 404", async ({ page }) => {

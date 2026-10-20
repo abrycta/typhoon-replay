@@ -270,6 +270,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             units={url.units}
             lang={lang}
             tz={tzChoice}
+            landfalls={detail.landfalls}
           />
         </section>
       ) : null}

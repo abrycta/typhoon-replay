@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { hourAt } from "@/data";
 import { formatShort, type Lang, type TimeZoneChoice } from "@/shared/lib/time";
 import { ktToMs, msToKt, type SpeedUnit } from "@/shared/lib/units";
-import type { TrackHour } from "@/shared/model/types";
+import type { Landfall, TrackHour } from "@/shared/model/types";
 
 export interface TimelineTableProps {
   times: number[];
@@ -17,22 +17,38 @@ export interface TimelineTableProps {
   units: SpeedUnit;
   lang: Lang;
   tz: TimeZoneChoice;
+  /** Each landfall is marked on the row of the hour it falls in (that row is always listed). */
+  landfalls?: readonly Pick<Landfall, "country" | "at">[];
 }
+
+const NO_LANDFALLS: readonly Pick<Landfall, "country" | "at">[] = [];
 
 const ll = (lat: number, lon: number) => `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"} ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? "E" : "W"}`;
 
 /** The text alternative to the animated map: the same data, one row per hour, in the DOM. */
-export function TimelineTable({ times, hours, era5, current, onJump, units, lang, tz }: TimelineTableProps) {
+export function TimelineTable({ times, hours, era5, current, onJump, units, lang, tz, landfalls = NO_LANDFALLS }: TimelineTableProps) {
   const { t } = useLingui();
   const [observedOnly, setObservedOnly] = useState(false);
   const step = times.length > 240 ? 3 : 1;
+  // Landfalls by timeline index: the last time at or before each landfall (within one step).
+  const landfallRows = useMemo(() => {
+    const m = new Map<number, Pick<Landfall, "country" | "at">[]>();
+    for (const l of landfalls) {
+      const at = Date.parse(l.at) / 1000;
+      let idx = -1;
+      for (let i = 0; i < times.length && times[i]! <= at; i++) idx = i;
+      if (idx < 0 || at - times[idx]! > 3600 * step) continue;
+      m.set(idx, [...(m.get(idx) ?? []), l]);
+    }
+    return m;
+  }, [landfalls, times, step]);
   const rows = useMemo(
     () =>
       times
         .map((time, index) => ({ index, time, hour: hourAt(hours, time) }))
-        .filter((r) => r.hour && (r.index % step === 0 || r.index === current))
-        .filter((r) => !observedOnly || (r.hour?.observed && r.hour.t === r.time)),
-    [times, hours, step, observedOnly, current],
+        .filter((r) => r.hour && (r.index % step === 0 || r.index === current || landfallRows.has(r.index)))
+        .filter((r) => !observedOnly || (r.hour?.observed && r.hour.t === r.time) || landfallRows.has(r.index)),
+    [times, hours, step, observedOnly, current, landfallRows],
   );
   const sp = (kt?: number) => (kt === undefined ? "" : units === "kt" ? `${kt.toFixed(0)}` : ktToMs(kt).toFixed(1));
   const unit = units === "kt" ? "kt" : "m/s";
@@ -81,6 +97,11 @@ export function TimelineTable({ times, hours, era5, current, onJump, units, lang
                       : h.between
                         ? t`interpolated (${formatShort(h.between[0], lang, tz)}–${formatShort(h.between[1], lang, tz)})`
                         : t`interpolated`}
+                    {(landfallRows.get(index) ?? []).map((l) => (
+                      <span key={l.at} className="block font-semibold" data-testid="timeline-landfall">
+                        {l.country === "PH" ? t`Landfall in the Philippines at ${formatShort(l.at, lang, tz)}` : t`Landfall in Japan at ${formatShort(l.at, lang, tz)}`}
+                      </span>
+                    ))}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{e === undefined ? <span aria-label={t`not loaded yet`}>…</span> : units === "kt" ? msToKt(e).toFixed(0) : e.toFixed(1)}</TableCell>
                 </TableRow>
