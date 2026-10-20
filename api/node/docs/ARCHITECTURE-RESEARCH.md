@@ -495,3 +495,16 @@ fastify 5.12.7 · @nestjs/core 12.2.0 · hono 4.13.13 · @hono/node-server 2.1.5
 - Realtime/jobs: [@fastify/sse](https://github.com/fastify/sse), [Upstash pricing](https://upstash.com/docs/redis/overall/pricing), [Upstash on BullMQ idle traffic](https://upstash.com/docs/redis/integrations/bullmq)
 - E-mail: [Resend pricing](https://resend.com/pricing), [Brevo review 2026 (third-party)](https://dreamlit.ai/blog/brevo-review)
 - Build: [TypeScript 7 release (InfoQ)](https://infoq.com/news/2026/08/typescript-7-released/), [tsdown migrate from tsup](https://tsdown.dev/guide/migrate-from-tsup), [distroless nodejs](https://github.com/GoogleContainerTools/distroless/blob/main/nodejs/README.md), [dependency-cruiser](https://github.com/sverweij/dependency-cruiser)
+
+## Frozen showcase policy (decided 2026-10-21)
+
+Applies once this backend is built (`docs/architecture/DECISIONS.md`, "Frozen showcase policy"; the Java backend's
+README shows it in practice). After its first conformant release the backend only receives security fixes.
+
+- **Pinned:** npm with exact versions (`save-exact=true` in `.npmrc`, no `^`/`~`) and the committed `package-lock.json` (`npm ci` only); the Node 24 base image by digest; `.nvmrc`/`engines` on the same 24.x; CI actions by commit SHA.
+- **Security fixes:** Renovate (`renovate.json`) opens no routine updates under `api/node/`. Vulnerability fixes
+  (GitHub advisories / OSV) and base-image digest refreshes arrive as one grouped PR ("node backend security
+  fixes", branch `renovate/node/security-fixes`) and auto-merge only when this backend's CI is green: its own
+  tests **and** the shared conformance suite against its image.
+- **Unfreezing** for a deliberate upgrade: change the pins (`package.json` + `npm install --package-lock-only`), regenerate the lockfile, re-measure
+  startup/RSS, and open a PR labelled `unfreeze`; the same tests and conformance gate it.

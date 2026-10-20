@@ -2,6 +2,12 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
+// Frozen showcase (docs/architecture/DECISIONS.md): every configuration and the plugin classpath resolve from the
+// committed lockfiles (gradle.lockfile, buildscript-gradle.lockfile); a version change needs `--write-locks`.
+buildscript {
+    configurations.classpath { resolutionStrategy.activateDependencyLocking() }
+}
+
 plugins {
     java
     alias(libs.plugins.spring.boot)
@@ -16,6 +22,11 @@ java {
 }
 
 repositories { mavenCentral() }
+
+dependencyLocking {
+    lockAllConfigurations()
+    lockMode = LockMode.STRICT
+}
 
 // The contract bundle (CONTRACT-GUIDE §1). `just bundle` (or `npm --prefix contracts run bundle`) writes it;
 // the Docker build bundles it in its own stage and passes -Pcontract=/path/to/openapi.json.
@@ -137,4 +148,12 @@ tasks.test {
     systemProperty("tr.migrations", layout.projectDirectory.dir("../../contracts/db").asFile.absolutePath)
     jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:auto")
     testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+}
+
+// Rewrites every lockfile: `./gradlew resolveAndLockAll --write-locks` (only for a deliberate upgrade or a security
+// fix; see README "Frozen showcase policy").
+tasks.register("resolveAndLockAll") {
+    notCompatibleWithConfigurationCache("resolves configurations at execution time")
+    doFirst { require(gradle.startParameter.isWriteDependencyLocks) { "run with --write-locks" } }
+    doLast { configurations.filter { it.isCanBeResolved }.forEach { it.resolve() } }
 }

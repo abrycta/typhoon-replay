@@ -29,6 +29,14 @@ Supersedes the account parts of the table above (System: "shared, language-neutr
 - **Contract 2.0.0** (breaking, removals only) is still served under `/v1`: the URL major changes only when an operation that stays changes (`contracts/docs/CONTRACT-GUIDE.md` §2, §14; `contracts/CHANGELOG.md`). Database migration `20261021000600_drop_accounts` drops `auth.*` and the `app` account tables.
 - **Four backends, unchanged build order:** contract → Java → Go → Node → Rust. The frontend is built in parallel.
 
+## Frozen showcase policy
+
+Once a backend is built (Java now; Go, Node and Rust as they land) it is **pinned and only receives security fixes**, so the "Under the hood" race always compares the same code.
+
+- **Pinned:** every dependency at an exact version with a committed lockfile (Gradle version catalog + `gradle.lockfile`s in strict mode; npm exact versions + `package-lock.json`; `Cargo.lock`; `go.mod` + `go.sum`), and every toolchain (Java 25 / Node 24 base images by digest, Gradle distribution by checksum, `rust-toolchain.toml`, the `go` directive).
+- **Security fixes:** Renovate (`renovate.json`) disables routine updates for `api/**` and opens vulnerability-only PRs (GitHub advisories / OSV), grouped per backend, plus base-image digest bumps for CVE patches. They auto-merge only when that backend's CI is green: its own tests **and** the conformance suite against its image (Renovate waits for every status check; branch protection on `main` should also require them, e.g. java.yml's "Build and test" and "Conformance"). `web/`, `pipeline/` and the rest keep Renovate's normal update policy.
+- **Unfreezing** for a deliberate upgrade: change the pins, regenerate the lockfile, re-measure startup/RSS, open a PR labelled `unfreeze`; the same tests and conformance gate it. Details per backend in `api/<lang>/README.md` (or `docs/`).
+
 ## Noted for later
 
 - Earth Engine is optional: the spike found NCAR ERA5 on AWS about 21× cheaper per storm window than ARCO-ERA5.

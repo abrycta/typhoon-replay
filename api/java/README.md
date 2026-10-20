@@ -76,6 +76,23 @@ compact object headers). Earlier 0.1.0 numbers: app start 0.25 CPU 23 s with the
   storms list 1.7 / 2.8 · 61 ms; place hits 1.7 / 2.3 · 31 ms; point hits (on the fly, 500 km) 5.6 / 6.3 · 21 ms.
   The concurrent p95 is CPU-quota throttling of the 1-CPU container.
 
+## Frozen showcase policy
+
+Once built, this backend is frozen (docs/architecture/DECISIONS.md, "Frozen showcase policy"): it only changes for
+security fixes, so the "Under the hood" race always compares the same code.
+
+- **What is pinned.** Every Maven dependency and Gradle plugin at an exact version (`gradle/libs.versions.toml`, Boot
+  BOM), resolved only from the committed lockfiles (`gradle.lockfile`, `buildscript-gradle.lockfile`,
+  `settings-gradle.lockfile`, `LockMode.STRICT`); the Gradle distribution by SHA-256; the JDK 25 / JRE 25 and Node 24
+  base images by digest in the `Dockerfile`; the CI actions by commit SHA.
+- **How security fixes arrive.** Renovate (`renovate.json` at the repo root) opens no routine updates for `api/**`.
+  It opens vulnerability PRs only (GitHub advisories / OSV), grouped as "java backend security", plus base-image
+  digest bumps for CVE patches, and auto-merges them when `java.yml` is green: Gradle tests (Modulith, ArchUnit,
+  Testcontainers) **and** the conformance suite against the built image. Nothing merges without conformance.
+- **Unfreezing for a deliberate upgrade.** Edit `libs.versions.toml` (or the Boot version), run
+  `./gradlew resolveAndLockAll --write-locks`, refresh the image digests, re-measure startup/RSS above, and open a PR
+  labelled `unfreeze`; the same CI (tests + conformance) gates it.
+
 ## Deploy (Render + Neon)
 
 1. Neon: use the **pooled** connection string as `DATABASE_URL`; migrations run from CI over the direct endpoint
