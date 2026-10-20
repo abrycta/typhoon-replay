@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The full verification pipeline, as run by CI and before a manual deploy:
-# install, checks (typecheck, lint, tests), production build, size guard, then
-# end-to-end tests against the build (APP_E2E, optional).
+# install, checks (typecheck, lint, tests), edge proxy tests (functions/ +
+# edge/, in workerd), production build, size guard, then end-to-end tests
+# against the build (APP_E2E, optional).
 # Commands come from deploy.config, the output directory from wrangler.jsonc.
 #
 # Usage: scripts/ci.sh [--skip-checks] [--skip-e2e] [--clean]
@@ -20,7 +21,7 @@ while (($#)); do
     --skip-checks) checks=0 e2e=0 ;;
     --skip-e2e) e2e=0 ;;
     --clean) clean=1 ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option: $1 (see --help)" ;;
   esac
   shift
@@ -39,6 +40,8 @@ fi
 if ((checks)); then
   info "Checks: $APP_CHECKS"
   app_run "$APP_CHECKS"
+  info "Edge proxy: typecheck + tests (npm run test:edge)"
+  (cd "$REPO_ROOT" && npm run --silent test:edge)
 fi
 
 info "Build: $APP_BUILD"
