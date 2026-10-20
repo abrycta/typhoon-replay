@@ -1,0 +1,100 @@
+{
+ "sid": "2022264N17132",
+ "name": "Noru",
+ "season": 2022,
+ "basin": "WP",
+ "startedAt": "2022-09-21T00:00:00Z",
+ "endedAt": "2022-09-29T06:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Karding",
+  "ja": "令和4年台風第16号"
+ },
+ "atcfId": "WP182022",
+ "durationHours": 198.0,
+ "fixCount": 67,
+ "peak": {
+  "windKt": 145.0,
+  "agency": "jtwc",
+  "pressureHpa": 940.0,
+  "at": "2022-09-24T18:00:00Z",
+  "position": [
+   124.7,
+   15.2
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 145.0,
+   "minPressureHpa": 914.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 95.0,
+   "minPressureHpa": 940.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2022-09-25T12:00:00Z",
+   "position": [
+    121.4,
+    15.2
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-1380600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "City of Manila",
+    "admin1": "National Capital Region",
+    "centroid": [
+     120.9842,
+     14.5995
+    ]
+   },
+   "closestApproachKm": 73.2,
+   "closestApproachAt": "2022-09-25T13:00:00Z",
+   "hoursWithinRadius": 15,
+   "maxWindKtWithinRadius": 131
+  },
+  {
+   "place": {
+    "id": "PH-0502011000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Virac",
+    "admin1": "Bicol Region",
+    "centroid": [
+     124.2306,
+     13.58
+    ],
+    "admin2": "Catanduanes"
+   },
+   "closestApproachKm": 167.2,
+   "closestApproachAt": "2022-09-24T22:00:00Z",
+   "hoursWithinRadius": 10,
+   "maxWindKtWithinRadius": 145
+  }
+ ]
+}

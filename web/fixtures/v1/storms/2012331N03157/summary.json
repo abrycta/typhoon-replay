@@ -1,0 +1,64 @@
+{
+ "sid": "2012331N03157",
+ "name": "Bopha",
+ "season": 2012,
+ "basin": "WP",
+ "startedAt": "2012-11-25T12:00:00Z",
+ "endedAt": "2012-12-09T06:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Pablo",
+  "ja": "平成24年台風第24号"
+ },
+ "atcfId": "WP262012",
+ "durationHours": 330.0,
+ "fixCount": 111,
+ "peak": {
+  "windKt": 150.0,
+  "agency": "jtwc",
+  "pressureHpa": 930.0,
+  "at": "2012-12-03T18:00:00Z",
+  "position": [
+   127.2,
+   7.6
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 150.0,
+   "minPressureHpa": 911.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 100.0,
+   "minPressureHpa": 930.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2012-12-04T00:00:00Z",
+   "position": [
+    125.9,
+    7.8
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": []
+}

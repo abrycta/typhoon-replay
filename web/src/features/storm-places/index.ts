@@ -1,0 +1,1 @@
+export { AffectedPlaces } from "./AffectedPlaces";

@@ -1,0 +1,49 @@
+import { z } from "zod";
+
+/**
+ * Runtime configuration, read from /config.json at startup (build once, deploy anywhere:
+ * only this file changes per host). See public/config.json for the shipped values.
+ */
+export const BackendId = z.enum(["java", "node", "rust", "go", "mock"]);
+export type BackendId = z.infer<typeof BackendId>;
+
+const Backend = z.object({
+  id: BackendId,
+  label: z.string(),
+  /** Base URL in front of the contract paths (`/v1/...`, `/healthz`), e.g. `/api/java`. */
+  baseUrl: z.string(),
+});
+export type BackendConfig = z.infer<typeof Backend>;
+
+const Data = z.object({
+  /** Dataset root (any static host with CORS). Trailing slash added if missing. */
+  baseUrl: z.string(),
+  /** Pointer file relative to baseUrl naming the current version directory. */
+  pointer: z.string().default("latest.json"),
+  /** Tried in order when the primary dataset is unreachable (e.g. the bundled fixture). */
+  fallbackBaseUrls: z.array(z.string()).default([]),
+});
+
+export const AppConfig = z.object({
+  siteUrl: z.string().default("https://typhoon.krtmtthw.dev"),
+  data: Data,
+  backends: z.array(Backend).min(1),
+  defaultBackend: BackendId.default("java"),
+});
+export type AppConfig = z.infer<typeof AppConfig>;
+
+export const withSlash = (u: string) => (u.endsWith("/") ? u : `${u}/`);
+
+export function parseConfig(json: unknown): AppConfig {
+  const cfg = AppConfig.parse(json);
+  return {
+    ...cfg,
+    data: { ...cfg.data, baseUrl: withSlash(cfg.data.baseUrl), fallbackBaseUrls: cfg.data.fallbackBaseUrls.map(withSlash) },
+  };
+}
+
+export async function loadConfig(url = "/config.json", fetchImpl: typeof fetch = fetch): Promise<AppConfig> {
+  const res = await fetchImpl(url, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`config.json: HTTP ${res.status}`);
+  return parseConfig(await res.json());
+}

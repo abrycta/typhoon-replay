@@ -1,0 +1,118 @@
+{
+ "sid": "1990310N07152",
+ "name": "Mike",
+ "season": 1990,
+ "basin": "WP",
+ "startedAt": "1990-11-06T00:00:00Z",
+ "endedAt": "1990-11-18T12:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Ruping",
+  "ja": "平成2年台風第25号"
+ },
+ "atcfId": "WP271990",
+ "durationHours": 300.0,
+ "fixCount": 101,
+ "peak": {
+  "windKt": 150.0,
+  "agency": "jtwc",
+  "pressureHpa": 915.0,
+  "at": "1990-11-10T18:00:00Z",
+  "position": [
+   134.2,
+   7.9
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 150.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 100.0,
+   "minPressureHpa": 915.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "1990-11-12T18:00:00Z",
+   "position": [
+    124.9,
+    10.4
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-0803738000",
+    "country": "PH",
+    "kind": "city",
+    "name": "Ormoc City",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     124.6075,
+     11.0064
+    ],
+    "admin2": "Leyte"
+   },
+   "closestApproachKm": 63.7,
+   "closestApproachAt": "1990-11-12T19:00:00Z",
+   "hoursWithinRadius": 12,
+   "maxWindKtWithinRadius": 127
+  },
+  {
+   "place": {
+    "id": "PH-0802616000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Guiuan",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     125.7247,
+     11.0333
+    ],
+    "admin2": "Eastern Samar"
+   },
+   "closestApproachKm": 81.6,
+   "closestApproachAt": "1990-11-12T15:00:00Z",
+   "hoursWithinRadius": 12,
+   "maxWindKtWithinRadius": 132
+  },
+  {
+   "place": {
+    "id": "PH-0831600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "Tacloban City",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     125.0039,
+     11.2433
+    ],
+    "admin2": "Leyte"
+   },
+   "closestApproachKm": 94.5,
+   "closestApproachAt": "1990-11-12T18:00:00Z",
+   "hoursWithinRadius": 12,
+   "maxWindKtWithinRadius": 128
+  }
+ ]
+}

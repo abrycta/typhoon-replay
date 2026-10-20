@@ -1,0 +1,100 @@
+{
+ "sid": "2020299N11144",
+ "name": "Goni",
+ "season": 2020,
+ "basin": "WP",
+ "startedAt": "2020-10-25T06:00:00Z",
+ "endedAt": "2020-11-06T06:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Rolly",
+  "ja": "令和2年台風第19号"
+ },
+ "atcfId": "WP222020",
+ "durationHours": 288.0,
+ "fixCount": 97,
+ "peak": {
+  "windKt": 170.0,
+  "agency": "jtwc",
+  "pressureHpa": 905.0,
+  "at": "2020-10-31T18:00:00Z",
+  "position": [
+   125.0,
+   13.7
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 170.0,
+   "minPressureHpa": 884.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 120.0,
+   "minPressureHpa": 905.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2020-10-31T21:00:00Z",
+   "position": [
+    124.3,
+    13.6
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-0502011000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Virac",
+    "admin1": "Bicol Region",
+    "centroid": [
+     124.2306,
+     13.58
+    ],
+    "admin2": "Catanduanes"
+   },
+   "closestApproachKm": 7.8,
+   "closestApproachAt": "2020-10-31T21:00:00Z",
+   "hoursWithinRadius": 15,
+   "maxWindKtWithinRadius": 170
+  },
+  {
+   "place": {
+    "id": "PH-1380600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "City of Manila",
+    "admin1": "National Capital Region",
+    "centroid": [
+     120.9842,
+     14.5995
+    ]
+   },
+   "closestApproachKm": 48.2,
+   "closestApproachAt": "2020-11-01T13:00:00Z",
+   "hoursWithinRadius": 17,
+   "maxWindKtWithinRadius": 84
+  }
+ ]
+}

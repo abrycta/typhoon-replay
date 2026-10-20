@@ -1,0 +1,84 @@
+{
+ "sid": "2022254N24143",
+ "name": "Nanmadol",
+ "season": 2022,
+ "basin": "WP",
+ "startedAt": "2022-09-11T06:00:00Z",
+ "endedAt": "2022-09-20T06:00:00Z",
+ "landfallCountries": [
+  "JP"
+ ],
+ "localNames": {
+  "ja": "令和4年台風第14号"
+ },
+ "atcfId": "WP162022",
+ "durationHours": 216.0,
+ "fixCount": 76,
+ "peak": {
+  "windKt": 135.0,
+  "agency": "jtwc",
+  "pressureHpa": 910.0,
+  "at": "2022-09-16T18:00:00Z",
+  "position": [
+   133.8,
+   25.5
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 135.0,
+   "minPressureHpa": 916.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 105.0,
+   "minPressureHpa": 910.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "JP",
+   "at": "2022-09-18T09:00:00Z",
+   "position": [
+    130.6,
+    31.3
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "JP-46201",
+    "country": "JP",
+    "kind": "city",
+    "name": "Kagoshima",
+    "admin1": "Kagoshima",
+    "centroid": [
+     130.5571,
+     31.5966
+    ],
+    "nameJa": "鹿児島市",
+    "admin1Ja": "鹿児島県"
+   },
+   "closestApproachKm": 11.5,
+   "closestApproachAt": "2022-09-18T10:00:00Z",
+   "hoursWithinRadius": 19,
+   "maxWindKtWithinRadius": 100,
+   "maxGustKtWithinRadius": 72
+  }
+ ]
+}

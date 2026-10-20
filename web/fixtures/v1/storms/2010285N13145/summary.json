@@ -1,0 +1,64 @@
+{
+ "sid": "2010285N13145",
+ "name": "Megi",
+ "season": 2010,
+ "basin": "WP",
+ "startedAt": "2010-10-11T12:00:00Z",
+ "endedAt": "2010-10-24T06:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Juan",
+  "ja": "平成22年台風第13号"
+ },
+ "atcfId": "WP152010",
+ "durationHours": 306.0,
+ "fixCount": 103,
+ "peak": {
+  "windKt": 160.0,
+  "agency": "jtwc",
+  "pressureHpa": 885.0,
+  "at": "2010-10-17T12:00:00Z",
+  "position": [
+   125.1,
+   18.1
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 160.0,
+   "minPressureHpa": 903.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 125.0,
+   "minPressureHpa": 885.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2010-10-18T06:00:00Z",
+   "position": [
+    121.9,
+    17.1
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": []
+}

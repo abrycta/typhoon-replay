@@ -1,0 +1,39 @@
+{
+ "datasetVersion": 1,
+ "dataAsOf": "2026-10-20",
+ "generatedAt": "2026-10-21T00:00:00Z",
+ "fixture": true,
+ "note": "Fixture: 16 storms with real IBTrACS tracks; ERA5 frames only for Haiyan (72 h around landfall).",
+ "storms": 16,
+ "stormsWithFrames": 1,
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)",
+   "attribution": "Knapp et al. (2010), IBTrACS v04r01, NOAA NCEI"
+  },
+  {
+   "id": "era5",
+   "name": "ERA5 hourly single levels (Copernicus C3S)",
+   "url": "https://cds.climate.copernicus.eu/",
+   "license": "CC BY 4.0",
+   "attribution": "Contains modified Copernicus Climate Change Service information (ERA5)"
+  },
+  {
+   "id": "pagasa-names",
+   "name": "PAGASA local names via Wikipedia",
+   "url": "https://en.wikipedia.org/wiki/List_of_retired_Philippine_typhoon_names",
+   "license": "CC BY-SA 4.0",
+   "attribution": "Wikipedia contributors"
+  },
+  {
+   "id": "natural-earth",
+   "name": "Natural Earth 50m coastline",
+   "url": "https://www.naturalearthdata.com/",
+   "license": "Public domain",
+   "attribution": "Made with Natural Earth"
+  }
+ ]
+}

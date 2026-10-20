@@ -1,0 +1,944 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-10-21 02:17+0800\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: ja\n"
+
+#. placeholder {0}: h.hoursWithinRadius
+#. placeholder {1}: url.radius
+#: src/features/town-history/TownHistory.tsx
+msgid "{0} h within {1} km"
+msgstr ""
+
+#. placeholder {0}: h.closestApproachKm.toFixed(0)
+#. placeholder {1}: formatDate(h.closestApproachAt, lang)
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "{0} km · {1}"
+msgstr ""
+
+#. placeholder {0}: h.closestApproachKm.toFixed(0)
+#. placeholder {1}: formatDate(h.closestApproachAt, lang)
+#: src/features/town-history/TownHistory.tsx
+msgid "{0} km away on {1}"
+msgstr ""
+
+#. placeholder {0}: h.maxWindKtWithinRadius
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "{0} kt"
+msgstr ""
+
+#. placeholder {0}: jtwc.maxWindKt.toFixed(0)
+#. placeholder {1}: ktToMs(jtwc.maxWindKt).toFixed(0)
+#: src/routes/storm.$sid.tsx
+msgid "{0} kt ({1} m/s) JTWC 1-min"
+msgstr ""
+
+#. placeholder {0}: jma.maxWindKt.toFixed(0)
+#: src/routes/storm.$sid.tsx
+msgid "{0} kt JMA 10-min"
+msgstr ""
+
+#. placeholder {0}: h.maxWindKtWithinRadius.toFixed(0)
+#: src/features/town-history/TownHistory.tsx
+msgid "{0} kt max wind"
+msgstr ""
+
+#. placeholder {0}: results.length
+#. placeholder {1}: storms.length
+#: src/features/storm-search/StormBrowser.tsx
+msgid "{0} of {1} storms"
+msgstr ""
+
+#. placeholder {0}: search.data?.length ?? 0
+#: src/features/town-history/TownHistory.tsx
+msgid "{0} places found"
+msgstr ""
+
+#. placeholder {0}: stormTitle(d.data, lang)
+#. placeholder {1}: d.data.season
+#: src/routes/index.tsx
+msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
+msgstr ""
+
+#. placeholder {0}: ratioJma.toFixed(2)
+#: src/features/replay/IntensityPanel.tsx
+msgid "{0}× JMA"
+msgstr ""
+
+#. placeholder {0}: ratioJtwc.toFixed(2)
+#: src/features/replay/IntensityPanel.tsx
+msgid "{0}× JTWC"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+#: src/routes/index.tsx
+msgid "{d}s"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "{s} h/s"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "1 hour"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "10 m wind gust"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "10 m wind speed"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "6 hours"
+msgstr ""
+
+#: src/app/Shell.tsx
+#: src/routes/about.tsx
+msgid "About"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "About Typhoon Replay"
+msgstr ""
+
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "Affected places"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "All"
+msgstr ""
+
+#. placeholder {0}: storms.length
+#: src/routes/index.tsx
+msgid "All {0} storms"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Any"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "API: not used yet"
+msgstr ""
+
+#. placeholder {0}: formatDate(m.dataAsOf, lang)
+#: src/features/dataset-info/DatasetInfo.tsx
+msgid "as of {0}"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "asleep"
+msgstr ""
+
+#. placeholder {0}: check.atPeak.era5WindMs.toFixed(1)
+#. placeholder {1}: check.atPeak.jtwcMs?.toFixed(1) ?? "?"
+#. placeholder {2}: check.atPeak.jmaMs?.toFixed(1) ?? "?"
+#. placeholder {3}: check.atPeak.ratioToJtwc?.toFixed(2) ?? "?"
+#. placeholder {4}: check.atPeak.ratioToJma?.toFixed(2) ?? "?"
+#: src/features/replay/IntensityPanel.tsx
+msgid "At this storm's peak the field's strongest wind was {0} m/s against {1} m/s (JTWC) and {2} m/s (JMA): {3}× and {4}×."
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Back one hour"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Backends"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Best track"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Best-track intensity"
+msgstr ""
+
+#. placeholder {0}: formatShort(hour.between[0], lang, tz)
+#. placeholder {1}: formatShort(hour.between[1], lang, tz)
+#: src/features/replay/IntensityPanel.tsx
+msgid "between the {0} and {1} fixes"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "Both replays move together: the scrubbers count hours from each storm's first frame. Colours use the same fixed scale for every storm."
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Browse"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Browse by decade and country"
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "Browse storms"
+msgstr ""
+
+#: src/routes/storms.tsx
+msgid "Catalogue"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "Centre"
+msgstr ""
+
+#. placeholder {0}: b.label
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Check {0} now"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "checking"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "Choose a storm"
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "City or municipality"
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
+msgstr ""
+
+#: src/app/Shell.tsx
+#: src/routes/compare.tsx
+msgid "Compare"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Compare Haiyan and Rai"
+msgstr ""
+
+#: src/routes/compare.tsx
+msgid "Compare two storms"
+msgstr ""
+
+#. placeholder {0}: last.contractVersion
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "contract {0}"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "Copy link to this hour"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "Could not load {sid}."
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "Data sources"
+msgstr ""
+
+#. placeholder {0}: ds.data.version
+#: src/features/dataset-info/DatasetInfo.tsx
+msgid "Data v{0}"
+msgstr ""
+
+#: src/features/dataset-info/DatasetInfo.tsx
+msgid "Dataset unavailable"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Decade"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "down"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "ERA5 field near the centre"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "ERA5 field replay"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "ERA5 max wind ({unit})"
+msgstr ""
+
+#: src/features/replay/FieldLegend.tsx
+msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "Error"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Featured replay"
+msgstr ""
+
+#: src/routes/compare.tsx
+msgid "Field"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Field ÷ best track"
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "Field frames could not be loaded"
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Field layer"
+msgstr ""
+
+#: src/features/storm-search/StormList.tsx
+msgid "Field replay"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Find a storm"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "First storm"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Forward one hour"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Four interchangeable backends implement one contract. Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 s. The replay never needs them."
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "frames {progress}%"
+msgstr ""
+
+#: src/features/backend-switch/ApiStatus.tsx
+msgid "Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 seconds. Replays and search keep working meanwhile."
+msgstr ""
+
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "From the API."
+msgstr ""
+
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "From the static dataset."
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Go to end"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Go to start"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "Gust"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Haiyan, Yolanda, Hagibis, 2019…"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Haiyan, Yolanda, 台風第19号, 2019…"
+msgstr ""
+
+#: src/shared/ui/contrast-toggle.tsx
+msgid "High contrast"
+msgstr ""
+
+#: src/routes/town.tsx
+msgid "Hit my town"
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "Home"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "How it works"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+#: src/features/replay/TimelineTable.tsx
+msgid "interpolated"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Interpolated"
+msgstr ""
+
+#. placeholder {0}: formatShort(h.between[0], lang, tz)
+#. placeholder {1}: formatShort(h.between[1], lang, tz)
+#: src/features/replay/TimelineTable.tsx
+msgid "interpolated ({0}–{1})"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Japan"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "JMA (10-min mean)"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "JMA 10-min ({unit})"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "JMA central pressure"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "JMA hPa"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "JMA, 10-min mean"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "JTWC (1-min mean)"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "JTWC 1-min ({unit})"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "JTWC winds are 1-minute means; JMA and PAGASA winds are 10-minute means, so their numbers are not directly comparable. Colour scales are fixed for every storm so that storms from different decades can be compared."
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "JTWC, 1-min mean"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Landfall"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Landfall in Japan"
+msgstr ""
+
+#. placeholder {0}: formatDate(l.at, lang)
+#: src/routes/storm.$sid.tsx
+msgid "landfall in Japan {0}"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Landfall in the Philippines"
+msgstr ""
+
+#. placeholder {0}: formatDate(l.at, lang)
+#: src/routes/storm.$sid.tsx
+msgid "landfall in the Philippines {0}"
+msgstr ""
+
+#: src/features/storm-search/StormList.tsx
+msgid "Landfall: Japan"
+msgstr ""
+
+#: src/features/storm-search/StormList.tsx
+msgid "Landfall: Philippines"
+msgstr ""
+
+#. placeholder {0}: health[selected]?.detail ?? ""
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Last check: {0}"
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Layers"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "Licences"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "Link copied"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Loading frames…"
+msgstr ""
+
+#: src/features/dataset-info/DatasetInfo.tsx
+msgid "Loading sources…"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Loading the catalogue…"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Lowest sea-level pressure"
+msgstr ""
+
+#. placeholder {0}: detail.name
+#: src/features/replay/StormReplay.tsx
+msgid "Map of {0}'s track with the ERA5 field ({layerName}) at {timeLabel}"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "Map rendering: MapLibre GL JS (BSD-3-Clause). Particle technique after mapbox/webgl-wind (ISC)."
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "Map unavailable"
+msgstr ""
+
+#: src/app/Shell.tsx
+msgid "My town"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "n/a"
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "no"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "No best-track fix at this hour."
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "no best-track wind to compare"
+msgstr ""
+
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "No covered place was within {radius} km."
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "No field data at this hour."
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "No storms in the archive passed this close"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "No storms match"
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "Not found"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "not loaded yet"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "not reported"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "observed"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Observed fix"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "Observed fixes only"
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Off"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Open the full replay"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "PAGASA local names: compiled from Wikipedia, CC BY-SA 4.0."
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Particles are off because your system asks for reduced motion. You can still turn them on."
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Pause"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Pause replay"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "peak"
+msgstr ""
+
+#. placeholder {0}: s.peakWindKt.toFixed(0)
+#. placeholder {1}: (s.peakWindAgency ?? "").toUpperCase()
+#: src/features/storm-search/StormList.tsx
+msgid "peak {0} kt ({1})"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Philippines"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Philippines · Japan · since 1940"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "Pick a storm"
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "Places"
+msgstr ""
+
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "Places whose centre the best track passed within {radius} km of, closest first."
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Play"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Play replay"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "play/pause"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Playback speed"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "Pressure"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "Rain"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "Rainfall rate"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "reanalysis context"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "Reanalysis is context, not the storm's strength"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Recent storms"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Replay any typhoon, hour by hour"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Replay time"
+msgstr ""
+
+#: src/features/backend-switch/ApiStatus.tsx
+msgid "Replays, search and compare do not need it. You can try another backend, or the mock that runs in your browser."
+msgstr ""
+
+#: src/routes/compare.tsx
+msgid "Same colour scale, same clock. The URL keeps both storms, the layer and the hour."
+msgstr ""
+
+#: src/features/dataset-info/DatasetInfo.tsx
+msgid "sample data"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "Sea-level pressure"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Search"
+msgstr ""
+
+#: src/routes/town.tsx
+msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. Answered by the API backend you pick in the header."
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Season"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "Second storm"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Served by"
+msgstr ""
+
+#. placeholder {0}: last.impl
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Served by {0}"
+msgstr ""
+
+#. placeholder {0}: current?.label ?? selected
+#. placeholder {1}: label(state)
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "Served by {0}, {1}. Change backend"
+msgstr ""
+
+#: src/routes/compare.tsx
+msgid "Side by side"
+msgstr ""
+
+#: src/app/Shell.tsx
+msgid "Skip to content"
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "Something went wrong"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "Source"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "Sources"
+msgstr ""
+
+#: src/app/Shell.tsx
+msgid "Sources and licences"
+msgstr ""
+
+#: src/features/replay/PlayerControls.tsx
+msgid "Speed"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Storm name or year"
+msgstr ""
+
+#: src/app/Shell.tsx
+#: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storms.tsx
+msgid "Storms"
+msgstr ""
+
+#. placeholder {0}: url.radius
+#: src/features/town-history/TownHistory.tsx
+msgid "Storms within {0} km"
+msgstr ""
+
+#. placeholder {0}: url.radius
+#. placeholder {1}: placeLabel(selected, lang)
+#: src/features/town-history/TownHistory.tsx
+msgid "Storms within {0} km of {1}"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Strongest 10 m wind within {km} km"
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "Tacloban, Naha, 那覇…"
+msgstr ""
+
+#: src/features/backend-switch/ApiStatus.tsx
+msgid "The {name} API is unavailable"
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "The page failed to render. Reloading usually helps."
+msgstr ""
+
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "The place list is unavailable right now (the API may be asleep). The replay is unaffected."
+msgstr ""
+
+#. placeholder {0}: snap.error
+#: src/features/replay/StormReplay.tsx
+msgid "The replay continues with the best track only. ({0})"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") is answered by one of four interchangeable API backends (Java, Node, Rust, Go) that share one contract; a mock runs in your browser when they are asleep. The replay never depends on them."
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "The storm catalogue could not be loaded"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours that are interpolated between best-track fixes."
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "This page blew away"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "This storm could not be loaded"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "Time"
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Time zone"
+msgstr ""
+
+#: src/features/replay/StormReplay.tsx
+msgid "Timeline"
+msgstr ""
+
+#: src/features/replay/TimelineTable.tsx
+msgid "Timeline table"
+msgstr ""
+
+#: src/features/compare/CompareView.tsx
+msgid "track only"
+msgstr ""
+
+#: src/features/storm-search/StormList.tsx
+msgid "Track only"
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "Track only: field frames not published yet"
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "Try a larger radius."
+msgstr ""
+
+#: src/app/errors.tsx
+msgid "Try again"
+msgstr ""
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Try another name (international, PAGASA or Japanese) or clear a filter."
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "Type at least two letters."
+msgstr ""
+
+#: src/routes/storm.$sid.tsx
+msgid "Typhoon replay"
+msgstr ""
+
+#: src/app/Shell.tsx
+msgid "Typhoon Replay home"
+msgstr ""
+
+#: src/routes/index.tsx
+#: src/routes/town.tsx
+msgid "Typhoons that hit my town"
+msgstr ""
+
+#: src/routes/storms.tsx
+msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "up"
+msgstr ""
+
+#: src/features/backend-switch/ApiStatus.tsx
+msgid "Use the mock backend"
+msgstr ""
+
+#: src/features/backend-switch/ApiStatus.tsx
+msgid "Waking the {name} API…"
+msgstr ""
+
+#: src/features/backend-switch/BackendSwitch.tsx
+msgid "waking up"
+msgstr ""
+
+#: src/routes/about.tsx
+msgid "Where the data comes from, what it can and cannot tell you, and the licences that apply."
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Why is the field weaker than the storm?"
+msgstr ""
+
+#: src/features/replay/labels.ts
+msgid "Wind"
+msgstr ""
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "Wind and rain fields are ERA5 reanalysis on a grid of about 28 km. For intense typhoons it smooths the eye wall: at Haiyan's peak, ERA5's strongest 10 m wind was about a third of the JTWC best-track estimate (0.31×) and under half of JMA's 10-minute estimate (0.42×), and its central pressure was 88 hPa too high. Use the best-track intensity for peak strength and the field for spatial extent and timing."
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Wind particles"
+msgstr ""
+
+#: src/features/replay/LayerPanel.tsx
+msgid "Wind units"
+msgstr ""
+
+#: src/routes/index.tsx
+msgid "Wind, gusts, rain and pressure from ERA5 reanalysis, with the official best track beside them. Search a storm, compare two, or see which typhoons passed your town."
+msgstr ""
+
+#: src/features/town-history/TownHistory.tsx
+msgid "Within"
+msgstr ""
