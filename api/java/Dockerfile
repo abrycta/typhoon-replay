@@ -35,7 +35,11 @@ USER app
 ENV JAVA_TOOL_OPTIONS="-XX:+UseSerialGC -XX:MaxRAMPercentage=60 -XX:+UseCompactObjectHeaders -Xss512k"
 # Training run: start the context and exit at refresh (no database needed: nothing touches it at startup), and
 # record loaded/linked classes and method profiles into app.aot (-XX:AOTCacheOutput, Java 25).
-RUN java -XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh -Dlogging.level.root=warn -jar app.jar \
+# -XX:MaxRAM=512m sizes the training heap like Render's free instance (512 MB). Without it, a build host with more
+# than ~54 GB of RAM gives MaxRAMPercentage=60 a heap over 32 GB, which turns compressed oops off; the cache then
+# records UseCompressedOops=false, and the 512 MB runtime (compressed oops on) rejects it ("Unable to map shared
+# spaces") and starts without it.
+RUN java -XX:MaxRAM=512m -XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh -Dlogging.level.root=warn -jar app.jar \
  && test -s app.aot
 ARG COMMIT_SHA=unknown
 ENV TR_COMMIT=${COMMIT_SHA} \

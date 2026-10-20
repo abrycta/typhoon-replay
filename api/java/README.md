@@ -72,6 +72,13 @@ Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.
 Both builds measured the same day on the same seeded PostGIS 18-3.6, same JVM flags (SerialGC, `MaxRAMPercentage=60`,
 compact object headers). Earlier 0.1.0 numbers: app start 0.25 CPU 23 s with the AOT cache (43 s without).
 
+On Render free (0.1 CPU), until 2026-10-21 the AOT cache was never used: Render's build host has enough RAM that
+`MaxRAMPercentage=60` gave the training run a heap over 32 GB, which turns compressed oops off, and the 512 MB
+runtime rejected the cache ("The saved state of UseCompressedOops … is different", "Unable to map shared spaces").
+App start was 55–78 s. The training run now uses `-XX:MaxRAM=512m`. Reproduced locally with the same jar (time to
+context refresh at `MaxRAM=512m`): cache trained at 96 GB rejected, 4.9 s; no cache 4.8 s; cache trained at 512 MB
+2.4 s.
+
 - Latency on the seed (0.1.0, warm, gzip, 1 CPU; sequential p50 / p95 · 8 concurrent p95):
   storms list 1.7 / 2.8 · 61 ms; place hits 1.7 / 2.3 · 31 ms; point hits (on the fly, 500 km) 5.6 / 6.3 · 21 ms.
   The concurrent p95 is CPU-quota throttling of the 1-CPU container.

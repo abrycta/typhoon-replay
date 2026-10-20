@@ -13,6 +13,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -44,6 +46,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class ProblemAdvice {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProblemAdvice.class);
+
+    /** Seconds; a Neon compute resume plus a fresh connection usually fits well inside this. */
+    static final String DATABASE_RETRY_AFTER_S = "10";
 
     private final ProblemWriter writer;
 
@@ -137,6 +142,19 @@ public class ProblemAdvice {
     @ExceptionHandler({AsyncRequestTimeoutException.class, AsyncRequestNotUsableException.class})
     public void asyncDone(Exception e) {
         // An event stream ended (timeout or client gone): the response is already committed, nothing to write.
+    }
+
+    /**
+     * The database can't be reached yet: Neon's free compute suspends when idle and takes a few seconds to resume,
+     * so the first requests after a Render wake-up can outwait Hikari's connection timeout. That is a temporary
+     * 503 {@code not-ready} with {@code Retry-After} (the contract's code for "database unreachable"), not a 500.
+     * The edge proxy turns it into its {@code backend-waking} answer.
+     */
+    @ExceptionHandler({DataAccessResourceFailureException.class, TransientDataAccessResourceException.class})
+    public void databaseUnavailable(Exception e, HttpServletRequest req, HttpServletResponse res) throws IOException {
+        LOG.warn("database unavailable on {} {}: {}", req.getMethod(), req.getRequestURI(), e.getMessage());
+        writer.write(req, res, new ApiException(ProblemType.NOT_READY, "The database is waking up; retry shortly.",
+                List.of(), Map.of("Retry-After", DATABASE_RETRY_AFTER_S)));
     }
 
     @ExceptionHandler(Exception.class)

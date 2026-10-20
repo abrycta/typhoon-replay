@@ -43,9 +43,16 @@ spring:
       maximum-pool-size: 5
       minimum-idle: 0
       idle-timeout: 30000
+      # Retire connections well before Neon suspends an idle compute (5 min) or its pooler recycles them, and ping
+      # one that sits idle for a minute so a connection the pooler dropped is replaced before a request gets it.
+      # With minimum-idle 0 idle connections close after 30 s anyway, so neither keeps the compute awake.
       max-lifetime: 300000
-      keepalive-time: 0
-      connection-timeout: 5000
+      keepalive-time: 60000
+      # A suspended Neon compute takes a few seconds (occasionally 10-20 s) to resume. Wait for it instead of
+      # failing after 5 s, but stay under the edge proxy's 29 s background window (edge/src/proxy.ts), so a
+      # request the edge answered with backend-waking still finishes and fills the edge cache.
+      connection-timeout: 25000
+      # Never fail startup on the database: the app starts and /healthz answers while Neon is still asleep.
       initialization-fail-timeout: -1
       pool-name: tr
   jdbc:
