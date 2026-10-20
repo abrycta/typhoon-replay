@@ -40,5 +40,4 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
-# TODO(data pipeline): add a separate workflow (e.g. pipeline.yml) for the
-# Python data pipeline; see README "Running & deploying".
+# The data pipeline has its own workflows: pipeline.yml, backfill.yml, refresh.yml.
