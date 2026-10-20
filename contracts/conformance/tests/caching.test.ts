@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { IS_MOCK, OTHER_BACKENDS } from '../src/env.ts';
 import { get } from '../src/http.ts';
-import { FIXTURE_COOKIE, HAIYAN, TACLOBAN } from '../src/fixtures.ts';
+import { HAIYAN, TACLOBAN } from '../src/fixtures.ts';
 
 const CATALOGUE = [`/v1/storms/${HAIYAN}`, `/v1/storms/${HAIYAN}/track`, '/v1/storms?season=2013', `/v1/places/${TACLOBAN}/storms?radiusKm=100`];
 
@@ -58,12 +58,18 @@ describe.skipIf(IS_MOCK)('caching and conditional requests [c1.0.0]', () => {
     expect(res.headers.get('etag')).toMatch(/^W\/"c[0-9.]+-[a-z]+-.+"$/);
   });
 
-  it('never caches user data', async () => {
-    const res = await get('/v1/me', { cookie: FIXTURE_COOKIE });
-    expect(res.status).toBe(200);
-    expect(res.headers.get('cache-control')).toBe('private, no-store');
-    expect(res.headers.get('vary') ?? '').toMatch(/cookie/i);
-    expect(res.headers.get('etag')).toBeNull();
+  it('[c2.0.0] ignores cookies: same answer, no Set-Cookie, no Vary: Cookie (everything is publicly cacheable)', async () => {
+    const path = `/v1/places/${TACLOBAN}/storms?radiusKm=100`;
+    const plain = await get(path);
+    const withCookie = await get(path, { cookie: '__Host-tr_session=fixture-session-token-ana-0000000000000; other=1' });
+    expect(withCookie.status).toBe(200);
+    expect(withCookie.headers.get('etag')).toBe(plain.headers.get('etag'));
+    expect(withCookie.headers.get('cache-control')).toBe('public, max-age=300, stale-while-revalidate=86400');
+    expect(withCookie.json).toEqual(plain.json);
+    for (const res of [plain, withCookie]) {
+      expect(res.headers.getSetCookie()).toEqual([]);
+      expect(res.headers.get('vary') ?? '').not.toMatch(/cookie/i);
+    }
   });
 
   it('marks probes no-store', async () => {

@@ -1,9 +1,0 @@
-title: AuthProviderList
-type: object
-required: [items]
-properties:
-  items:
-    type: array
-    maxItems: 10
-    items:
-      $ref: ./AuthProvider.yaml

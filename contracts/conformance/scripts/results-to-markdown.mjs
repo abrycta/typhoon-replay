@@ -17,8 +17,7 @@ const SUITES = [
   { id: 'caching', label: 'ETag / 304', files: ['caching'] },
   { id: 'problems', label: 'Errors', files: ['problems'] },
   { id: 'sse', label: 'SSE', files: ['live'] },
-  { id: 'auth', label: 'Auth', files: ['auth', 'test-hooks'] },
-  { id: 'me', label: 'Me + CSRF', files: ['me'] },
+  { id: 'hooks', label: 'Test hooks', files: ['test-hooks'] },
 ];
 
 const files = existsSync(dir) ? readdirSync(dir) : [];

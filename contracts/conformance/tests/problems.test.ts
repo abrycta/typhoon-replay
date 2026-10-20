@@ -1,9 +1,9 @@
 // CONTRACT-GUIDE §8: RFC 9457 problem details with stable codes.
 import { describe, expect, it } from 'vitest';
 import { responseErrors } from '../src/contract.ts';
-import { IS_MOCK } from '../src/env.ts';
+import { IS_MOCK, TEST_HOOKS } from '../src/env.ts';
 import { call, encodeCursor, get, type Res } from '../src/http.ts';
-import { FIXTURE_COOKIE, PROBLEM_BASE, PROBLEM_TITLES } from '../src/fixtures.ts';
+import { PROBLEM_BASE, PROBLEM_TITLES } from '../src/fixtures.ts';
 
 function expectProblem(res: Res, status: number, code: string) {
   expect(res.status).toBe(status);
@@ -46,15 +46,41 @@ describe.skipIf(IS_MOCK)('problem details [c1.0.0]', () => {
     expectProblem(await get('/v1/no-such-route'), 404, 'not-found');
   });
 
-  it('returns 401 unauthenticated without a session, and with a bogus one', async () => {
-    expectProblem(await get('/v1/me'), 401, 'unauthenticated');
-    expectProblem(await get('/v1/me', { cookie: '__Host-tr_session=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' }), 401, 'unauthenticated');
+  it.runIf(TEST_HOOKS)('rejects non-JSON bodies with 415 and oversized bodies with 413', async () => {
+    const r415 = await call('/v1/_test/live-events', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: 'x' });
+    expectProblem(r415, 415, 'unsupported-media-type');
+    const big = { type: 'storm-removed', payload: { liveId: 'x', reason: 'dissipated', padding: 'y'.repeat(70 * 1024) } };
+    expectProblem(await call('/v1/_test/live-events', { method: 'POST', body: big }), 413, 'payload-too-large');
+  });
+});
+
+// CONTRACT-GUIDE §9, §14: contract 2.0.0 has no accounts, so the v1 account routes are unknown routes.
+describe.skipIf(IS_MOCK)('no accounts [c2.0.0]', () => {
+  it.each([
+    ['GET', '/v1/me'],
+    ['DELETE', '/v1/me'],
+    ['GET', '/v1/me/places'],
+    ['POST', '/v1/me/places'],
+    ['PATCH', '/v1/me/places/0192f5a0-0000-7000-8000-000000000999'],
+    ['GET', '/v1/me/alerts'],
+    ['PUT', '/v1/me/alerts'],
+    ['GET', '/v1/auth/providers'],
+    ['GET', '/v1/auth/github/login'],
+    ['GET', '/v1/auth/google/callback?code=x&state=y'],
+    ['POST', '/v1/auth/logout'],
+    ['GET', '/v1/alerts/unsubscribe?token=x'],
+    ['POST', '/v1/_test/sessions'],
+  ])('%s %s returns 404 not-found and sets no cookie', async (method, path) => {
+    const res = await call(path, { method, body: method === 'GET' || method === 'DELETE' ? undefined : {} });
+    expectProblem(res, 404, 'not-found');
+    expect(res.headers.getSetCookie()).toEqual([]);
   });
 
-  it('rejects non-JSON bodies with 415 and oversized bodies with 413', async () => {
-    const r415 = await call('/v1/me/places', { method: 'POST', cookie: FIXTURE_COOKIE, headers: { 'Content-Type': 'text/plain' }, body: 'x' });
-    expectProblem(r415, 415, 'unsupported-media-type');
-    const big = { label: 'x', placeId: 'PH-0831600000', padding: 'y'.repeat(70 * 1024) };
-    expectProblem(await call('/v1/me/places', { method: 'POST', cookie: FIXTURE_COOKIE, body: big }), 413, 'payload-too-large');
+  it('answers unsafe methods on public paths with 405 and Allow, without asking for CSRF headers', async () => {
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const res = await call('/v1/storms', { method, body: {} });
+      expectProblem(res, 405, 'method-not-allowed');
+      expect(res.headers.get('allow') ?? '').toMatch(/GET/);
+    }
   });
 });

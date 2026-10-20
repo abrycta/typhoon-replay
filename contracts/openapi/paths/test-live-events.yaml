@@ -3,7 +3,7 @@ post:
   tags: [test-hooks]
   x-internal: true
   summary: 'Test hook: apply a live event'
-  description: Only when `TR_TEST_HOOKS=1`; otherwise 404 `not-found`. Runs `SELECT live.apply_event(type, payload)`. Not CSRF-checked.
+  description: Only when `TR_TEST_HOOKS=1`; otherwise 404 `not-found`. Runs `SELECT live.apply_event(type, payload)`.
   requestBody:
     required: true
     content:

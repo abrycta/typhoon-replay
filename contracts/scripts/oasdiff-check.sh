@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Breaking-change gate: bundle the contract at BASE_REF and compare it with the working tree's dist/openapi.json.
 #   contracts/scripts/oasdiff-check.sh [BASE_REF]      (default: origin/main)
-# Fails on ERR-level breaking changes unless info.version's major was bumped (a new /v2 is then expected).
+# Fails on ERR-level breaking changes unless they are marked intended (CONTRACT-GUIDE §2): info.version's major was
+# bumped AND CHANGELOG.md has a "## <major>.0.0" entry explaining them. The breaking changes are then printed for the
+# record and saved to dist/breaking.txt. Whether the major also needs a new /vN URL prefix is a review question (§2):
+# removing operations keeps the prefix; changing an operation that stays needs /vN.
 # Uses the oasdiff binary if installed, else the tufin/oasdiff Docker image. Writes dist/changelog.md for CONTRACT CHANGELOG notes.
 set -euo pipefail
 
@@ -40,8 +43,13 @@ oasdiff changelog base.json head.json --format markdown > "$here/dist/changelog.
 echo "Changelog vs $BASE_REF: contracts/dist/changelog.md"
 
 if [ "$head_major" != "$base_major" ]; then
-  echo "Major version bumped ($base_major -> $head_major): breaking changes allowed; they must ship under /v$head_major."
-  oasdiff breaking base.json head.json || true
+  head_version="$(node -e 'console.log(require(process.argv[1]).info.version)' "$work/head.json")"
+  if ! grep -Eq "^## ${head_version//./\\.}( |$)" "$here/CHANGELOG.md"; then
+    echo "Major version bumped ($base_major -> $head_major) but CHANGELOG.md has no '## $head_version' entry: document the breaking changes there." >&2
+    exit 1
+  fi
+  echo "Major version bumped ($base_major -> $head_major) and documented in CHANGELOG.md: breaking changes are intended."
+  oasdiff breaking base.json head.json | tee "$here/dist/breaking.txt" || true
   exit 0
 fi
 oasdiff breaking base.json head.json --fail-on ERR

@@ -23,25 +23,15 @@ export const TACLOBAN_200KM_PEAK_WIND = [HAIYAN, RAI, UNNAMED_1946];
 export const NAHA_100KM = [{ sid: KHANUN, closestApproachKm: 76.6, maxWindKtWithinRadius: 119, hoursWithinRadius: 13 }];
 export const HAIYAN_PLACES_100KM = [ORMOC, GUIUAN, TACLOBAN];
 
-/** Fixture session (contracts/db/seed/40_users.sql). */
-export const FIXTURE_COOKIE = '__Host-tr_session=fixture-session-token-ana-0000000000000';
-export const FIXTURE_USER_ID = '0192f5a0-0000-7000-8000-000000000001';
-
 /** Fixed problem titles per code (ProblemCode). */
 export const PROBLEM_TITLES: Record<string, string> = {
   validation: 'Request validation failed',
   'invalid-cursor': 'Invalid cursor',
-  unauthenticated: 'Authentication required',
-  forbidden: 'Forbidden',
-  csrf: 'Cross-site request rejected',
   'not-found': 'Not found',
   'method-not-allowed': 'Method not allowed',
   'not-acceptable': 'Not acceptable',
-  conflict: 'Conflict',
-  'precondition-failed': 'Precondition failed',
   'payload-too-large': 'Payload too large',
   'unsupported-media-type': 'Unsupported media type',
-  unprocessable: 'Unprocessable request',
   'rate-limited': 'Too many requests',
   internal: 'Internal server error',
   'not-ready': 'Service not ready',

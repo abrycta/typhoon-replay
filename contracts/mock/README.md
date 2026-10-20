@@ -9,10 +9,9 @@ against the spec, and sets `X-Backend-Impl: mock`.
 - Pick an example: `Prefer: example=naha` (e.g. on `GET /v1/places/{placeId}/storms`).
 - Force a status: `Prefer: code=404`.
 - Random data from the schemas instead of examples: run Prism with `-d`.
-- Signed-in calls: send any `Cookie: __Host-tr_session=...`; unsafe methods also need `X-Requested-With: typhoon-replay`.
 
 Prism does not stream SSE (`GET /v1/live/stream` returns the example frames in one response), and it does not
-implement behaviour (paging, ETags, CSRF). That is what the conformance suite checks against real backends.
+implement behaviour (paging, ETags). That is what the conformance suite checks against real backends.
 
 ## MSW in web/ (note for the web agent; no web code lives here)
 
