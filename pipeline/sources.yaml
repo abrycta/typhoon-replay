@@ -30,7 +30,7 @@ project: typhoon-replay
 
 archive:
   repo: abrycta/typhoon-replay-archive
-  token_env: ARCHIVE_READ_TOKEN          # fine-grained PAT, Contents: read on the archive repo only
+  token_env: ARCHIVE_READ_TOKEN          # fine-grained PAT: Contents read on kit + archive, Issues read/write on archive
   tag_format: "{id}-{date}"              # date = UTC YYYY-MM-DD of the snapshot
   compression: zstd
   compression_level: auto                # 19 below 150 MB raw, 15 above (measured, see DATA-RESILIENCE.md)
@@ -41,6 +41,7 @@ health:
   issue_label: source-health
   issue_token_env: ARCHIVE_READ_TOKEN
   token_expiry_warn_days: 30
+  token_expires: "2027-10-20"            # ARCHIVE_READ_TOKEN expiry (created 2026-10-21, 1 year)
   user_agent: "typhoon-replay-pipeline/0.1 (+https://github.com/abrycta/typhoon-replay)"
 
 sources:
