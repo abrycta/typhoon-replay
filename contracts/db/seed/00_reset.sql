@@ -4,9 +4,6 @@ TRUNCATE catalog.dataset_version, catalog.storm, catalog.storm_landfall, catalog
          catalog.place, catalog.place_storm_exposure RESTART IDENTITY;
 TRUNCATE live.active_storm, live.live_event RESTART IDENTITY;
 UPDATE live.revision SET seq = 0, updated_at = '2026-10-21T00:00:00Z';
-TRUNCATE auth.app_user, auth.oauth_account, auth.session, auth.oauth_state,
-         app.saved_place, app.alert_subscription, app.alert_subscription_place, app.alert_outbox, app.email_suppression
-         RESTART IDENTITY CASCADE;
 
 INSERT INTO catalog.dataset_version (published_at, ibtracs_version, source_commit, description)
 VALUES ('2026-10-21T00:00:00Z', 'v04r01', 'fixture', 'Conformance fixture: 9 storms, 10 places');

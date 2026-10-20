@@ -9,7 +9,7 @@ The shared contract every backend (Java, Node, Rust, Go) and the web app build o
 | `scripts/bundle.mjs` | Builds `dist/openapi.json` (3.1, served at `GET /v1/openapi.json`) and `dist/openapi.3.0.json` (for generators that need 3.0) |
 | `scripts/oasdiff-check.sh` | Breaking-change gate against a base ref |
 | `db/migrations/` | dbmate migrations (plain SQL, up/down). Applied by CI and `just`, never by a backend |
-| `db/seed/` | Deterministic fixture (9 storms incl. Haiyan/Yolanda, 10 places incl. Tacloban and Naha, 2 users, 1 live storm) |
+| `db/seed/` | Deterministic fixture (9 storms incl. Haiyan/Yolanda, 10 places incl. Tacloban and Naha, 1 live storm) |
 | `conformance/` | Language-neutral conformance suite: Schemathesis configs, Vitest scenarios, compat-table script |
 | `mock/` | Mocking the API for `web/` (Prism + MSW) |
 | `CHANGELOG.md` | Contract versions |
