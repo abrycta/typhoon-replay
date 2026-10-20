@@ -32,7 +32,7 @@ If the primary host fails (HTTP error, CORS, or an HTML page), the next base URL
 
 Field names follow the API contract (`contracts/openapi`) wherever the concept exists there, so a storm from the static index and one from `GET /v1/storms` look the same to the UI.
 
-- **StormSummary** (index rows) = contract `StormSummary` (`sid, name, localNames{ph,ja}, season, basin, startedAt, endedAt, peakWindKt, peakWindAgency, minPressureHpa, landfallCountries`) plus `replayAvailable` and `frameCount`.
+- **StormSummary** (index rows) = contract `StormSummary` (`sid, name, localNames{ph,ja}, season, basin, startedAt, endedAt, peakWindKt, peakWindAgency, minPressureHpa, landfallCountries`) plus `replayAvailable`, `frameCount`, `ace` and, from the next data version, an optional `designation` (JTWC number from IBTrACS `USA_ATCF_ID`, e.g. `WP032019` → `03W`; also in `summary.json`). The browse page works with or without it: unnamed storms are labelled by PAGASA name, JMA number, or "Unnamed storm · [designation ·] Feb 1940".
 - **StormDetail** (`summary.json`) = contract `StormDetail` (`peak, intensity[], landfalls[], sources[], replayAvailable, …`) plus:
   - `frames`: `{format: "tyf" | "tyf.gz", path, bytes, frames, start, end, vars[], sha256}`; `path` is relative to the storm directory (absolute URLs also work).
   - `reanalysisCheck`: the pipeline's ERA5-vs-best-track cross-check at the JTWC peak: `{radiusDeg, peakTime, atPeak: {jtwcMs, jmaMs, era5WindMs, era5GustMs, ratioToJtwc, ratioToJma, era5MslpMinHpa, jmaPressureHpa}, typhoonHoursMedianRatioToJtwc, typhoonHoursMedianRatioToJma}`.

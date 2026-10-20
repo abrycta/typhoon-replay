@@ -7,6 +7,14 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: ja\n"
 
+#: src/features/storm-search/StormList.tsx
+msgid "(JMA number)"
+msgstr "（気象庁の番号）"
+
+#: src/features/storm-search/StormList.tsx
+msgid "(PAGASA name)"
+msgstr "（PAGASA の現地名）"
+
 #. placeholder {0}: h.hoursWithinRadius
 #. placeholder {1}: url.radius
 #: src/features/town-history/TownHistory.tsx
@@ -559,6 +567,14 @@ msgstr "わが町"
 msgid "n/a"
 msgstr "なし"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Name, A–Z (unnamed last)"
+msgstr "名前順 A–Z（名称なしは最後）"
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Newest first"
+msgstr "新しい順"
+
 #: src/features/replay/StormReplay.tsx
 msgid "no"
 msgstr "なし"
@@ -578,6 +594,14 @@ msgstr "{radius} km 以内に対象地点はありません。"
 #: src/features/replay/IntensityPanel.tsx
 msgid "No field data at this hour."
 msgstr "この時刻の場のデータはありません。"
+
+#: src/features/storm-search/StormList.tsx
+msgid "No international name"
+msgstr "国際名なし"
+
+#: src/features/storm-search/StormList.tsx
+msgid "No international name · {designation}"
+msgstr "国際名なし · {designation}"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "No storms in the archive passed this close"
@@ -614,6 +638,10 @@ msgstr "観測値のみ"
 #: src/features/replay/LayerPanel.tsx
 msgid "Off"
 msgstr "オフ"
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Oldest first"
+msgstr "古い順"
 
 #: src/routes/index.tsx
 msgid "Open the full replay"
@@ -709,6 +737,10 @@ msgstr "最近の台風"
 msgid "Replay any typhoon, hour by hour"
 msgstr "どの台風も、1時間ごとにリプレイ"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Replay available"
+msgstr "場のリプレイあり"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
 msgstr "リプレイの時刻"
@@ -772,6 +804,10 @@ msgstr "本文へスキップ"
 msgid "Something went wrong"
 msgstr "問題が発生しました"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Sort"
+msgstr "並べ替え"
+
 #: src/features/replay/TimelineTable.tsx
 msgid "Source"
 msgstr "出典"
@@ -793,7 +829,6 @@ msgid "Storm name or year"
 msgstr "台風名または年"
 
 #: src/app/Shell.tsx
-#: src/features/storm-search/StormBrowser.tsx
 #: src/routes/storm.$sid.tsx
 #: src/routes/storms.tsx
 msgid "Storms"
@@ -810,9 +845,17 @@ msgstr "{0} km 以内の台風"
 msgid "Storms within {0} km of {1}"
 msgstr "{1} から {0} km 以内の台風"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Storms, {order}"
+msgstr "台風（{order}）"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "Strongest 10 m wind within {km} km"
 msgstr "{km} km 以内の 10 m 最大風速"
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Strongest first (peak wind)"
+msgstr "強い順（最大風速）"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Tacloban, Naha, 那覇…"
@@ -913,6 +956,10 @@ msgstr "別の名前（国際名、PAGASA 名、日本名）を試すか、絞�
 msgid "Type at least two letters."
 msgstr "2文字以上入力してください。"
 
+#: src/features/storm-search/StormList.tsx
+msgid "Typhoon No. {number}"
+msgstr "台風第{number}号"
+
 #: src/routes/storm.$sid.tsx
 msgid "Typhoon replay"
 msgstr "台風リプレイ"
@@ -925,6 +972,14 @@ msgstr "わが町を襲った台風"
 #: src/routes/storms.tsx
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "フィリピンと日本に上陸、または接近した台風。"
+
+#: src/features/storm-search/StormList.tsx
+msgid "Unnamed storm · {designation} · {month}"
+msgstr "名称なし · {designation} · {month}"
+
+#: src/features/storm-search/StormList.tsx
+msgid "Unnamed storm · {month}"
+msgstr "名称なし · {month}"
 
 #: src/features/backend-switch/health-label.ts
 msgid "up"

@@ -36,6 +36,11 @@ export function formatDate(t: number | string | Date, lang: Lang): string {
   return fmt(lang, "UTC", { day: "numeric", month: "short", year: "numeric" }).format(toDate(t));
 }
 
+/** "Feb 1940" / "1940年2月" (UTC). */
+export function formatMonth(t: number | string | Date, lang: Lang): string {
+  return fmt(lang, "UTC", { month: "short", year: "numeric" }).format(toDate(t));
+}
+
 /** URL form of an hour: 2013-11-07T21:00Z. */
 export function toUrlHour(t: number): string {
   return new Date(t * 1000).toISOString().slice(0, 16) + "Z";

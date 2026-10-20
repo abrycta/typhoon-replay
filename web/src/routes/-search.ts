@@ -26,6 +26,9 @@ export const catalogSearch = z.object({
   decade: opt(z.pipe(z.coerce.number(), z.int())),
   season: opt(z.pipe(z.coerce.number(), z.int())),
   country: opt(z.enum(["PH", "JP"])),
+  replay: opt(z.boolean()),
+  // Keep in step with CATALOG_SORTS (src/data/catalog.ts); "newest" is the default and stays out of the URL.
+  sort: opt(z.enum(["newest", "oldest", "strongest", "name"])),
 });
 
 export const compareSearch = z.object({

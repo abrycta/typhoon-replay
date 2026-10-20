@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { decades, useStormDetail, useStormIndex } from "@/data";
+import { decades, sortStorms, useStormDetail, useStormIndex } from "@/data";
 import { StormReplay } from "@/features/replay";
 import { StormList } from "@/features/storm-search";
 import { stormTitle } from "@/shared/lib/names";
@@ -108,7 +108,7 @@ function Home() {
             </Link>
           </Button>
         </nav>
-        {index.isPending ? <Skeleton className="h-40" /> : <StormList storms={storms.slice(0, 6)} label={t`Recent storms`} />}
+        {index.isPending ? <Skeleton className="h-40" /> : <StormList storms={sortStorms(storms, "newest").slice(0, 6)} label={t`Recent storms`} />}
         <p>
           <Link to="/storms" className="text-primary underline underline-offset-4">
             {t`All ${storms.length} storms`}
