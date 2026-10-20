@@ -309,6 +309,36 @@ sources:
       member_format: xml
     archived: { enabled: true, retention: all }
 
+  - id: psgc-cities-municipalities
+    description: >-
+      Philippine Standard Geographic Code list of cities and municipalities with both the 9-digit and
+      the 10-digit PSGC (psgc10DigitCode), as JSON. Maps the COD-AB p-codes (old 9-digit structure) to
+      the 10-digit PSGC used as the place id. PSA's own site blocks scripted downloads (HTTP 403), so the
+      community API mirror of the PSA publication is the automatic link.
+    kind: file
+    format: json
+    filename: psgc-cities-municipalities.json
+    local_path: data/raw/boundaries/psgc-cities-municipalities.json
+    licence: Philippine Statistics Authority public data (free use with attribution).
+    attribution: >-
+      Philippine Standard Geographic Code (PSGC), Philippine Statistics Authority; JSON via the PSGC API
+      (psgc.gitlab.io).
+    cadence: quarterly PSA releases
+    links:
+      - id: psgc-gitlab-api
+        url: https://psgc.gitlab.io/api/cities-municipalities.json
+      - id: archive
+        archive: true
+      - id: psa-psgc
+        url: https://psa.gov.ph/classification/psgc
+        probe_html: true
+        automatic: false   # PSA publication page (xlsx links); answers 403 to scripts
+    checks:
+      bytes: { min: 200000, max: 2000000 }
+      rows: { min: 1550, max: 1750 }
+      json_type: array
+    archived: { enabled: true, retention: all }
+
   - id: mlit-n03-jpn
     description: >-
       MLIT National Land Numerical Information N03 (administrative areas) as of 2025-01-01:

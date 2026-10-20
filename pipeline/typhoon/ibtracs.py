@@ -19,9 +19,10 @@ import pandas as pd
 import shapely
 from shapely.geometry import Polygon, shape
 
-ROOT = Path(__file__).resolve().parents[2]
-RAW = ROOT / "data/raw"
-OUT = ROOT / "data/processed/ibtracs"
+from . import sources
+from .config import PROCESSED
+
+OUT = PROCESSED / "ibtracs"
 
 # PAGASA Philippine Area of Responsibility (PAR) polygon, lon/lat.
 PAR = Polygon([(120, 25), (135, 25), (135, 5), (115, 5), (115, 15), (120, 21), (120, 25)])
@@ -66,7 +67,7 @@ def load_fixes(csv: Path) -> pd.DataFrame:
 
 
 def _countries() -> dict[str, shapely.Geometry]:
-    gj = json.loads((RAW / "naturalearth/ne_50m_admin_0_countries.geojson").read_text())
+    gj = json.loads(sources.ensure("naturalearth-50m-countries").read_text())
     out = {}
     for f in gj["features"]:
         a3 = f["properties"]["ADM0_A3"]
@@ -131,12 +132,29 @@ def build_storms(fx: pd.DataFrame) -> pd.DataFrame:
     return st
 
 
-def main(argv=None):
+def build(manifest: sources.RunManifest | None = None, *, refresh: bool = False,
+          csv: Path | None = None, out: Path = OUT) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Fetch IBTrACS WP through archivekit (refresh=True re-downloads) and write fixes/storms Parquet."""
+    if csv is None:
+        csv = sources.ensure("ibtracs-wp", manifest, refresh=refresh)
+    sources.ensure("naturalearth-50m-countries", manifest)
+    out.mkdir(parents=True, exist_ok=True)
+    fx = add_geo_flags(load_fixes(csv))
+    st = build_storms(fx)
+    fx.to_parquet(out / "fixes.parquet", index=False, compression="zstd")
+    st.to_parquet(out / "storms.parquet", index=False, compression="zstd")
+    return fx, st
+
+
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", type=Path, default=RAW / "ibtracs/ibtracs.WP.list.v04r01.csv")
+    ap.add_argument("--csv", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--refresh", action="store_true", help="re-download IBTrACS (it updates 3x a week)")
     a = ap.parse_args(argv)
     a.out.mkdir(parents=True, exist_ok=True)
+    if a.csv is None:
+        a.csv = sources.ensure("ibtracs-wp", refresh=a.refresh)
     fx = add_geo_flags(load_fixes(a.csv))
     st = build_storms(fx)
     fx.to_parquet(a.out / "fixes.parquet", index=False, compression="zstd")

@@ -18,6 +18,8 @@ dependencies = [
     "pillow>=13.0.0",
     "psutil>=7.2.2",
     "pyarrow>=26.0.0",
+    "pyogrio>=0.13.0",
+    "pyproj>=3.8.0",
     "pytest>=9.1.1",
     "s3fs>=2026.9.0",
     "shapely>=2.2.0",
@@ -27,8 +29,16 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=2.4.0",
+    "pandas-stubs>=3.0.5.260914",
     "respx>=0.23.1",
+    "ruff>=0.17.1",
 ]
 
 [tool.uv.sources]
 archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.0.0" }
+
+[[tool.mypy.overrides]]
+# archivekit ships no py.typed marker
+module = ["archivekit", "archivekit.*"]
+ignore_missing_imports = true
