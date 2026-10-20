@@ -49,7 +49,6 @@ dependencies {
     testImplementation("org.springframework.modulith:spring-modulith-docs")
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.testcontainers.junit)
-    testImplementation(libs.openapi.request.validator.mockmvc)
     testImplementation(libs.archunit)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
