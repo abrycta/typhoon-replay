@@ -518,10 +518,6 @@ msgstr "Haiyan, Yolanda, Hagibis, 2019…"
 msgid "Haiyan, Yolanda, 台風第19号, 2019…"
 msgstr "Haiyan, Yolanda, 台風第19号, 2019…"
 
-#: src/shared/ui/contrast-toggle.tsx
-msgid "High contrast"
-msgstr "High contrast"
-
 #: src/routes/town.tsx
 msgid "Hit my town"
 msgstr "Hit my town"

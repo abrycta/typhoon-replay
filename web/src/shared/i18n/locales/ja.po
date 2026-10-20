@@ -518,10 +518,6 @@ msgstr "ハイエン、ヨランダ、ハギビス、2019…"
 msgid "Haiyan, Yolanda, 台風第19号, 2019…"
 msgstr "Haiyan、Yolanda、台風第19号、2019…"
 
-#: src/shared/ui/contrast-toggle.tsx
-msgid "High contrast"
-msgstr "ハイコントラスト"
-
 #: src/routes/town.tsx
 msgid "Hit my town"
 msgstr "わが町"

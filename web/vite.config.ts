@@ -9,6 +9,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 import { fixtures } from "./scripts/vite-fixtures.ts";
+import { akariThemeInit } from "./scripts/vite-theme-init.ts";
 
 // Commit shown in the footer. CI sets BUILD_SHA (the PR head commit for
 // previews); GITHUB_SHA and the local git checkout are fallbacks.
@@ -35,6 +36,8 @@ export default defineConfig({
     // Serves web/fixtures/ (the sample dataset) at /fixtures/ with HTTP range support, like the
     // Hugging Face host, and copies it into the build as the fallback data source.
     fixtures(),
+    // Akari's pre-paint theme script (shared krtmtthw.dev theme), served from our own origin.
+    akariThemeInit(),
   ],
   define: {
     __COMMIT_SHA__: JSON.stringify(commitSha()),

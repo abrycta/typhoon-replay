@@ -31,6 +31,10 @@
 /storm/*
   Cache-Control: public, max-age=0, must-revalidate
 
+# Akari's pre-paint theme script (stable name, render-blocking): short TTL so upgrades land quickly.
+/theme-init.js
+  Cache-Control: public, max-age=300
+
 # The HTML entry point must always revalidate so new deploys show up at once.
 /
   Cache-Control: public, max-age=0, must-revalidate

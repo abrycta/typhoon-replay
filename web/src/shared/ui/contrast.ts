@@ -1,14 +1,11 @@
-export const CONTRAST_KEY = "contrast";
-
-/** Before first render: apply ?contrast= or the saved choice as data-contrast on <html>. */
-export function applySavedContrast() {
-  try {
-    const url = new URLSearchParams(location.search).get("contrast");
-    const v = url === "more" || url === "normal" ? url : localStorage.getItem(CONTRAST_KEY);
-    if (v === "more" || v === "normal") document.documentElement.dataset.contrast = v;
-  } catch {
-    /* storage unavailable */
-  }
+/**
+ * Before first render: a ?contrast=more|normal link overrides for this page view (not stored). The saved
+ * choice is applied earlier by Akari's theme-init.js (shared krtmtthw.dev cookie, or localStorage).
+ */
+export function applyContrastParam() {
+  const url = new URLSearchParams(location.search).get("contrast");
+  if (url === "more" || url === "normal")
+    document.documentElement.dataset.contrast = url;
 }
 
 export function currentContrastIsMore(): boolean {
@@ -16,5 +13,8 @@ export function currentContrastIsMore(): boolean {
   const v = document.documentElement.dataset.contrast;
   if (v === "more") return true;
   if (v === "normal") return false;
-  return typeof matchMedia !== "undefined" && matchMedia("(prefers-contrast: more)").matches;
+  return (
+    typeof matchMedia !== "undefined" &&
+    matchMedia("(prefers-contrast: more)").matches
+  );
 }
