@@ -1,7 +1,19 @@
-import { Badge, Button, Page, Skeleton, useLang } from "@abrycta/akari/react";
+import {
+  Badge,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  Button,
+  Page,
+  Skeleton,
+  useLang,
+} from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
-import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
-import { CheckIcon, LinkIcon } from "lucide-react";
+import { createFileRoute, Link, stripSearchParams } from "@tanstack/react-router";
+import { ArrowLeftIcon, CheckIcon, LinkIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { NotFound } from "@/app/errors";
@@ -42,6 +54,48 @@ function ShareButton() {
   );
 }
 
+/** Home › Storms › <storm>, the last crumb being the current page. */
+function StormBreadcrumb({ current }: { current: string }) {
+  const { t } = useLingui();
+  return (
+    <Breadcrumb aria-label={t`Breadcrumb`} data-testid="breadcrumb">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link to="/" className="rounded-sm">
+              {t`Home`}
+            </Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link to="/storms" className="rounded-sm">
+              {t`Storms`}
+            </Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>{current}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
+
+function BackToStorms() {
+  const { t } = useLingui();
+  return (
+    <Button asChild variant="outline" size="sm">
+      <Link to="/storms" data-testid="back-to-storms">
+        <ArrowLeftIcon aria-hidden="true" />
+        {t`Back to all storms`}
+      </Link>
+    </Button>
+  );
+}
+
 function StormPage() {
   const { t } = useLingui();
   const { lang } = useLang();
@@ -57,11 +111,24 @@ function StormPage() {
 
   if (d.error instanceof DataError && d.error.status === 404) return <NotFound />;
   if (d.error) {
-    return <Page eyebrow={sid} title={t`This storm could not be loaded`} lede={d.error.message} />;
+    return (
+      <Page eyebrow={sid} title={t`This storm could not be loaded`} lede={d.error.message} data-testid="storm-error">
+        <div className="flex flex-wrap gap-3">
+          <Button size="sm" onClick={() => location.reload()}>
+            {t`Try again`}
+          </Button>
+          <BackToStorms />
+          <Button asChild variant="outline" size="sm">
+            <Link to="/">{t`Go to the home page`}</Link>
+          </Button>
+        </div>
+      </Page>
+    );
   }
   if (!d.data || !d.dataset) {
     return (
       <div className="mx-auto grid max-w-[1120px] gap-4 px-4 py-10">
+        <StormBreadcrumb current={sid} />
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="aspect-[16/10]" />
       </div>
@@ -78,7 +145,8 @@ function StormPage() {
 
   return (
     <div className="mx-auto grid max-w-[1120px] gap-8 px-4 py-8 md:py-12">
-      <header className="grid gap-2">
+      <StormBreadcrumb current={`${stormTitle(s, lang)} ${s.season}`} />
+      <header className="-mt-4 grid gap-2">
         <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">
           {t`Typhoon replay`} · {s.season} · {s.sid}
         </p>
@@ -121,6 +189,10 @@ function StormPage() {
             ))}
           </ul>
         </section>
+      </div>
+
+      <div>
+        <BackToStorms />
       </div>
     </div>
   );

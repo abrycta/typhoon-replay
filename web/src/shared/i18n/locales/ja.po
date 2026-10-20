@@ -73,6 +73,10 @@ msgstr "気象庁の {0} 倍"
 msgid "{0}× JTWC"
 msgstr "JTWC の {0} 倍"
 
+#: src/app/Shell.tsx
+msgid "{AUTHOR}'s portfolio"
+msgstr "{AUTHOR} のポートフォリオ"
+
 #: src/features/storm-search/StormBrowser.tsx
 #: src/routes/index.tsx
 msgid "{d}s"
@@ -97,6 +101,10 @@ msgstr "10 m 風速"
 #: src/features/replay/PlayerControls.tsx
 msgid "6 hours"
 msgstr "6時間"
+
+#: src/app/Shell.tsx
+msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
+msgstr "制作: <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
 
 #: src/app/Shell.tsx
 #: src/routes/about.tsx
@@ -150,6 +158,10 @@ msgstr "この台風の最盛期、場の最大風速は {0} m/s で、JTWC の 
 msgid "Back one hour"
 msgstr "1時間戻る"
 
+#: src/routes/storm.$sid.tsx
+msgid "Back to all storms"
+msgstr "台風の一覧に戻る"
+
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Backends"
 msgstr "バックエンド"
@@ -175,6 +187,10 @@ msgstr "{0} と {1} の観測値の間"
 #: src/features/compare/CompareView.tsx
 msgid "Both replays move together: the scrubbers count hours from each storm's first frame. Colours use the same fixed scale for every storm."
 msgstr "2つのリプレイは連動します。時刻は各台風の最初のフレームからの経過時間です。色はすべての台風で同じ固定スケールです。"
+
+#: src/routes/storm.$sid.tsx
+msgid "Breadcrumb"
+msgstr "パンくずリスト"
 
 #: src/routes/index.tsx
 msgid "Browse"
@@ -352,6 +368,12 @@ msgstr "最後へ"
 msgid "Go to start"
 msgstr "最初へ"
 
+#: src/app/errors.tsx
+#: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storm.$sid.tsx
+msgid "Go to the home page"
+msgstr "ホームに戻る"
+
 #: src/features/replay/labels.ts
 msgid "Gust"
 msgstr "瞬間風速"
@@ -372,7 +394,13 @@ msgstr "ハイコントラスト"
 msgid "Hit my town"
 msgstr "わが町"
 
-#: src/app/errors.tsx
+#: src/app/Shell.tsx
+msgctxt "brand link suffix"
+msgid "home"
+msgstr "ホーム"
+
+#: src/app/Shell.tsx
+#: src/routes/storm.$sid.tsx
 msgid "Home"
 msgstr "ホーム"
 
@@ -505,6 +533,10 @@ msgstr "カタログを読み込み中…"
 #: src/features/replay/IntensityPanel.tsx
 msgid "Lowest sea-level pressure"
 msgstr "最低海面気圧"
+
+#: src/app/Shell.tsx
+msgid "Main"
+msgstr "メイン"
 
 #. placeholder {0}: detail.name
 #: src/features/replay/StormReplay.tsx
@@ -713,10 +745,6 @@ msgstr "シーズン"
 msgid "Second storm"
 msgstr "2つ目の台風"
 
-#: src/app/Shell.tsx
-msgid "Sections"
-msgstr "セクション"
-
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by"
 msgstr "応答元"
@@ -766,6 +794,7 @@ msgstr "台風名または年"
 
 #: src/app/Shell.tsx
 #: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storm.$sid.tsx
 #: src/routes/storms.tsx
 msgid "Storms"
 msgstr "台風"
@@ -871,6 +900,8 @@ msgid "Try a larger radius."
 msgstr "距離を広げてください。"
 
 #: src/app/errors.tsx
+#: src/features/storm-search/StormBrowser.tsx
+#: src/routes/storm.$sid.tsx
 msgid "Try again"
 msgstr "再試行"
 

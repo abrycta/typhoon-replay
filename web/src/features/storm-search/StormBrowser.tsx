@@ -1,5 +1,6 @@
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle, Input, Label, NativeSelect, NativeSelectOption, Skeleton } from "@abrycta/akari/react";
+import { Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle, Input, Label, NativeSelect, NativeSelectOption, Skeleton } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
+import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { type CatalogFilter, decades, filterStorms, seasons, useStormIndex } from "@/data";
@@ -26,6 +27,14 @@ export function StormBrowser({ filter, onFilter }: StormBrowserProps) {
           <EmptyTitle>{t`The storm catalogue could not be loaded`}</EmptyTitle>
           <EmptyDescription>{String(index.error.message)}</EmptyDescription>
         </EmptyHeader>
+        <EmptyContent className="flex-row flex-wrap justify-center">
+          <Button size="sm" onClick={() => location.reload()}>
+            {t`Try again`}
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/">{t`Go to the home page`}</Link>
+          </Button>
+        </EmptyContent>
       </Empty>
     );
   }
