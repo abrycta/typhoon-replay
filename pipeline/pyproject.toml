@@ -38,9 +38,6 @@ dev = [
     "testcontainers[postgres]>=4.15.0",
 ]
 
-[tool.uv.sources]
-archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.0.0" }
-
 [[tool.mypy.overrides]]
 # archivekit ships no py.typed marker
 module = ["archivekit", "archivekit.*"]
@@ -64,3 +61,6 @@ disable_error_code = ["arg-type", "union-attr", "index", "operator", "call-overl
 pythonpath = ["."]
 testpaths = ["tests"]
 markers = ["data: data-quality gates over data/processed (skipped when absent)"]
+
+[tool.uv.sources]
+archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.1.0" }
