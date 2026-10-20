@@ -11,7 +11,7 @@ each pull request gets its own preview URL.
 
 | Path | What it is |
 |---|---|
-| `web/` | The frontend. Currently a provisional placeholder (see `web/README.md`) |
+| `web/` | The frontend (Vite + React + TanStack, Akari), live at https://typhoon.krtmtthw.dev (see `web/README.md`) |
 | `contracts/` | The shared API contract (OpenAPI 3.1), database migrations and seed, conformance suite and mocks (see `contracts/README.md`) |
 | `api/{java,node,rust,go}/` | The four interchangeable backends (research docs so far) |
 | `pipeline/` | Python data pipeline (IBTrACS, ERA5, crosswalks) |
