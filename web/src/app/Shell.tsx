@@ -4,23 +4,19 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 
-import { selectBackend } from "@/api";
-import { BackendSwitch, ServedByFooter } from "@/features/backend-switch";
 import { Attribution, DataAsOf } from "@/features/dataset-info";
 import { buildInfo, formatBuildInfo } from "@/shared/lib/build-info";
 import { isLocale } from "@/shared/i18n/i18n";
 import { AUTHOR, PORTFOLIO_HOST, PORTFOLIO_URL } from "@/shared/lib/site";
 import { ContrastToggle } from "@/shared/ui/contrast-toggle";
 
-/** `?backend=` and `?lang=` work on any page (share links, mock demo). */
+/** `?lang=` works on any page (share links). */
 function useGlobalParams() {
   const search = useLocation({ select: (l) => l.search as Record<string, unknown> });
   const { setLang } = useLang();
   useEffect(() => {
-    const b = search.backend;
-    if (b === "java" || b === "node" || b === "rust" || b === "go" || b === "mock") selectBackend(b);
     if (isLocale(search.lang)) setLang(search.lang);
-  }, [search.backend, search.lang, setLang]);
+  }, [search.lang, setLang]);
 }
 
 /** Back to the author's portfolio, in the same tab. The visible text is the host; screen readers also hear whose site it is. */
@@ -59,6 +55,9 @@ export function Shell({ children }: { children: ReactNode }) {
       <Link to="/about" className={NAV_LINK}>
         {t`About`}
       </Link>
+      <Link to="/under-the-hood" className={NAV_LINK}>
+        {t`Under the hood`}
+      </Link>
     </>
   );
   return (
@@ -82,7 +81,6 @@ export function Shell({ children }: { children: ReactNode }) {
             actions={
               <>
                 <PortfolioLink className={`${PORTFOLIO_LINK} hidden md:inline-flex`} />
-                <BackendSwitch />
                 <ContrastToggle />
                 <ThemeToggle variant="compact" />
                 <LangSwitch />
@@ -103,7 +101,14 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="mx-auto grid max-w-[1120px] gap-2 px-4 py-6 text-xs text-muted-foreground">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <DataAsOf />
-              <ServedByFooter />
+              <span data-testid="footer-hook">
+                <Trans>
+                  Data served statically · API in four languages →{" "}
+                  <Link to="/under-the-hood" className="underline underline-offset-4 hover:text-foreground">
+                    Under the hood
+                  </Link>
+                </Trans>
+              </span>
               <span>{formatBuildInfo(buildInfo)}</span>
             </div>
             <p>

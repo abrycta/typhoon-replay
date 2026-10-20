@@ -1,99 +1,124 @@
-// The API layer against the contract-typed MSW handlers (the same ones mock mode uses in the browser).
-import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { __resetBackends, displayHealth, initBackends, probeBackend, SLEEP_AFTER_MS } from "./backends";
-import { ApiError } from "./client";
-import { handlers } from "./mocks/handlers";
-import { placeSearchQuery, placeStormsQuery, stormPlacesQuery } from "./queries";
+import { bodyKey, matchStates, normaliseBody } from "./compare";
+import { type ApiResult, classify, sendRequest } from "./request";
+import { retryDecision, sendUntilAwake, WAKE_CAP_MS } from "./wake";
 
-const server = setupServer(...handlers);
-beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+const res = (kind: ApiResult["kind"], extra: Partial<ApiResult> = {}): ApiResult => ({ kind, method: "GET", url: "/api/x/v1/meta", status: kind === "ok" ? 200 : 503, ms: 5, ...extra });
 
-// "java" pointed at the mock base, so the node test never needs the browser service worker.
-beforeEach(() => {
-  __resetBackends();
-  initBackends(
-    [
-      { id: "java", label: "Java", baseUrl: "http://localhost/api/mock" },
-      { id: "go", label: "Go", baseUrl: "http://localhost/api/go" },
-    ],
-    "java",
-  );
-});
-
-const run = <T,>(q: { queryFn?: unknown }) => (q.queryFn as (ctx: unknown) => Promise<T>)({} as never);
-
-describe("API queries (mock handlers built from the contract examples)", () => {
-  it("searches places and maps DTOs to domain types", async () => {
-    const places = await run<{ id: string; name: string; centroid: number[] }[]>(placeSearchQuery("java", "tacloban"));
-    expect(places.map((p) => p.id)).toEqual(["PH-0831600000"]);
-    expect(places[0]!.centroid).toHaveLength(2);
-    const naha = await run<{ nameJa?: string }[]>(placeSearchQuery("java", "那覇"));
-    expect(naha[0]!.nameJa).toBe("那覇市");
+describe("race comparison", () => {
+  it("ignores key order, number formatting, timestamp formatting and implementation fields", () => {
+    const java = { items: [{ storm: { sid: "2013306N07162", startedAt: "2013-11-03T00:00:00Z", peakWindKt: 170 }, closestApproachKm: 35.0, hoursWithinRadius: 10 }], radiusKm: 100, nextCursor: "abc" };
+    const node = { radiusKm: 100, items: [{ hoursWithinRadius: 10, closestApproachKm: 35.000000000001, storm: { peakWindKt: 170.0, startedAt: "2013-11-03T00:00:00.000Z", sid: "2013306N07162" } }] };
+    expect(bodyKey(java)).toBe(bodyKey(node));
   });
 
-  it("lists storms that hit a place, closest first", async () => {
-    const hits = await run<{ storm: { sid: string }; closestApproachKm: number }[]>(placeStormsQuery("java", "PH-0831600000", 100));
-    expect(hits[0]!.storm.sid).toBe("2013306N07162");
-    const km = hits.map((h) => h.closestApproachKm);
-    expect([...km].sort((a, b) => a - b)).toEqual(km);
+  it("drops /v1/meta's identity and process start, but keeps a storm's startedAt", () => {
+    const meta = (impl: string, startedAt: string) => ({ impl, implVersion: "0.1.0", commit: impl, startedAt, contractVersion: "2.0.0", datasetVersion: 1, schemaVersion: "3" });
+    expect(bodyKey(meta("java", "2026-10-20T00:00:00Z"))).toBe(bodyKey(meta("rust", "2026-10-21T08:00:00Z")));
+    expect(normaliseBody({ sid: "a", startedAt: "2013-11-03T00:00:00Z" })).toEqual({ sid: "a", startedAt: "2013-11-03T00:00:00Z" });
+    expect(bodyKey({ sid: "a", startedAt: "2013-11-03T00:00:00Z" })).not.toBe(bodyKey({ sid: "a", startedAt: "2013-11-04T00:00:00Z" }));
   });
 
-  it("lists places a storm passed", async () => {
-    const places = await run<unknown[]>(stormPlacesQuery("java", "2013306N07162"));
-    expect(places.length).toBeGreaterThan(0);
+  it("still sees real differences: values, order of list items, missing items", () => {
+    expect(bodyKey({ items: [1, 2] })).not.toBe(bodyKey({ items: [2, 1] }));
+    expect(bodyKey({ km: 35 })).not.toBe(bodyKey({ km: 36 }));
+    expect(bodyKey({ items: [{ a: 1 }] })).not.toBe(bodyKey({ items: [] }));
+    // null and absent are the same (tolerant reader: optional fields may be omitted or null).
+    expect(bodyKey({ a: 1, b: null })).toBe(bodyKey({ a: 1 }));
   });
 
-  it("raises problem+json errors with their code", async () => {
-    await expect(run(placeSearchQuery("java", " "))).rejects.toMatchObject({ status: 400, code: "validation" });
-  });
-
-  it("treats an HTML page at the API path as 'not deployed'", async () => {
-    server.use(...[(await import("msw")).http.get("*/api/go/*", () => new Response("<!doctype html>", { headers: { "Content-Type": "text/html" } }))]);
-    const err = await run(placeSearchQuery("go", "tacloban")).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(ApiError);
-    expect((err as ApiError).code).toBe("not-deployed");
+  it("marks each answered lane same / differs / alone", () => {
+    expect(matchStates({ java: { a: 1 } })).toEqual({ java: "alone" });
+    expect(matchStates({ java: { a: 1 }, node: { a: 1.0 }, rust: { a: 2 } })).toEqual({ java: "same", node: "same", rust: "differs" });
+    expect(matchStates({})).toEqual({});
   });
 });
 
-describe("backend health", () => {
-  it("probes /healthz: up with latency", async () => {
-    const h = await probeBackend("java");
-    expect(h.state).toBe("up");
-    expect(h.ms).toBeGreaterThanOrEqual(0);
+describe("retry policy", () => {
+  it("waking: retries, honouring Retry-After, else backing off", () => {
+    expect(retryDecision(res("waking", { retryAfterS: 20 }), 0, 0)).toEqual({ action: "retry", delayMs: 20_000 });
+    expect(retryDecision(res("waking"), 0, 0)).toEqual({ action: "retry", delayMs: 2000 });
+    expect(retryDecision(res("waking"), 0, 2)).toEqual({ action: "retry", delayMs: 4500 });
+    // Retry-After 0 still waits a little; very long waits are clamped.
+    expect(retryDecision(res("waking", { retryAfterS: 0 }), 0, 0)).toEqual({ action: "retry", delayMs: 1000 });
+    expect(retryDecision(res("waking", { retryAfterS: 3600 }), 0, 0)).toEqual({ action: "retry", delayMs: 20_000 });
   });
 
-  it("reports down when the path serves the SPA instead of an API", async () => {
-    const html = (async () => new Response("<!doctype html>", { headers: { "Content-Type": "text/html" } })) as typeof fetch;
-    expect((await probeBackend("go", html)).state).toBe("down");
+  it("not deployed: stops at once, no retries", () => {
+    expect(retryDecision(res("not-deployed"), 0, 0)).toEqual({ action: "stop", outcome: "not-deployed", reason: "not deployed" });
   });
 
-  it("goes waking on a 503 cold start, then down when it never wakes", async () => {
-    const busy = (async () => new Response("", { status: 503 })) as typeof fetch;
-    const h = await probeBackend("go", busy, { wakeLimitMs: 0 });
-    expect(h.state).toBe("down");
-    expect(h.detail).toMatch(/did not wake/);
+  it("errors stop; the cap turns endless waking into an error", () => {
+    expect(retryDecision(res("error", { status: 500, detail: "Internal" }), 0, 0)).toMatchObject({ action: "stop", outcome: "error", reason: "Internal" });
+    expect(retryDecision(res("waking", { retryAfterS: 20 }), WAKE_CAP_MS - 10_000, 5)).toEqual({ action: "stop", outcome: "error", reason: "did not wake up in time" });
+    expect(retryDecision(res("ok"), WAKE_CAP_MS * 2, 9)).toEqual({ action: "done" });
   });
 
-  it("stops at once on the edge proxy's final answers (not deployed, static mode)", async () => {
-    const edge = (code: string, status: number) =>
-      (async () =>
-        new Response(JSON.stringify({ code, status }), { status, headers: { "Content-Type": "application/problem+json" } })) as typeof fetch;
-    const notDeployed = await probeBackend("node", edge("backend-not-deployed", 503));
-    expect(notDeployed).toMatchObject({ state: "down", detail: "not deployed" });
-    const resting = await probeBackend("rust", edge("static-mode", 503));
-    expect(resting).toMatchObject({ state: "down", detail: "resting (static mode)" });
-    const waking = await probeBackend("go", edge("backend-waking", 503), { wakeLimitMs: 0 });
-    expect(waking.detail).toMatch(/did not wake/); // backend-waking keeps retrying until the wake limit
+  it("sendUntilAwake follows waking -> ok and reports the wake-up", async () => {
+    const answers = [res("waking", { retryAfterS: 1 }), res("waking", { retryAfterS: 1 }), res("ok", { body: { ok: 1 }, ms: 80 })];
+    let clock = 0;
+    const slept: number[] = [];
+    const progress: number[] = [];
+    const out = await sendUntilAwake(async () => answers.shift()!, {
+      now: () => clock,
+      sleep: async (ms) => {
+        slept.push(ms);
+        clock += ms;
+      },
+      onProgress: (p) => progress.push(p.attempt),
+    });
+    expect(out).toMatchObject({ outcome: "ok", attempts: 3, woke: true, totalMs: 2000 });
+    expect(out.last.ms).toBe(80);
+    expect(slept).toEqual([1000, 1000]);
+    expect(progress).toEqual([1, 2]);
   });
 
-  it("shows an old 'up' as asleep (free instances sleep after 15 minutes)", () => {
-    const now = Date.now();
-    expect(displayHealth({ state: "up", lastUpAt: now - SLEEP_AFTER_MS - 1 }, now)).toBe("asleep");
-    expect(displayHealth({ state: "up", lastUpAt: now }, now)).toBe("up");
-    expect(displayHealth(undefined)).toBe("asleep");
+  it("sendUntilAwake gives up at the cap, and never retries not-deployed", async () => {
+    let clock = 0;
+    let calls = 0;
+    const capped = await sendUntilAwake(
+      async () => {
+        calls++;
+        return res("waking", { retryAfterS: 20 });
+      },
+      { now: () => clock, sleep: async (ms) => void (clock += ms) },
+    );
+    expect(capped).toMatchObject({ outcome: "error", reason: "did not wake up in time", woke: true });
+    expect(calls).toBe(10); // 9 waits of 20 s fit in 3 minutes
+    calls = 0;
+    const nd = await sendUntilAwake(async () => {
+      calls++;
+      return res("not-deployed");
+    });
+    expect(nd).toMatchObject({ outcome: "not-deployed", attempts: 1, woke: false });
+    expect(calls).toBe(1);
+  });
+});
+
+describe("response classification", () => {
+  const problem = (code: string) => ({ type: "x", title: "t", status: 503, code });
+  it("reads the edge's problem codes", () => {
+    expect(classify(503, "application/problem+json", problem("backend-waking")).kind).toBe("waking");
+    expect(classify(503, "application/problem+json", problem("backend-not-deployed")).kind).toBe("not-deployed");
+    expect(classify(404, "application/problem+json", problem("unknown-backend")).kind).toBe("not-deployed");
+    expect(classify(503, "application/problem+json", problem("static-mode")).kind).toBe("error");
+    expect(classify(502, "text/plain", undefined).kind).toBe("waking");
+    expect(classify(404, "application/problem+json", problem("not-found")).kind).toBe("error");
+    expect(classify(200, "application/json", {}).kind).toBe("ok");
+    // A static host's SPA page where the proxy should be.
+    expect(classify(200, "text/html; charset=utf-8", undefined).kind).toBe("not-deployed");
+  });
+
+  it("sendRequest captures status, timing, Retry-After and the edge headers", async () => {
+    const f = (async () =>
+      new Response(JSON.stringify({ type: "x", title: "Waking", status: 503, code: "backend-waking" }), {
+        status: 503,
+        headers: { "Content-Type": "application/problem+json", "Retry-After": "20", "X-Edge-Cache": "MISS", "X-Backend-Impl": "java" },
+      })) as typeof fetch;
+    const r = await sendRequest("/api/java/", "/v1/meta", { fetchImpl: f });
+    expect(r).toMatchObject({ kind: "waking", url: "/api/java/v1/meta", status: 503, retryAfterS: 20, edgeCache: "MISS", impl: "java", problemCode: "backend-waking" });
+    const down = await sendRequest("/api/go", "/v1/meta", { fetchImpl: (async () => Promise.reject(new TypeError("offline"))) as typeof fetch });
+    expect(down).toMatchObject({ kind: "error", status: 0, detail: "offline" });
   });
 });

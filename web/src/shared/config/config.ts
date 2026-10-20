@@ -4,7 +4,7 @@ import { z } from "zod/mini";
  * Runtime configuration, read from /config.json at startup (build once, deploy anywhere:
  * only this file changes per host). See public/config.json for the shipped values.
  */
-export const BackendId = z.enum(["java", "node", "rust", "go", "mock"]);
+export const BackendId = z.enum(["java", "node", "rust", "go"]);
 export type BackendId = z.infer<typeof BackendId>;
 
 const Backend = z.object({
