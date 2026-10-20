@@ -21,6 +21,7 @@ import { DataError, useStormDetail } from "@/data";
 import { type ReplayUrlState, StormReplay } from "@/features/replay";
 import { AffectedPlaces } from "@/features/storm-places";
 import { stormTitle } from "@/shared/lib/names";
+import { landfallSummary } from "@/shared/lib/landfalls";
 import { formatDate } from "@/shared/lib/time";
 import { ktToMs } from "@/shared/lib/units";
 import { useDocumentTitle } from "@/shared/ui/use-title";
@@ -162,7 +163,20 @@ function StormPage() {
         <p className="max-w-[68ch] text-muted-foreground" data-testid="storm-lede">
           {formatDate(s.startedAt, lang)} – {formatDate(s.endedAt, lang)}
           {peak.length ? ` · ${t`peak`} ${peak.join(" · ")}` : ""}
-          {s.landfalls.map((l) => ` · ${l.country === "PH" ? t`landfall in the Philippines ${formatDate(l.at, lang)}` : t`landfall in Japan ${formatDate(l.at, lang)}`}`).join("")}
+          {s.landfalls.length
+            ? ` · ${landfallSummary(s.landfalls, lang, {
+                lead: (g, dates) =>
+                  g.count > 1
+                    ? g.country === "PH"
+                      ? t`landfalls in the Philippines ${dates} (${g.count})`
+                      : t`landfalls in Japan ${dates} (${g.count})`
+                    : g.country === "PH"
+                      ? t`landfall in the Philippines ${dates}`
+                      : t`landfall in Japan ${dates}`,
+                more: (g, dates) =>
+                  (g.country === "PH" ? t`Philippines ${dates}` : t`Japan ${dates}`) + (g.count > 1 ? ` (${g.count})` : ""),
+              })}`
+            : ""}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {s.replayAvailable ? <Badge>{t`ERA5 field replay`}</Badge> : <Badge variant="outline">{t`Track only: field frames not published yet`}</Badge>}

@@ -34,6 +34,28 @@ describe("TimelineTable (text alternative to the map)", () => {
     expect(onJump).toHaveBeenCalledWith(2);
   });
 
+  it("keeps every landfall on its own hour row, even when several fall on one day", () => {
+    const track = interpolateHourly([
+      { t: "2021-12-16T00:00:00Z", lon: 127, lat: 10, jtwcKt: 140 },
+      { t: "2021-12-17T06:00:00Z", lon: 118, lat: 10, jtwcKt: 100 },
+    ]);
+    const ts = track.map((h) => h.t);
+    const eight = ["05:30", "08:00", "10:00", "12:00", "13:30", "17:00", "20:00"].map((hm) => ({ country: "PH" as const, at: `2021-12-16T${hm}:00Z` }));
+    eight.push({ country: "PH", at: "2021-12-17T01:00:00Z" });
+    render(
+      <I18nProvider i18n={i18n}>
+        <TimelineTable times={ts} hours={track} era5={() => undefined} current={0} onJump={() => {}} units="kt" lang="en" tz="UTC" landfalls={eight} />
+      </I18nProvider>,
+    );
+    const marks = screen.getAllByTestId("timeline-landfall").map((e) => e.textContent);
+    expect(marks).toHaveLength(8);
+    expect(marks[0]).toBe("Landfall in the Philippines at 16 Dec, 05:30");
+    expect(marks[7]).toBe("Landfall in the Philippines at 17 Dec, 01:00");
+    // The landfall rows stay listed with "observed fixes only".
+    fireEvent.click(screen.getByRole("switch"));
+    expect(screen.getAllByTestId("timeline-landfall")).toHaveLength(8);
+  });
+
   it("can show observed fixes only", () => {
     render(
       <I18nProvider i18n={i18n}>
