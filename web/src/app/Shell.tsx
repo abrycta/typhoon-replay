@@ -1,4 +1,4 @@
-import { AppShell, Header, LangSwitch, Logo, ThemeToggle, useLang } from "@abrycta/akari/react";
+import { AppShell, ContrastToggle, Header, LangSwitch, Logo, ThemeToggle, useLang } from "@abrycta/akari/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Link, useLocation } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
@@ -8,7 +8,6 @@ import { Attribution, DataAsOf } from "@/features/dataset-info";
 import { buildInfo, formatBuildInfo } from "@/shared/lib/build-info";
 import { isLocale } from "@/shared/i18n/i18n";
 import { AUTHOR, PORTFOLIO_HOST, PORTFOLIO_URL } from "@/shared/lib/site";
-import { ContrastToggle } from "@/shared/ui/contrast-toggle";
 
 /** `?lang=` works on any page (share links). */
 function useGlobalParams() {

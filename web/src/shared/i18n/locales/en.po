@@ -7,6 +7,14 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: src/features/storm-search/StormList.tsx
+msgid "(JMA number)"
+msgstr "(JMA number)"
+
+#: src/features/storm-search/StormList.tsx
+msgid "(PAGASA name)"
+msgstr "(PAGASA name)"
+
 #. placeholder {0}: h.hoursWithinRadius
 #. placeholder {1}: url.radius
 #: src/features/town-history/TownHistory.tsx
@@ -522,10 +530,6 @@ msgstr "Haiyan, Yolanda, Hagibis, 2019…"
 msgid "Haiyan, Yolanda, 台風第19号, 2019…"
 msgstr "Haiyan, Yolanda, 台風第19号, 2019…"
 
-#: src/shared/ui/contrast-toggle.tsx
-msgid "High contrast"
-msgstr "High contrast"
-
 #: src/routes/town.tsx
 msgid "Hit my town"
 msgstr "Hit my town"
@@ -749,6 +753,14 @@ msgstr "Name"
 msgid "next"
 msgstr "next"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Name, A–Z (unnamed last)"
+msgstr "Name, A–Z (unnamed last)"
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Newest first"
+msgstr "Newest first"
+
 #: src/features/replay/StormReplay.tsx
 msgid "no"
 msgstr "no"
@@ -776,6 +788,14 @@ msgstr "No ERA5 reading at this hour: the numbers come from a lossless grid ever
 #: src/features/replay/IntensityPanel.tsx
 msgid "No field data at this hour."
 msgstr "No field data at this hour."
+
+#: src/features/storm-search/StormList.tsx
+msgid "No international name"
+msgstr "No international name"
+
+#: src/features/storm-search/StormList.tsx
+msgid "No international name · {designation}"
+msgstr "No international name · {designation}"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "No storms in the archive passed this close"
@@ -828,6 +848,10 @@ msgstr "One conformance suite runs against every backend"
 #: src/features/under-the-hood/Race.tsx
 msgid "Only answer so far"
 msgstr "Only answer so far"
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Oldest first"
+msgstr "Oldest first"
 
 #: src/routes/index.tsx
 msgid "Open the full replay"
@@ -963,6 +987,10 @@ msgstr "Region"
 msgid "Replay any typhoon, hour by hour"
 msgstr "Replay any typhoon, hour by hour"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Replay available"
+msgstr "Replay available"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
 msgstr "Replay time"
@@ -1044,6 +1072,10 @@ msgstr "Skip to content"
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Sort"
+msgstr "Sort"
+
 #: src/features/replay/TimelineTable.tsx
 msgid "Source"
 msgstr "Source"
@@ -1069,7 +1101,6 @@ msgid "Storm name or year"
 msgstr "Storm name or year"
 
 #: src/app/Shell.tsx
-#: src/features/storm-search/StormBrowser.tsx
 #: src/routes/storm.$sid.tsx
 #: src/routes/storms.tsx
 msgid "Storms"
@@ -1090,9 +1121,17 @@ msgstr "Storms within {0} km"
 msgid "Storms within {0} km of {1}"
 msgstr "Storms within {0} km of {1}"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Storms, {order}"
+msgstr "Storms, {order}"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "Strongest 10 m wind within {km} km"
 msgstr "Strongest 10 m wind within {km} km"
+
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Strongest first (peak wind)"
+msgstr "Strongest first (peak wind)"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Tacloban, Naha, 那覇…"
@@ -1222,6 +1261,10 @@ msgstr "Type"
 msgid "Type at least two letters."
 msgstr "Type at least two letters."
 
+#: src/features/storm-search/StormList.tsx
+msgid "Typhoon No. {number}"
+msgstr "Typhoon No. {number}"
+
 #: src/routes/storm.$sid.tsx
 msgid "Typhoon replay"
 msgstr "Typhoon replay"
@@ -1240,6 +1283,18 @@ msgstr "Typhoons that made landfall in, or passed close to, the Philippines and 
 #: src/routes/under-the-hood.tsx
 msgid "Under the hood"
 msgstr "Under the hood"
+
+#: src/features/storm-search/StormList.tsx
+msgid "Unnamed storm · {designation} · {month}"
+msgstr "Unnamed storm · {designation} · {month}"
+
+#: src/features/storm-search/StormList.tsx
+msgid "Unnamed storm · {month}"
+msgstr "Unnamed storm · {month}"
+
+#: src/features/backend-switch/health-label.ts
+msgid "up"
+msgstr "up"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Value"

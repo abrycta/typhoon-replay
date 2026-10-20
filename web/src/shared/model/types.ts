@@ -23,6 +23,10 @@ export interface StormSummary {
   peakWindAgency?: Agency;
   minPressureHpa?: number;
   landfallCountries: Country[];
+  /** JTWC tropical cyclone number from IBTrACS USA_ATCF_ID ("03W"); static index from data v2, optional. */
+  designation?: string;
+  /** Accumulated cyclone energy (10^4 kt^2), static index only. */
+  ace?: number;
   /** Static index only: frames exist for the replay. */
   replayAvailable?: boolean;
   frameCount?: number;
