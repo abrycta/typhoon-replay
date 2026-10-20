@@ -2,8 +2,7 @@
 #   just db-up        PostGIS + dbmate migrations + fixture seed       (profile: db)
 #   just mail         Mailpit SMTP sink + UI on :8025                  (profile: mail)
 #   just mock         Prism mock of contracts/dist/openapi.json on :4010 (profile: mock)
-#   just idp          Mock OAuth2 provider (Google + GitHub) on :9090  (profile: idp)
-#   just java-run     Java backend on :8081 (+ db, seed, mock IdP)      (profile: java)
+#   just java-run     Java backend on :8081 (+ db, seed)                (profile: java)
 # Backend services (profiles java|node|rust|go|all) are added as each backend lands.
 name: typhoon-replay
 
@@ -80,18 +79,6 @@ services:
     volumes:
       - ./contracts/dist:/spec:ro
 
-  oauth-mock:
-    profiles: [idp, all]
-    # Tiny Google + GitHub OAuth2 stand-in for the auth conformance scenarios (contracts/conformance/mock-idp).
-    image: node:24-alpine
-    command: ["node", "/idp/server.mjs"]
-    environment:
-      PORT: "9090"
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./contracts/conformance/mock-idp:/idp:ro
-
   api-java:
     profiles: [java, all]
     build:
@@ -104,16 +91,6 @@ services:
       TR_LOG_LEVEL: info
       TR_RATE_LIMIT_PER_MINUTE: "100000" # conformance traffic comes from one address
       PORT: "8080"
-      TR_OAUTH_GITHUB_CLIENT_ID: test-client
-      TR_OAUTH_GITHUB_CLIENT_SECRET: test-secret
-      TR_OAUTH_GITHUB_AUTH_URL: http://localhost:9090/github/login/oauth/authorize
-      TR_OAUTH_GITHUB_TOKEN_URL: http://oauth-mock:9090/github/login/oauth/access_token
-      TR_OAUTH_GITHUB_USERINFO_URL: http://oauth-mock:9090/github/api/user
-      TR_OAUTH_GOOGLE_CLIENT_ID: test-client
-      TR_OAUTH_GOOGLE_CLIENT_SECRET: test-secret
-      TR_OAUTH_GOOGLE_AUTH_URL: http://localhost:9090/google/authorize
-      TR_OAUTH_GOOGLE_TOKEN_URL: http://oauth-mock:9090/google/token
-      TR_OAUTH_GOOGLE_USERINFO_URL: http://oauth-mock:9090/google/userinfo
     ports: ["8081:8080"]
     depends_on: { seed: { condition: service_completed_successfully } }
   # Backends: uncomment as each one lands. Every backend gets the same env (CONTRACT-GUIDE §11).
