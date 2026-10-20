@@ -70,12 +70,15 @@ def test_registry_is_valid_and_complete() -> None:
     reg = S.registry()
     assert archivekit.validate_registry(reg.raw) == []
     ids = {s["id"] for s in reg.sources}
-    assert {"ibtracs-wp", "ibtracs-all", "era5", "geoboundaries-phl-adm3", "geoboundaries-jpn-adm2",
-            "naturalearth-50m-coastline", "naturalearth-50m-countries", "pagasa-crosswalk",
+    assert {"ibtracs-wp", "ibtracs-all", "era5-an-sfc", "era5-fc-gust", "era5-fc-precip-rate",
+            "geoboundaries-phl-adm3", "geoboundaries-jpn-adm2", "hdx-cod-ab-phl-tabular", "mlit-n03-jpn",
+            "jma-rsmc-besttrack", "naturalearth-50m-coastline", "naturalearth-50m-countries", "pagasa-crosswalk",
             "wikipedia-season-pages", "jtwc-rss", "jma-bosai-target-tc", "gdacs-rss-tc"} <= ids
     assert reg.archive_repo == reg.issue_repo == "abrycta/typhoon-replay-archive"
-    era5 = reg.source("era5")
-    assert not era5["archived"]["enabled"] and len(archivekit.automatic_links(era5)) >= 2
+    for sid in ("era5-an-sfc", "era5-fc-gust", "era5-fc-precip-rate"):
+        era5 = reg.source(sid)
+        assert not era5["archived"]["enabled"]
+        assert [lk["id"] for lk in archivekit.automatic_links(era5)] == ["ncar-aws", "ncar-osdf", "arco-gcs"]
 
 
 def test_chains_as_designed() -> None:
@@ -84,6 +87,8 @@ def test_chains_as_designed() -> None:
     assert chain["geoboundaries-phl-adm3"] == ["geoboundaries-github", "geoboundaries-lfs-media", "archive"]
     assert chain["naturalearth-50m-coastline"] == ["github-raw", "jsdelivr", "archive"]
     assert chain["jtwc-rss"] == ["metoc"]  # live feeds: samples only, never an archive fallback
+    assert chain["mlit-n03-jpn"] == ["mlit-ksj", "archive"]
+    assert chain["hdx-cod-ab-phl-tabular"] == ["hdx", "archive"]
 
 
 def test_local_raw_files_match_registry_pins() -> None:
@@ -139,3 +144,31 @@ def test_ibtracs_wp_falls_back_to_all_subset_then_archive(small_registry: archiv
     assert (p.served_by, p.snapshot_date) == ("archive", "2026-10-18")
     meta = S.data_version_metadata(man_run, "2026.10.21")
     assert meta["archive_used"] and meta["data_as_of"] == "2026-10-18"
+
+
+def test_fetch_template_materialises_one_page(tmp_path: Path) -> None:
+    """A templated update-input is fetched as a concrete file source: checks, atomic write, provenance."""
+    url = "https://en.wikipedia.org/w/index.php?title=1999_Pacific_typhoon_season&action=raw"
+    body = ("{{Infobox hurricane season}} The 1999 Pacific typhoon season ... " + "x" * 6000).encode()
+    with respx.mock:
+        respx.get(url).mock(return_value=httpx.Response(200, content=body))
+        p = S.fetch_template("wikipedia-season-pages", tmp_path / "1999.wiki", reporter=False, year=1999)
+    assert (p.source_id, p.link_id, p.url) == ("wikipedia-season-pages-1999", "enwiki-raw", url)
+    assert (tmp_path / "1999.wiki").read_bytes() == body
+    with respx.mock:
+        respx.get(url).mock(return_value=httpx.Response(200, content=b"tiny"))
+        with pytest.raises(archivekit.AllLinksFailed):
+            S.fetch_template("wikipedia-season-pages", tmp_path / "1999.wiki", reporter=False, year=1999)
+    assert (tmp_path / "1999.wiki").read_bytes() == body  # bad data never replaces good data
+
+
+def test_remote_read_provenance_marks_fallback() -> None:
+    r = S.RemoteRead("era5-an-sfc")
+    r.ok("ncar-aws", "201311/u", 100)
+    assert not r.fallback_used and r.provenance().served_by == "primary"
+    r.failed("ncar-aws", "202608/u", "http-status", "404")
+    r.ok("arco-gcs", "2026-08-01T00/u", 50)
+    man = S.RunManifest()
+    prov = r.record(man)
+    assert prov.fallback_used and prov.served_by == "fallback" and prov.bytes == 150
+    assert man.to_dict()["fallbacks_used"] == ["era5-an-sfc"]

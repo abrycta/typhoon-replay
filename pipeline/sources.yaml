@@ -118,21 +118,29 @@ sources:
     archived: { enabled: true, retention: all }
 
   # ------------------------------------------------------------------ reanalysis (listed, never archived raw)
-  - id: era5
+  # ERA5 is read as storm-following windows straight from public buckets (HTTP range requests of the
+  # exact HDF5 / Zarr chunks), never downloaded whole. Three product families, each with two
+  # byte-identical NSF NCAR mirrors and ARCO-ERA5 (same ERA5 fields, different container) behind them.
+  # typhoon.era5 walks these links in order per file and records which one served (provenance).
+  - id: era5-an-sfc
     description: >-
-      ERA5 hourly single levels (u10, v10, MSLP, gust, precipitation) read as storm-following
-      windows. Petabyte-scale and already mirrored by three public hosts, so it is NOT archived;
-      the derived frames on Hugging Face are the project's own durable copy.
+      ERA5 hourly analysis, single levels: 10 m u and v wind (128_165_10u, 128_166_10v) and mean
+      sea-level pressure (128_151_msl). NCAR: monthly NetCDF-4 per variable, chunks (27 h, 139, 279),
+      shuffle + gzip.
     kind: remote-dataset
-    licence: CC BY 4.0 (Copernicus, from 2025-07-02); NSF NCAR copy also under UCAR data terms.
-    attribution: >-
+    licence: CC BY 4.0 (Copernicus); NSF NCAR copies also under UCAR data terms.
+    attribution: &era5_attr >-
       Contains modified Copernicus Climate Change Service information [year]. Hersbach, H., et al.
       (2020) doi:10.1002/qj.3803. NSF NCAR RDA ds633.0 (doi:10.5065/BH6N-5N20) when served by NCAR.
-    cadence: ERA5T daily, about 5 days behind; NCAR monthly, about 3 months behind
+    cadence: NCAR monthly, about 3 months behind; ARCO ERA5T daily, about 5 days behind
     links:
       - id: ncar-aws
-        url: s3://nsf-ncar-era5
+        url: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.an.sfc
         probe: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.an.sfc/201311/e5.oper.an.sfc.128_165_10u.ll025sc.2013110100_2013113023.nc
+        probe_bytes: { min: 1000000000, max: 3000000000 }
+      - id: ncar-osdf
+        url: https://osdf-director.osg-htc.org/ncar/rda/d633000/e5.oper.an.sfc
+        probe: https://osdf-director.osg-htc.org/ncar/rda/d633000/e5.oper.an.sfc/201311/e5.oper.an.sfc.128_165_10u.ll025sc.2013110100_2013113023.nc
         probe_bytes: { min: 1000000000, max: 3000000000 }
       - id: arco-gcs
         url: gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3
@@ -147,6 +155,54 @@ sources:
         url: https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
         probe: https://cds.climate.copernicus.eu/api/catalogue/v1/collections/reanalysis-era5-single-levels
         automatic: false   # needs an ECMWF account and licence acceptance; queues take hours
+    archived: { enabled: false }
+
+  - id: era5-fc-gust
+    description: >-
+      ERA5 10 m wind gust since the previous post-processing (10fg, 128_049; the maximum gust in the
+      hour ending at the valid time). NCAR: forecast files twice a month, chunks (1 init, 12 h, 721,
+      1440), shuffle + gzip.
+    kind: remote-dataset
+    licence: CC BY 4.0 (Copernicus); NSF NCAR copies also under UCAR data terms.
+    attribution: *era5_attr
+    cadence: NCAR monthly, about 3 months behind; ARCO ERA5T daily, about 5 days behind
+    links:
+      - id: ncar-aws
+        url: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.fc.sfc.minmax
+        probe: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.fc.sfc.minmax/201311/e5.oper.fc.sfc.minmax.128_049_10fg.ll025sc.2013110106_2013111606.nc
+        probe_bytes: { min: 300000000, max: 2000000000 }
+      - id: ncar-osdf
+        url: https://osdf-director.osg-htc.org/ncar/rda/d633000/e5.oper.fc.sfc.minmax
+        probe: https://osdf-director.osg-htc.org/ncar/rda/d633000/e5.oper.fc.sfc.minmax/201311/e5.oper.fc.sfc.minmax.128_049_10fg.ll025sc.2013110106_2013111606.nc
+        probe_bytes: { min: 300000000, max: 2000000000 }
+      - id: arco-gcs
+        url: gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3
+        probe: https://storage.googleapis.com/gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3/10m_wind_gust_since_previous_post_processing/.zarray
+        probe_bytes: { min: 100, max: 100000 }
+    archived: { enabled: false }
+
+  - id: era5-fc-precip-rate
+    description: >-
+      ERA5 mean total precipitation rate over the hour ending at the valid time (mtpr, 235_055;
+      kg m-2 s-1, x3600 = mm/h), which avoids de-accumulating lsp + cp. NCAR: forecast files twice a
+      month, chunks (1 init, 12 h, 721, 1440), shuffle + gzip.
+    kind: remote-dataset
+    licence: CC BY 4.0 (Copernicus); NSF NCAR copies also under UCAR data terms.
+    attribution: *era5_attr
+    cadence: NCAR monthly, about 3 months behind; ARCO ERA5T daily, about 5 days behind
+    links:
+      - id: ncar-aws
+        url: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.fc.sfc.meanflux
+        probe: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.fc.sfc.meanflux/201311/e5.oper.fc.sfc.meanflux.235_055_mtpr.ll025sc.2013110106_2013111606.nc
+        probe_bytes: { min: 100000000, max: 2000000000 }
+      - id: ncar-osdf
+        url: https://osdf-director.osg-htc.org/ncar/rda/d633000/e5.oper.fc.sfc.meanflux
+        probe: https://osdf-director.osg-htc.org/ncar/rda/d633000/e5.oper.fc.sfc.meanflux/201311/e5.oper.fc.sfc.meanflux.235_055_mtpr.ll025sc.2013110106_2013111606.nc
+        probe_bytes: { min: 100000000, max: 2000000000 }
+      - id: arco-gcs
+        url: gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3
+        probe: https://storage.googleapis.com/gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3/mean_total_precipitation_rate/.zarray
+        probe_bytes: { min: 100, max: 100000 }
     archived: { enabled: false }
 
   # ------------------------------------------------------------------ boundaries
@@ -188,7 +244,9 @@ sources:
     archived: { enabled: true, retention: all }
 
   - id: geoboundaries-jpn-adm2
-    description: Japan ADM2 (municipalities), geoBoundaries gbOpen, full resolution
+    description: >-
+      Japan ADM2 (municipalities), geoBoundaries gbOpen, full resolution. Used only for romanised
+      municipality names, matched to MLIT N03 by overlap; N03 is the boundary and code source.
     kind: file
     format: geojson
     filename: geoBoundaries-JPN-ADM2.geojson
@@ -222,6 +280,84 @@ sources:
       bytes: { min: 8000000, max: 20000000 }
       rows: { min: 1700, max: 1800 }
       required_properties: [shapeName, shapeID, shapeType]
+    archived: { enabled: true, retention: all }
+
+  - id: hdx-cod-ab-phl-tabular
+    description: >-
+      OCHA COD-AB Philippines tabular data (xlsx): ADM1-ADM4 names, p-codes (PSGC structure), areas
+      and centre points. Joined to the geoBoundaries ADM3 shapes by name and nearest centre, which gives
+      each place its 10-digit PSGC code, province (ADM2) and region (ADM1).
+    kind: file
+    format: zip            # an .xlsx is a zip; the workbook part is validated
+    filename: phl_admin_boundaries.xlsx
+    local_path: data/raw/boundaries/phl_admin_boundaries.xlsx
+    licence: CC BY 3.0 IGO (source NAMRIA and PSA, via OCHA Philippines / HDX).
+    attribution: >-
+      Philippines Subnational Administrative Boundaries (COD-AB), OCHA Philippines via the Humanitarian
+      Data Exchange; source NAMRIA and PSA. CC BY 3.0 IGO.
+    cadence: irregular (COD-AB v03, valid 2025-02-13); pinned
+    pin: { dataset: cod-ab-phl, resource: 159ffd3d-679f-431c-812f-b6d6f957045e, valid_on: "2025-02-13" }
+    links:
+      - id: hdx
+        url: https://data.humdata.org/dataset/caf116df-f984-4deb-85ca-41b349d3f313/resource/159ffd3d-679f-431c-812f-b6d6f957045e/download/phl_admin_boundaries.xlsx
+      - id: archive
+        archive: true
+    checks:
+      sha256: 3fbaa5f9aab058960ec48e8c8c490b8c7e1257db911913f967d70a7497091f49
+      bytes: { min: 5000000, max: 20000000 }
+      zip_member: "xl/workbook.xml"
+      member_format: xml
+    archived: { enabled: true, retention: all }
+
+  - id: mlit-n03-jpn
+    description: >-
+      MLIT National Land Numerical Information N03 (administrative areas) as of 2025-01-01:
+      municipality polygons with JIS X 0402 codes and Japanese names. The JP place source (boundaries,
+      codes, names); geoBoundaries JPN ADM2 supplies the romanised names by overlap.
+    kind: file
+    format: zip
+    filename: N03-20250101_GML.zip
+    local_path: data/raw/boundaries/N03-20250101_GML.zip
+    licence: >-
+      National Land Numerical Information terms of use (Government of Japan Standard Terms of Use 2.0,
+      compatible with CC BY 4.0).
+    attribution: >-
+      出典「国土数値情報（行政区域データ）」（国土交通省）を加工して作成. Source: MLIT National Land
+      Numerical Information (Administrative Areas, N03 2025-01-01), processed by Typhoon Replay.
+    cadence: yearly (January 1 boundaries, published the following autumn); pinned
+    pin: { product: N03, edition: "2025-01-01" }
+    links:
+      - id: mlit-ksj
+        url: https://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2025/N03-20250101_GML.zip
+      - id: archive
+        archive: true
+    checks:
+      sha256: df20ebf7193e445ef3846b41578068848bb1a79836151cc8c1ec6275cca984a5
+      bytes: { min: 500000000, max: 900000000 }
+      zip_member: "N03-20250101.prj"
+      member_format: text
+    archived: { enabled: true, retention: all }
+
+  - id: jma-rsmc-besttrack
+    description: >-
+      RSMC Tokyo (JMA) best track for the western North Pacific since 1951 (bst_all.txt). Used for each
+      named storm's JMA typhoon number (台風第N号; international number YYNN).
+    kind: file
+    format: zip
+    filename: bst_all.zip
+    local_path: data/raw/jma/bst_all.zip
+    licence: JMA website terms of use (Government of Japan Standard Terms of Use, compatible with CC BY 4.0).
+    attribution: Source - RSMC Tokyo - Typhoon Center, Japan Meteorological Agency (気象庁), best track data.
+    cadence: after each season is finalised, plus occasional revisions
+    links:
+      - id: jma-rsmc
+        url: https://www.jma.go.jp/jma/jma-eng/jma-center/rsmc-hp-pub-eg/Besttracks/bst_all.zip
+      - id: archive
+        archive: true
+    checks:
+      bytes: { min: 500000, max: 3000000 }
+      zip_member: "bst_all.txt"
+      member_format: text
     archived: { enabled: true, retention: all }
 
   # ------------------------------------------------------------------ basemap
@@ -311,12 +447,19 @@ sources:
     licence: CC BY-SA 4.0
     share_alike: true
     attribution: Wikipedia contributors, "<year> Pacific typhoon season", English Wikipedia.
-    cadence: ad hoc
+    cadence: ad hoc (python -m typhoon.crosswalk scrape)
+    # Templated: typhoon.sources.fetch_template("wikipedia-season-pages", year=2013) fills {year} and
+    # runs the same archivekit fetch (checks, atomic write, provenance) for that one page.
+    filename: "{year}_Pacific_typhoon_season.wiki"
+    local_path: "data/raw/wikipedia/{year}_Pacific_typhoon_season.wiki"
     links:
       - id: enwiki-raw
         url: https://en.wikipedia.org/w/index.php?title={year}_Pacific_typhoon_season&action=raw
         probe: https://en.wikipedia.org/w/index.php?title=2013_Pacific_typhoon_season&action=raw
         probe_contains: "Pacific typhoon season"
+    checks:
+      bytes: { min: 5000, max: 3000000 }
+      contains: "typhoon season"
     archived: { enabled: false }
 
   # ------------------------------------------------------------------ live feeds (samples only)
