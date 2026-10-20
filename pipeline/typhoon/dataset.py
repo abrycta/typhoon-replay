@@ -28,6 +28,7 @@ import argparse
 import datetime as dt
 import gzip
 import hashlib
+import io
 import json
 import logging
 import math
@@ -429,23 +430,67 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         "note": "storms: contract StormSummary + replayAvailable, frameCount, era5Ratio, bbox; `path` is the storm "
                 "directory (dataset-root relative; may be an earlier version's when nothing changed).",
         "storms": index_rows,
-        "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables/",
+        "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables.json",
         "framesIndex": f"{base_v}frames-index.json", "era5Note": ERA5_HONESTY,
         "stats": {k: f"{base_v}stats/{k}.json" for k in ("seasons", "climatology", "admin", "records")},
         "selection": f"{base_v}selection.json",
     }
     (vdir / "index.json").write_bytes(dumps(index))
     (vdir / "frames-index.json").write_bytes(dumps(frames_index))
-    write_places(vdir, base_v, pl, ex, st)
+    write_places(vdir, base_v, pl, ex, st, out_root, frame_refs)
     write_stats(vdir, st, st_stats, lfs, pl, ex)
     sel_json = PROCESSED / "catalog/selection.json"
     if sel_json.exists():
         (vdir / "selection.json").write_bytes(sel_json.read_bytes())
-    tinfo = tables.build_tables(vdir / "tables", replay, st_stats)
+    local_tables = out_root / f"tables-v{version}"      # full tables for typhoon.dbload (not uploaded)
+    tinfo = tables.build_tables(local_tables, replay, st_stats)
+    table_paths = publish_tables(local_tables, out_root, frame_refs)
+    (vdir / "tables.json").write_bytes(dumps({"schema": SCHEMA, "note": "Content-addressed Parquet files of this "
+                                              "version (paths relative to the dataset root); exposure is split per season.",
+                                              "tables": table_paths}))
     write_manifest(vdir, version, index, tinfo, local, reused, frame_refs, len(replay), reused_frames)
     log.info("built %s: %d storms, %d with frames (%d built now, %d reused), %d storm folders reused",
              vdir, len(index_rows), len(replay), len(local), reused_frames, reused)
     return vdir
+
+
+HITS_MAX_KM = 200   # static place shards carry hits within 200 km; the full 500 km table is in tables/
+
+
+def put_shared(out_root: Path, rel_dir: str, data: bytes, ext: str, refs: dict[str, dict[str, Any]]) -> str:
+    """Write a content-addressed file <rel_dir>/<sha16>.<ext> (shared by every version); return its path."""
+    h = hashlib.sha256(data).hexdigest()
+    rel_path = f"{rel_dir}/{h[:16]}.{ext}"
+    dst = out_root / rel_path
+    if not dst.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(data)
+    refs[rel_path] = {"bytes": len(data), "sha256": h}
+    return rel_path
+
+
+def publish_tables(local: Path, out_root: Path, refs: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
+    """Content-addressed copies of the tables; exposure split per season so a refresh touches one file."""
+    import pyarrow.parquet as pq
+
+    out: dict[str, list[str]] = {}
+    for name in tables.TABLES:
+        src = local / f"{name}.parquet"
+        if name == "exposure":
+            t = pq.read_table(src)
+            seasons = sorted(set(t.column("season").to_pylist()))
+            paths = []
+            for s in seasons:
+                import pyarrow.compute as pc
+
+                part = t.filter(pc.equal(t.column("season"), s))
+                buf = io.BytesIO()
+                pq.write_table(part, buf, compression="zstd")
+                paths.append(put_shared(out_root, f"tables/exposure/season={s}", buf.getvalue(), "parquet", refs))
+            out[name] = paths
+        else:
+            out[name] = [put_shared(out_root, f"tables/{name}", src.read_bytes(), "parquet", refs)]
+    return out
 
 
 def write_stats(vdir: Path, st: pd.DataFrame, st_stats: dict[str, dict[str, Any]], lfs: pd.DataFrame,
@@ -466,7 +511,8 @@ def write_stats(vdir: Path, st: pd.DataFrame, st_stats: dict[str, dict[str, Any]
         (sdir / f"{name}.json").write_bytes(dumps(doc))
 
 
-def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st: pd.DataFrame) -> None:
+def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st: pd.DataFrame,
+                 out_root: Path, refs: dict[str, dict[str, Any]]) -> None:
     pdir = ensure_dir(vdir / "places")
     names = st.set_index("sid")[["name", "season"]]
     shards = []
@@ -475,7 +521,8 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
     for shard, g in pl.groupby("shard", sort=True):
         g = g.sort_values("place_id")
         pidx = {p: i for i, p in enumerate(g.place_id)}
-        e = exb[exb.shard == shard].sort_values(["place_id", "closest_approach_km"])
+        e = exb[(exb.shard == shard) & (exb.closest_approach_km <= HITS_MAX_KM)].sort_values(
+            ["place_id", "closest_approach_km"])
         doc = {
             "schema": SCHEMA, "shard": shard, "country": g.country.iloc[0],
             "admin1": g.admin1.iloc[0], "admin2": g.admin2.iloc[0] if isinstance(g.admin2.iloc[0], str) else None,
@@ -489,29 +536,31 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
             "exposureNote": "Best-track based, as served by GET /v1/places/{placeId}/storms: closest approach of the "
                             "hourly track to the boundary, and the best-track sustained wind / gust (kt) while the "
                             "centre was within each radius.",
-            "hits": {"columns": ["place", "sid", "km", "at", "w50", "w100", "w200", "w300", "w500", "g500",
-                                 "h50", "h100", "h200", "h300", "h500"],
+            "hitsMaxKm": HITS_MAX_KM,
+            "hits": {"columns": ["place", "sid", "km", "at", "w50", "w100", "w200", "g200", "h50", "h100", "h200"],
                      "rows": [[pidx[r.place_id], r.sid, float(r.closest_approach_km),
                                int(pd.Timestamp(r.closest_approach_at).timestamp()),
-                               *(num(getattr(r, f"max_wind_kt_r{k}")) for k in (50, 100, 200, 300, 500)),
-                               num(r.max_gust_kt_r500),
-                               *(int(getattr(r, f"hours_r{k}")) for k in (50, 100, 200, 300, 500))]
+                               *(num(getattr(r, f"max_wind_kt_r{k}")) for k in (50, 100, 200)),
+                               num(r.max_gust_kt_r200),
+                               *(int(getattr(r, f"hours_r{k}")) for k in (50, 100, 200))]
                               for r in e.itertuples()]},
             "storms": {sid: [names.loc[sid, "name"], int(names.loc[sid, "season"])] for sid in pd.unique(e.sid)},
         }
-        (pdir / f"{shard}.json").write_bytes(dumps(doc))
+        shard_path = put_shared(out_root, f"places/{shard}", dumps(doc), "json", refs)
         fc = {"type": "FeatureCollection", "features": [
             {"type": "Feature", "id": r.place_id,
              "properties": {"name": r.name, "nameJa": r.name_ja if isinstance(r.name_ja, str) else None, "kind": r.kind},
              "geometry": json.loads(shapely.to_geojson(shapely.from_wkb(r.geom_display_wkb)))} for r in g.itertuples()]}
-        (pdir / f"{shard}.geojson").write_bytes(dumps(fc))
+        geo_path = put_shared(out_root, f"places/{shard}", dumps(fc), "geojson", refs)
         b = np.array([r for r in g.bbox])
         shards.append({"shard": shard, "country": g.country.iloc[0], "admin1": g.admin1.iloc[0],
                        "admin2": g.admin2.iloc[0] if isinstance(g.admin2.iloc[0], str) else None,
                        "places": len(g), "hits": len(e),
                        "bbox": [float(b[:, 0].min()), float(b[:, 1].min()), float(b[:, 2].max()), float(b[:, 3].max())],
-                       "path": f"{base_v}places/{shard}.json", "geojson": f"{base_v}places/{shard}.geojson"})
-    (pdir / "index.json").write_bytes(dumps({"schema": SCHEMA, "shards": shards}))
+                       "path": shard_path, "geojson": geo_path})
+    (pdir / "index.json").write_bytes(dumps({
+        "schema": SCHEMA, "note": "Shard files are content-addressed and shared by data versions; paths are "
+                                  "relative to the dataset root.", "shards": shards}))
 
 
 def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[str, Any],
@@ -665,7 +714,7 @@ def check(vdir: Path) -> dict[str, Any]:
     # tables
     import pyarrow.parquet as pq
 
-    t = {n: pq.read_table(vdir / "tables" / f"{n}.parquet") for n in tables.TABLES}
+    t = {n: pq.read_table(root / f"tables-{vdir.name}" / f"{n}.parquet") for n in tables.TABLES}
     sids = set(t["storms"].column("sid").to_pylist())
     pids = set(t["places"].column("place_id").to_pylist())
     for n in ("storm_fixes", "storm_landfalls", "pagasa_names", "exposure", "hourly_tracks"):

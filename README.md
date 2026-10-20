@@ -165,7 +165,7 @@ uv run python -m typhoon frames --list curated/replay-v1.txt   # ERA5 replay fra
 uv run python -m typhoon dataset build --version 1             # data/build/v1/ + gates
 uv run python -m typhoon publish all --version 1               # upload, verify Range/CORS, flip latest.json
 uv run python -m typhoon publish rollback --to 1               # point latest.json back at v1
-uv run python -m typhoon dbload --dsn "$DATABASE_URL" --tables ../data/build/v1/tables --ibtracs-version v04r01
+uv run python -m typhoon dbload --dsn "$DATABASE_URL" --tables ../data/build/tables-v1 --ibtracs-version v04r01
 ```
 
 | Workflow | Trigger | What it does |

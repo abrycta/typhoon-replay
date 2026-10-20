@@ -18,6 +18,7 @@ import datetime as dt
 import json
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -97,19 +98,24 @@ def upload(version: int, root: Path = BUILD) -> None:
     if not (vdir / "manifest.json").exists():
         raise SystemExit(f"{vdir} is not built")
     man = json.loads((vdir / "manifest.json").read_text())
-    have = remote_paths("frames")
-    frames = [r for r, f in man["files"].items() if r.startswith("frames/") and have.get(r) != f["bytes"]
-              and (root / r).exists()]
+    shared = [r for r, f in man["files"].items() if f.get("shared")]
+    have: dict[str, int] = {}
+    for top in sorted({r.split("/", 1)[0] for r in shared}):
+        have |= remote_paths(top)
+    frames = [r for r in shared if have.get(r) != man["files"][r]["bytes"] and (root / r).exists()]
     version_files = sorted(str(p.relative_to(root)) for p in vdir.rglob("*") if p.is_file())
-    log.info("uploading %d new frame files and %d files of v%d to %s", len(frames), len(version_files), version, HF_REPO)
-    push(root, sorted(frames), "frames")
+    log.info("uploading %d new shared files and %d files of v%d to %s", len(frames), len(version_files), version,
+             HF_REPO)
+    push(root, sorted(frames), "shared files")
     push(root, version_files, f"v{version}")
 
 
 def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> dict[str, Any]:
     """Every manifest file exists remotely with the right size; Range and CORS work on a frame file."""
     man = json.loads((root / f"v{version}" / "manifest.json").read_text())
-    remote = remote_paths(f"v{version}") | remote_paths("frames")
+    remote = remote_paths(f"v{version}")
+    for top in ("frames", "places", "tables"):
+        remote |= remote_paths(top)
     bad = [p for p, f in man["files"].items() if remote.get(p) != f["bytes"]]
     if f"v{version}/manifest.json" not in remote:
         bad.append(f"v{version}/manifest.json")
@@ -144,8 +150,13 @@ def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> di
     return out
 
 
-def card(version: int, man: dict[str, Any]) -> str:
+def card(version: int, man: dict[str, Any], root: Path = BUILD) -> str:
     t = CARD_TEMPLATE.read_text()
+    tj = root / f"v{version}" / "tables.json"
+    table_paths = json.loads(tj.read_text())["tables"] if tj.exists() else {}
+    configs = "\n".join(f"- config_name: {name}\n  data_files:\n" + "\n".join(f'  - "{p}"' for p in paths)
+                        for name, paths in table_paths.items()) or "[]"
+    t = t.replace("{{CONFIGS}}", configs)
     attributions = "\n".join(f"| `{a['id']}` | {a['licence']} | {a['attribution']} |" for a in man["attribution"]
                              if a["kind"] not in ("live-feed",))
     counts = man["counts"]["tables"]
@@ -172,7 +183,7 @@ def flip(version: int, root: Path = BUILD, *, note: str = "") -> dict[str, Any]:
         "previous": prev.get("dataVersion") if prev else None, "note": note or None,
     }
     ops = [CommitOperationAdd("latest.json", json.dumps(latest, indent=1).encode()),
-           CommitOperationAdd("README.md", card(version, man).encode())]
+           CommitOperationAdd("README.md", card(version, man, root).encode())]
     a.create_commit(HF_REPO, repo_type="dataset", operations=ops,
                     commit_message=f"Publish data version {version}" + (f" ({note})" if note else ""))
     try:
@@ -201,6 +212,34 @@ def input_changed(source_id: str) -> dict[str, Any]:
     return {"source": source_id, "changed": used != local["sha256"], "published": used, "local": local["sha256"]}
 
 
+def prune(keep: int, *, squash: bool = False, dry_run: bool = True) -> dict[str, Any]:
+    """Delete version directories older than the newest `keep` (never the published one) and every shared
+    content-addressed file no kept version references. `squash` then rewrites the repo history into one
+    commit, which is what actually frees storage on the Hub (deleted files otherwise stay in history)."""
+    from huggingface_hub import CommitOperationDelete
+
+    a = api()
+    files = [f.path for f in a.list_repo_tree(HF_REPO, repo_type="dataset", recursive=True) if hasattr(f, "size")]
+    versions = sorted({int(m.group(1)) for f in files if (m := re.match(r"v(\d+)/", f))})
+    cur = current()
+    kept = set(versions[-keep:]) | ({int(cur["dataVersion"])} if cur else set())
+    referenced: set[str] = set()
+    for v in kept:
+        r = httpx.get(resolve_url(f"v{v}/manifest.json"), follow_redirects=True, timeout=120)
+        if r.status_code == 200:
+            referenced |= {k for k, f in r.json()["files"].items() if f.get("shared")}
+    drop = [f for f in files if (m := re.match(r"v(\d+)/", f)) and int(m.group(1)) not in kept]
+    drop += [f for f in files if f.split("/", 1)[0] in ("frames", "places", "tables") and f not in referenced]
+    out = {"versions": versions, "kept": sorted(kept), "delete": len(drop), "dryRun": dry_run}
+    if not dry_run and drop:
+        for i in range(0, len(drop), 500):
+            a.create_commit(HF_REPO, repo_type="dataset", commit_message=f"prune: keep v{sorted(kept)}",
+                            operations=[CommitOperationDelete(path_in_repo=f) for f in drop[i:i + 500]])
+        if squash:
+            a.super_squash_history(HF_REPO, repo_type="dataset", commit_message="Squash history after pruning")
+    return out
+
+
 def rollback(to: int) -> dict[str, Any]:
     """Point latest.json at an older version that is still in the repo (nothing is deleted)."""
     r = httpx.get(resolve_url(f"v{to}/manifest.json"), follow_redirects=True, timeout=60)
@@ -215,13 +254,19 @@ def rollback(to: int) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["upload", "verify", "flip", "rollback", "all", "current", "next-version", "changed"])
+    ap.add_argument("cmd", choices=["upload", "verify", "flip", "rollback", "all", "current", "next-version", "changed",
+                                        "prune"])
+    ap.add_argument("--keep", type=int, default=4)
+    ap.add_argument("--apply", action="store_true", help="prune: actually delete (default: dry run)")
+    ap.add_argument("--squash", action="store_true", help="prune: squash history to free storage")
     ap.add_argument("--source", default="ibtracs-wp")
     ap.add_argument("--version", type=int)
     ap.add_argument("--to", type=int)
     a = ap.parse_args(argv)
     if a.cmd == "current":
         print(json.dumps(current(), indent=1))
+    elif a.cmd == "prune":
+        print(json.dumps(prune(a.keep, squash=a.squash, dry_run=not a.apply), indent=1))
     elif a.cmd == "changed":
         print(json.dumps(input_changed(a.source)))
     elif a.cmd == "next-version":

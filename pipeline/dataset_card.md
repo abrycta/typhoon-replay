@@ -17,18 +17,7 @@ tags:
 size_categories:
 - 1M<n<10M
 configs:
-- config_name: storms
-  data_files: "v{{VERSION}}/tables/storms.parquet"
-- config_name: storm_fixes
-  data_files: "v{{VERSION}}/tables/storm_fixes.parquet"
-- config_name: storm_landfalls
-  data_files: "v{{VERSION}}/tables/storm_landfalls.parquet"
-- config_name: places
-  data_files: "v{{VERSION}}/tables/places.parquet"
-- config_name: exposure
-  data_files: "v{{VERSION}}/tables/exposure.parquet"
-- config_name: hourly_tracks
-  data_files: "v{{VERSION}}/tables/hourly_tracks.parquet"
+{{CONFIGS}}
 ---
 
 # Typhoon Replay
@@ -78,11 +67,11 @@ vN/stats/seasons.json                    per season: storms by intensity class, 
 vN/stats/climatology.json                storms forming per month x decade; landfalls per month by country
 vN/stats/admin.json                      per province / prefecture: storms within 100 km, landfalls, strongest
 vN/stats/records.json                    top-10 lists (strongest, lowest pressure, ACE, rapid intensification...)
-vN/tables/*.parquet                      storms, storm_fixes, storm_landfalls, pagasa_names, places,
+vN/tables.json                           this version's Parquet files (content-addressed, under tables/):
                                          exposure, hourly_tracks
 ```
 
-Every `vN/` path is immutable. A later version may point a storm's `path` at an earlier version's folder
+Every `vN/` path and every content-addressed file (`frames/`, `places/`, `tables/`) is immutable. A later version may point a storm's `path` at an earlier version's folder
 when nothing about that storm changed. Rolling back means pointing `latest.json` at an earlier version.
 
 ### Frames
