@@ -1,6 +1,13 @@
 import { type GeoJSONSource, type LngLatBoundsLike, Map as MaplibreMap, type Map as MlMap, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+// MapLibre 6 derives its worker URL at runtime from import.meta.url, which bundlers cannot see, so the
+// self-contained worker file is emitted as an asset and handed to MapLibre explicitly.
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+import { setWorkerUrl } from "maplibre-gl";
+
+setWorkerUrl(workerUrl);
+
 import { useEffect, useRef, useState } from "react";
 
 import { type FrameStore, hourAt, type TyfHeader } from "@/data";

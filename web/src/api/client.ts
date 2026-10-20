@@ -30,6 +30,10 @@ const timing: Middleware = {
       ms: Math.round(performance.now() - t0),
       at: Date.now(),
     });
+    // A static host answering with its SPA page: there is no API behind this path.
+    if (response.ok && (response.headers.get("Content-Type") ?? "").includes("text/html")) {
+      throw new ApiError("no API at this address", 404, "not-deployed");
+    }
     return response;
   },
 };
@@ -68,12 +72,8 @@ export async function unwrap<T>(
   try {
     r = await p;
   } catch (e) {
+    if (e instanceof ApiError) throw new ApiError(e.message, e.status, e.code, backend);
     throw new ApiError(e instanceof Error ? e.message : "network error", 0, "network", backend);
-  }
-  const type = r.response.headers.get("Content-Type") ?? "";
-  if (r.response.ok && type.includes("text/html")) {
-    // A static host answering with its SPA page: there is no API behind this path.
-    throw new ApiError("no API at this address", 404, "not-deployed", backend);
   }
   if (!r.response.ok || r.data === undefined) {
     const problem = (r.error ?? {}) as { code?: string; title?: string };

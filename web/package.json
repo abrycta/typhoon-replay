@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "e2e": "playwright test",
-    "e2e:install": "playwright install chromium",
+    "e2e:install": "playwright install ${CI:+--with-deps} chromium",
     "preview": "vite preview",
     "gen:api": "node scripts/gen-api.mjs",
     "i18n:extract": "lingui extract --clean",

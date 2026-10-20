@@ -80,6 +80,7 @@ export class PlayerClock {
   }
 
   seek(index: number) {
+    if (this.frames < 1) return;
     this.pos = Math.min(Math.max(0, Math.round(index)), this.frames - 1);
     this.moved();
   }

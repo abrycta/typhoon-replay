@@ -24,13 +24,30 @@ function useGlobalParams() {
 export function Shell({ children }: { children: ReactNode }) {
   const { t } = useLingui();
   useGlobalParams();
-  const nav = "rounded-sm px-1 py-0.5 hover:text-foreground [&.active]:text-foreground [&.active]:underline underline-offset-4";
+  const nav = "rounded-sm px-1 py-0.5 whitespace-nowrap hover:text-foreground [&.active]:text-foreground [&.active]:underline underline-offset-4";
+  const links = (
+    <>
+      <Link to="/storms" className={nav}>
+        {t`Storms`}
+      </Link>
+      <Link to="/compare" className={nav}>
+        {t`Compare`}
+      </Link>
+      <Link to="/town" className={nav}>
+        {t`My town`}
+      </Link>
+      <Link to="/about" className={nav}>
+        {t`About`}
+      </Link>
+    </>
+  );
   return (
     <AppShell
       header={
+        <>
         <Header
           brand={
-            <Link to="/" aria-label={t`Typhoon Replay home`}>
+            <Link to="/">
               <Logo name="Typhoon Replay" glyph="嵐" size="sm" />
             </Link>
           }
@@ -43,19 +60,13 @@ export function Shell({ children }: { children: ReactNode }) {
             </>
           }
         >
-          <Link to="/storms" className={nav}>
-            {t`Storms`}
-          </Link>
-          <Link to="/compare" className={nav}>
-            {t`Compare`}
-          </Link>
-          <Link to="/town" className={nav}>
-            {t`My town`}
-          </Link>
-          <Link to="/about" className={nav}>
-            {t`About`}
-          </Link>
+          {/* Akari's header nav does not wrap; on small screens the links move to their own row below. */}
+          <span className="hidden md:contents">{links}</span>
         </Header>
+        <nav aria-label={t`Sections`} className="flex flex-wrap gap-x-4 gap-y-1 border-b border-border px-4 py-2 text-sm text-muted-foreground md:hidden">
+          {links}
+        </nav>
+        </>
       }
       footer={
         <footer className="border-t border-border">

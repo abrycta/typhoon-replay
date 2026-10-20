@@ -713,6 +713,10 @@ msgstr "Season"
 msgid "Second storm"
 msgstr "Second storm"
 
+#: src/app/Shell.tsx
+msgid "Sections"
+msgstr "Sections"
+
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by"
 msgstr "Served by"
@@ -881,10 +885,6 @@ msgstr "Type at least two letters."
 #: src/routes/storm.$sid.tsx
 msgid "Typhoon replay"
 msgstr "Typhoon replay"
-
-#: src/app/Shell.tsx
-msgid "Typhoon Replay home"
-msgstr "Typhoon Replay home"
 
 #: src/routes/index.tsx
 #: src/routes/town.tsx

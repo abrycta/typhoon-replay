@@ -63,8 +63,9 @@ export function CompareView({ url, onUrl, renderReplay }: { url: CompareUrl; onU
   const [index, setIndex] = useState(url.h ?? 0);
   const onIndex = useCallback(
     (i: number) => {
+      if (i < 0) return;
       setIndex(i);
-      if (i !== url.h) onUrl({ h: i });
+      if (i !== (url.h ?? 0)) onUrl({ h: i || undefined });
     },
     [onUrl, url.h],
   );

@@ -713,6 +713,10 @@ msgstr "シーズン"
 msgid "Second storm"
 msgstr "2つ目の台風"
 
+#: src/app/Shell.tsx
+msgid "Sections"
+msgstr "セクション"
+
 #: src/features/backend-switch/BackendSwitch.tsx
 msgid "Served by"
 msgstr "応答元"
@@ -881,10 +885,6 @@ msgstr "2文字以上入力してください。"
 #: src/routes/storm.$sid.tsx
 msgid "Typhoon replay"
 msgstr "台風リプレイ"
-
-#: src/app/Shell.tsx
-msgid "Typhoon Replay home"
-msgstr "Typhoon Replay ホーム"
 
 #: src/routes/index.tsx
 #: src/routes/town.tsx

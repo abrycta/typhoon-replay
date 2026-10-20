@@ -92,12 +92,14 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
 
   // External sync (compare view).
   useEffect(() => {
-    if (syncIndex !== undefined && syncIndex !== state.index) clock.seek(Math.min(syncIndex, times.length - 1));
+    if (times.length && syncIndex !== undefined && syncIndex !== state.index) clock.seek(Math.min(syncIndex, times.length - 1));
   }, [syncIndex, clock, state.index, times.length]);
   useEffect(() => {
     // Read the clock, not the render's state: a sync seek in the same commit has already moved it.
     const i = clock.snapshot.index;
-    if (syncIndex === undefined || i !== syncIndex) onIndex?.(i);
+    if (!times.length) return; // timeline not known yet
+    // A shorter storm clamps the shared hour; only report moves the user made inside its range.
+    if (syncIndex === undefined || (i !== syncIndex && !(syncIndex > times.length - 1 && i === times.length - 1))) onIndex?.(i);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, onIndex, clock]);
 

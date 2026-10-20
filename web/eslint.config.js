@@ -63,6 +63,15 @@ export default tseslint.config(
     },
   },
   {
+    // Tests may reach shared test helpers from any layer; Playwright's `use` is not a React hook.
+    files: ["src/**/*.test.{ts,tsx}"],
+    rules: { "boundaries/dependencies": "off" },
+  },
+  {
+    files: ["e2e/**/*.ts"],
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
+  {
     // TanStack Router's Vite plugin handles HMR for route files (they export `Route`, not components).
     files: ["src/routes/**/*.tsx"],
     rules: { "react-refresh/only-export-components": "off" },

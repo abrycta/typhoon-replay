@@ -61,5 +61,6 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     environment: "node",
     setupFiles: ["src/test/setup.ts"],
+    maxWorkers: 2,
   },
 });
