@@ -170,7 +170,7 @@ jobs:
       - name: Schemathesis (positive, against the examples)
         run: |
           mkdir -p contracts/conformance/results
-          docker run --rm --network host -e BASE_URL=http://localhost:4010 \
+          docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e BASE_URL=http://localhost:4010 \
             -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
             --config-file /c/conformance/schemathesis/prism-smoke.toml run /c/dist/openapi.json \
             --report junit --report-junit-path /c/conformance/results/mock-schemathesis.xml
