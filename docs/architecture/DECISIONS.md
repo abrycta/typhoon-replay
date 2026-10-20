@@ -15,7 +15,10 @@ Decided 2026-10-21 by Kurt, after the research in this folder, `contracts/docs/`
 | Storm frames | **Hugging Face dataset** (range requests, CORS), kept off the app origin. | `web/docs/ARCHITECTURE-RESEARCH.md`, `SPIKE.md` |
 | Languages (v1) | **English + Japanese.** PAGASA local names shown beside international names. | — |
 
+## Update 2026-10-21: custom domain
+
+- The app is served at **https://typhoon.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). This is System option A on the owner's domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
+
 ## Noted for later
 
-- The owner already has the domain `krtmtthw.dev`. System option B (a subdomain such as `typhoon.krtmtthw.dev`, with alert email sent from the domain) can be added later without changing the architecture.
 - Earth Engine is optional: the spike found NCAR ERA5 on AWS about 21× cheaper per storm window than ARCO-ERA5.
