@@ -1,0 +1,70 @@
+# Data pipeline checks on pull requests (and pushes to main): registry validation, lint, type-check,
+# offline unit tests, the Postgres loader against PostGIS (testcontainers), and actionlint.
+# Data-quality gates over real data run in backfill.yml / refresh.yml, where the data exists.
+name: Pipeline
+
+on:
+  pull_request:
+    paths:
+      - pipeline/**
+      - .github/workflows/pipeline.yml
+      - .github/workflows/backfill.yml
+      - .github/workflows/refresh.yml
+      - .github/actions/setup-pipeline/**
+      - contracts/db/migrations/**
+  push:
+    branches: [main]
+    paths:
+      - pipeline/**
+      - .github/workflows/**
+      - .github/actions/**
+      - contracts/db/migrations/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run actionlint 1.7.12
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
+  check:
+    name: Lint, types, tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: setup
+        uses: ./.github/actions/setup-pipeline
+        with:
+          archive-read-token: ${{ secrets.ARCHIVE_READ_TOKEN }}
+      - name: Validate the source registry
+        if: steps.setup.outputs.ok == 'true'
+        working-directory: pipeline
+        run: uv run python -m typhoon sources validate-registry
+      - name: Ruff
+        if: steps.setup.outputs.ok == 'true'
+        working-directory: pipeline
+        run: uv run ruff check typhoon tests
+      - name: Mypy
+        if: steps.setup.outputs.ok == 'true'
+        working-directory: pipeline
+        run: uv run mypy typhoon
+      - name: Tests (unit; PostGIS 18 via testcontainers; data gates skip without data/)
+        if: steps.setup.outputs.ok == 'true'
+        working-directory: pipeline
+        env:
+          ARCHIVE_READ_TOKEN: ${{ secrets.ARCHIVE_READ_TOKEN }}
+        run: uv run pytest -q

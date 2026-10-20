@@ -51,8 +51,8 @@ def hourly_track(sid: str) -> pd.DataFrame:
 
 
 def window_index(lat: float, lon: float):
-    ci = int(round((90 - lat) / 0.25))
-    cj = int(round((lon % 360) / 0.25))
+    ci = int(round((90 - lat) / 0.25))  # noqa: RUF046
+    cj = int(round((lon % 360) / 0.25))  # noqa: RUF046
     ci = min(max(ci, HALF), NLAT - 1 - HALF)
     rows = np.arange(ci - HALF, ci + HALF + 1)
     cols = np.arange(cj - HALF, cj + HALF + 1) % NLON
@@ -85,7 +85,7 @@ def run_direct(tr, concurrency: int, batch_hours: int):
 
 def run_xarray(tr):
     import xarray as xr
-    ds = xr.open_zarr("gs://" + STORE, chunks=None, storage_options=dict(token="anon"))
+    ds = xr.open_zarr("gs://" + STORE, chunks=None, storage_options=dict(token="anon"))  # noqa: C408
     out = {k: np.empty((len(tr), 2 * HALF + 1, 2 * HALF + 1), np.float32) for k in VARS}
     for i in range(len(tr)):
         rows, cols, *_ = window_index(tr.lat[i], tr.lon[i])

@@ -10,13 +10,18 @@ dependencies = [
     "gcsfs>=2026.10.1",
     "h5netcdf>=1.8.1",
     "h5py>=3.16.0",
+    "huggingface-hub>=2.2.0",
     "netcdf4>=1.7.5",
     "numcodecs>=0.17.0",
     "numpy>=2.5.4",
+    "openpyxl>=3.1.5",
     "pandas>=3.0.6",
     "pillow>=13.0.0",
     "psutil>=7.2.2",
+    "psycopg[binary]>=3.3.6",
     "pyarrow>=26.0.0",
+    "pyogrio>=0.13.0",
+    "pyproj>=3.8.0",
     "pytest>=9.1.1",
     "s3fs>=2026.9.0",
     "shapely>=2.2.0",
@@ -26,8 +31,36 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=2.4.0",
+    "pandas-stubs>=3.0.5.260914",
     "respx>=0.23.1",
+    "ruff>=0.17.1",
+    "testcontainers[postgres]>=4.15.0",
 ]
 
 [tool.uv.sources]
 archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.0.0" }
+
+[[tool.mypy.overrides]]
+# archivekit ships no py.typed marker
+module = ["archivekit", "archivekit.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# scientific libraries without type information
+module = ["pyarrow", "pyarrow.*", "shapely", "shapely.*", "h5py", "s3fs", "gcsfs", "fsspec", "fsspec.*",
+          "pyogrio", "pyogrio.*", "numcodecs", "numcodecs.*", "psutil", "testcontainers.*", "xarray", "zarr"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Row-wise pandas code (itertuples / .loc scalars): pandas-stubs types every cell as a broad scalar union,
+# which makes these checks noise here. Everything else is checked.
+module = ["typhoon.__main__", "typhoon.stats", "typhoon.selection", "typhoon.catalog", "typhoon.dataset", "typhoon.exposure", "typhoon.places", "typhoon.ibtracs",
+          "typhoon.frames", "typhoon.era5_arco", "typhoon.era5_ncar"]
+disable_error_code = ["arg-type", "union-attr", "index", "operator", "call-overload", "attr-defined",
+                      "assignment", "return-value"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["data: data-quality gates over data/processed (skipped when absent)"]
