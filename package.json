@@ -9,10 +9,15 @@
     "dev": "bash scripts/dev.sh",
     "preview": "bash scripts/preview.sh",
     "ci": "bash scripts/ci.sh",
+    "test:edge": "tsc -p edge && vitest run --root edge",
     "deploy:preview": "bash scripts/deploy.sh --preview",
     "deploy:production": "bash scripts/deploy.sh --production"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.6",
+    "@cloudflare/workers-types": "^5.20261019.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5",
     "wrangler": "^4.151.3"
   },
   "allowScripts": {

@@ -9,5 +9,17 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "typhoon-replay",
   "pages_build_output_dir": "./web/dist",
-  "compatibility_date": "2026-10-01"
+  "compatibility_date": "2026-10-01",
+  // Edge proxy settings (functions/api/[[path]].ts; edge/README.md). Values are strings, as in the dashboard.
+  // BACKEND_ORIGINS maps impl -> origin; add node/rust/go here as they deploy. Unlisted impls answer 503
+  // backend-not-deployed. STATIC_MODE "true" serves cached responses only (egress guard, edge/README.md).
+  "vars": {
+    "BACKEND_ORIGINS": "{\"java\":\"https://typhoon-replay-java.onrender.com\"}",
+    "STATIC_MODE": "false",
+    "ORIGIN_TIMEOUT_MS": "8000",
+    "STALE_TIMEOUT_MS": "1500",
+    "STALE_IF_ERROR_S": "604800",
+    "RATE_LIMIT_PER_MINUTE": "120",
+    "RATE_LIMIT_BURST": "60"
+  }
 }

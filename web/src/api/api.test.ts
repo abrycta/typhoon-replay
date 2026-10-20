@@ -78,6 +78,18 @@ describe("backend health", () => {
     expect(h.detail).toMatch(/did not wake/);
   });
 
+  it("stops at once on the edge proxy's final answers (not deployed, static mode)", async () => {
+    const edge = (code: string, status: number) =>
+      (async () =>
+        new Response(JSON.stringify({ code, status }), { status, headers: { "Content-Type": "application/problem+json" } })) as typeof fetch;
+    const notDeployed = await probeBackend("node", edge("backend-not-deployed", 503));
+    expect(notDeployed).toMatchObject({ state: "down", detail: "not deployed" });
+    const resting = await probeBackend("rust", edge("static-mode", 503));
+    expect(resting).toMatchObject({ state: "down", detail: "resting (static mode)" });
+    const waking = await probeBackend("go", edge("backend-waking", 503), { wakeLimitMs: 0 });
+    expect(waking.detail).toMatch(/did not wake/); // backend-waking keeps retrying until the wake limit
+  });
+
   it("shows an old 'up' as asleep (free instances sleep after 15 minutes)", () => {
     const now = Date.now();
     expect(displayHealth({ state: "up", lastUpAt: now - SLEEP_AFTER_MS - 1 }, now)).toBe("asleep");

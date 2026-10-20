@@ -112,7 +112,10 @@ async function probeOnce(id: BackendId, fetchImpl: typeof fetch): Promise<ProbeR
   try {
     const res = await fetchImpl(`${baseUrlOf(id)}/healthz`, { signal: ctrl.signal, cache: "no-store" });
     const ms = Math.round(performance.now() - t0);
-    if ([502, 503, 504].includes(res.status)) return { kind: "busy", detail: `HTTP ${res.status}` };
+    // The edge proxy (edge/README.md) answers some states itself: retrying won't change these.
+    const code = await edgeProblemCode(res);
+    if (code && FINAL_EDGE_CODES[code]) return { kind: "down", detail: FINAL_EDGE_CODES[code] };
+    if ([502, 503, 504].includes(res.status)) return { kind: "busy", detail: code === "backend-waking" ? "waking" : `HTTP ${res.status}` };
     if (!res.ok) return { kind: "down", detail: `HTTP ${res.status}` };
     if (!(res.headers.get("Content-Type") ?? "").includes("json")) return { kind: "down", detail: "not deployed" };
     const body = (await res.json()) as { status?: string };
@@ -122,6 +125,23 @@ async function probeOnce(id: BackendId, fetchImpl: typeof fetch): Promise<ProbeR
     return { kind: "down", detail: e instanceof Error ? e.message : "network error" };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/** Edge proxy problem codes that end a probe instead of retrying (backend-waking keeps retrying). */
+const FINAL_EDGE_CODES: Record<string, string> = {
+  "backend-not-deployed": "not deployed",
+  "unknown-backend": "not deployed",
+  "static-mode": "resting (static mode)",
+};
+
+async function edgeProblemCode(res: Response): Promise<string | undefined> {
+  if (res.ok || !(res.headers.get("Content-Type") ?? "").includes("problem+json")) return undefined;
+  try {
+    const body = (await res.clone().json()) as { code?: unknown };
+    return typeof body.code === "string" ? body.code : undefined;
+  } catch {
+    return undefined;
   }
 }
 
