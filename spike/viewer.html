@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typhoon Replay spike</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+  header, .controls { padding: 8px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  canvas { display: block; width: 100%; max-width: 1100px; height: auto; margin: 0 16px; background: #0b2233; }
+  input[type=range] { flex: 1; min-width: 200px; }
+  #info { font-variant-numeric: tabular-nums; }
+  .note { padding: 4px 16px; opacity: .7; font-size: 12px; }
+</style>
+</head>
+<body>
+<header><strong id="title">Loading…</strong><span id="info"></span></header>
+<canvas id="map" width="1100" height="700"></canvas>
+<div class="controls">
+  <button id="play">Play</button>
+  <input id="scrub" type="range" min="0" max="0" value="0">
+  <select id="var"></select>
+  <label>fps <input id="fps" type="number" value="12" min="1" max="60" style="width:4em"></label>
+</div>
+<div class="note" id="legend"></div>
+<div class="note">ERA5 reanalysis (0.25°) underestimates peak typhoon winds; best-track intensity shown beside it.
+Contains modified Copernicus Climate Change Service information. Track: IBTrACS v04r01 (NOAA NCEI).</div>
+<script>
+const SID = new URLSearchParams(location.search).get('sid') || '2013306N07162';
+const BASE = '../data/processed/frames/';
+
+function parseTYF(buf) {
+  const dv = new DataView(buf);
+  const magic = String.fromCharCode(...new Uint8Array(buf, 0, 4));
+  if (magic !== 'TYF1') throw new Error('bad magic ' + magic);
+  const hlen = dv.getUint32(4, true);
+  const header = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 8, hlen)));
+  const data = new Uint8Array(buf, 8 + hlen);
+  const need = header.frames * header.vars.length * header.ny * header.nx;
+  if (data.length !== need) throw new Error(`size mismatch ${data.length} != ${need}`);
+  return { header, data };
+}
+
+function decodeFn(v) {
+  if (v.encoding === 'sqrt') return q => (q * v.scale) ** 2;
+  if (v.encoding === 'angle') return q => q * 360 / 256;
+  return q => v.offset + q * v.scale;
+}
+
+// Simple perceptual-ish ramps per variable: [value, r, g, b]
+const RAMPS = {
+  wind: [[0, 20, 40, 80], [10, 40, 120, 170], [17, 60, 180, 120], [25, 240, 220, 60], [33, 240, 120, 40], [45, 200, 30, 80], [60, 255, 255, 255]],
+  gust: [[0, 20, 40, 80], [15, 40, 120, 170], [25, 60, 180, 120], [35, 240, 220, 60], [45, 240, 120, 40], [60, 200, 30, 80], [80, 255, 255, 255]],
+  mslp: [[960, 120, 0, 120], [980, 200, 40, 60], [995, 240, 160, 60], [1005, 120, 200, 200], [1015, 40, 80, 140], [1030, 20, 30, 60]],
+  tp:   [[0, 11, 34, 51], [0.5, 40, 90, 160], [2, 60, 160, 220], [5, 80, 220, 120], [10, 240, 220, 60], [20, 240, 80, 40], [40, 255, 255, 255]],
+};
+function ramp(stops, x) {
+  if (x <= stops[0][0]) return stops[0].slice(1);
+  for (let i = 1; i < stops.length; i++) {
+    if (x <= stops[i][0]) {
+      const a = stops[i - 1], b = stops[i], t = (x - a[0]) / (b[0] - a[0]);
+      return [a[1] + t * (b[1] - a[1]), a[2] + t * (b[2] - a[2]), a[3] + t * (b[3] - a[3])];
+    }
+  }
+  return stops[stops.length - 1].slice(1);
+}
+
+async function main() {
+  const [tyfBuf, track, coast] = await Promise.all([
+    fetch(BASE + SID + '.tyf').then(r => { if (!r.ok) throw new Error('tyf ' + r.status); return r.arrayBuffer(); }),
+    fetch(BASE + SID + '_track.json').then(r => r.json()),
+    fetch(BASE + 'coast.json').then(r => r.json()),
+  ]);
+  const { header: H, data } = parseTYF(tyfBuf);
+  document.getElementById('title').textContent = `${H.name} ${H.season} (${H.sid})`;
+  const nv = H.vars.length, fsz = H.nx * H.ny;
+
+  // Map extent = union of all windows + margin (equirectangular, lon in 0..360)
+  let w = Infinity, e = -Infinity, s = Infinity, n = -Infinity;
+  for (let i = 0; i < H.frames; i++) {
+    w = Math.min(w, H.nw_lon[i]); e = Math.max(e, H.nw_lon[i] + (H.nx - 1) * H.res_deg);
+    n = Math.max(n, H.nw_lat[i]); s = Math.min(s, H.nw_lat[i] - (H.ny - 1) * H.res_deg);
+  }
+  w -= 2; e += 2; s -= 2; n += 2;
+  const cv = document.getElementById('map'), ctx = cv.getContext('2d');
+  cv.height = Math.round(cv.width * (n - s) / (e - w));
+  const X = lon => (lon - w) / (e - w) * cv.width, Y = lat => (n - lat) / (n - s) * cv.height;
+
+  const sel = document.getElementById('var');
+  H.vars.forEach((v, i) => { if (RAMPS[v.name]) sel.add(new Option(`${v.name} (${v.units})`, i)); });
+  const scrub = document.getElementById('scrub'); scrub.max = H.frames - 1;
+  const off = document.createElement('canvas'); off.width = H.nx; off.height = H.ny;
+  const octx = off.getContext('2d'), img = octx.createImageData(H.nx, H.ny);
+
+  function draw(fi) {
+    const vi = +sel.value, v = H.vars[vi], dec = decodeFn(v), stops = RAMPS[v.name];
+    const lut = new Uint8ClampedArray(256 * 4);
+    for (let q = 0; q < 256; q++) {
+      const [r, g, b] = ramp(stops, dec(q));
+      lut.set([r, g, b, q === H.nodata ? 0 : 230], q * 4);
+    }
+    const base = (fi * nv + vi) * fsz;
+    for (let k = 0; k < fsz; k++) img.data.set(lut.subarray(data[base + k] * 4, data[base + k] * 4 + 4), k * 4);
+    octx.putImageData(img, 0, 0);
+    ctx.fillStyle = '#0b2233'; ctx.fillRect(0, 0, cv.width, cv.height);
+    // cell centres -> pixel edges: window spans nw +- half a cell
+    const x0 = X(H.nw_lon[fi] - H.res_deg / 2), y0 = Y(H.nw_lat[fi] + H.res_deg / 2);
+    const x1 = X(H.nw_lon[fi] + (H.nx - 0.5) * H.res_deg), y1 = Y(H.nw_lat[fi] - (H.ny - 0.5) * H.res_deg);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, x0, y0, x1 - x0, y1 - y0);
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
+    for (const line of coast) {
+      ctx.beginPath();
+      line.forEach(([lo, la], j) => j ? ctx.lineTo(X(lo), Y(la)) : ctx.moveTo(X(lo), Y(la)));
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.setLineDash([4, 4]);
+    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); ctx.setLineDash([]);
+    // best track
+    ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 2; ctx.beginPath();
+    track.fixes.forEach((f, j) => j ? ctx.lineTo(X(f.lon), Y(f.lat)) : ctx.moveTo(X(f.lon), Y(f.lat)));
+    ctx.stroke();
+    const t = H.time[fi];
+    let fx = track.fixes[0];
+    for (const f of track.fixes) if (f.t <= t) fx = f;
+    // interpolate centre for display
+    const nxt = track.fixes.find(f => f.t > t) || fx;
+    const a = nxt.t === fx.t ? 0 : (t - fx.t) / (nxt.t - fx.t);
+    const clat = fx.lat + a * (nxt.lat - fx.lat), clon = fx.lon + a * (nxt.lon - fx.lon);
+    ctx.fillStyle = '#ff3b6b'; ctx.beginPath(); ctx.arc(X(clon), Y(clat), 6, 0, 7); ctx.fill();
+    // field max for honesty readout
+    let mx = -Infinity;
+    const wi = H.vars.findIndex(v => v.name === 'wind'), wdec = decodeFn(H.vars[wi]), wb = (fi * nv + wi) * fsz;
+    for (let k = 0; k < fsz; k++) if (data[wb + k] !== H.nodata) mx = Math.max(mx, wdec(data[wb + k]));
+    const kt = x => x == null ? '–' : (x * 0.514444).toFixed(0);
+    document.getElementById('info').textContent =
+      `${new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC · frame ${fi + 1}/${H.frames} · ` +
+      `ERA5 max wind ${mx.toFixed(1)} m/s · best track JTWC ${kt(fx.usa_kt)} m/s (1-min), JMA ${kt(fx.jma_kt)} m/s (10-min), ${fx.jma_hpa ?? '–'} hPa`;
+    document.getElementById('legend').textContent =
+      `${v.name}: uint8 ${v.encoding} scale ${v.scale} offset ${v.offset} ${v.units} · window ${H.nx}×${H.ny} @ ${H.res_deg}°`;
+  }
+
+  let playing = false, last = 0;
+  function tick(ts) {
+    if (!playing) return;
+    if (ts - last > 1000 / +document.getElementById('fps').value) {
+      last = ts; scrub.value = (+scrub.value + 1) % H.frames; draw(+scrub.value);
+    }
+    requestAnimationFrame(tick);
+  }
+  document.getElementById('play').onclick = ev => {
+    playing = !playing; ev.target.textContent = playing ? 'Pause' : 'Play';
+    if (playing) requestAnimationFrame(tick);
+  };
+  scrub.oninput = () => draw(+scrub.value);
+  sel.onchange = () => draw(+scrub.value);
+  draw(0);
+  window.__tyf = { header: H, bytes: tyfBuf.byteLength }; // for headless checks
+}
+main().catch(err => { document.getElementById('title').textContent = 'Error: ' + err.message; console.error(err); });
+</script>
+</body>
+</html>

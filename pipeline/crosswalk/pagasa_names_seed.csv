@@ -1,0 +1,63 @@
+pagasa_name,intl_name,season,ph_landfall_date_utc_approx,jtwc_id,source_url,notes
+Yolanda,Haiyan,2013,2013-11-07,31W,https://en.wikipedia.org/wiki/Typhoon_Haiyan,Guiuan Eastern Samar 20:40 UTC; name retired (per fetched season page); jtwc_id from article JTWC citations
+Odette,Rai,2021,2021-12-16,28W,https://en.wikipedia.org/wiki/Typhoon_Rai,Siargao 05:30 UTC; jtwc_id from article JTWC citations
+Ondoy,Ketsana,2009,,17W,https://en.wikipedia.org/wiki/Typhoon_Ketsana,Landfall north of Metro Manila ~Sep 26 2009 local (date not stated as UTC in article); name retired (per fetched season page); jtwc_id from article JTWC citations
+Rolly,Goni,2020,2020-10-31,22W,https://en.wikipedia.org/wiki/Typhoon_Goni,First landfall Catanduanes hours after 18:00 UTC Oct 31 (Nov 1 PHT); jtwc_id from article JTWC citations
+Pablo,Bopha,2012,2012-12-03,26W,https://en.wikipedia.org/wiki/Typhoon_Bopha,Baganga Davao Oriental 20:45 UTC; jtwc_id from article JTWC citations
+Sendong,Washi,2011,2011-12-16,27W,https://en.wikipedia.org/wiki/Tropical_Storm_Washi,Mindanao; JMA severe tropical storm; jtwc_id from article JTWC citations
+Glenda,Rammasun,2014,,09W,https://en.wikipedia.org/wiki/Typhoon_Rammasun,PH landfall date not captured from fetched text (mid-Jul 2014); jtwc_id from article JTWC citations
+Lawin,Haima,2016,2016-10-19,25W,https://en.wikipedia.org/wiki/Typhoon_Haima,Penablanca Cagayan 15:00 UTC; jtwc_id from article JTWC citations
+Ompong,Mangkhut,2018,2018-09-14,26W,https://en.wikipedia.org/wiki/Typhoon_Mangkhut,Baggao Cagayan late Sep 14 local (UTC date approx); jtwc_id from article JTWC citations
+Ulysses,Vamco,2020,2020-11-11,25W,https://en.wikipedia.org/wiki/Typhoon_Vamco,Patnanungan Quezon 14:30 UTC; jtwc_id from article JTWC citations
+Pepeng,Parma,2009,2009-10-03,19W,https://en.wikipedia.org/wiki/Typhoon_Parma,Northern Luzon; multiple landfalls Oct 3/6/8; name retired (per fetched season page); jtwc_id from article JTWC citations
+Reming,Durian,2006,2006-11-30,24W,https://en.wikipedia.org/wiki/Typhoon_Durian,Brushed/struck Catanduanes early Nov 30; jtwc_id from article JTWC citations
+Milenyo,Xangsane,2006,,18W,https://en.wikipedia.org/wiki/Typhoon_Xangsane,"Struck southern Luzon ~12:00 UTC (date ~Sep 28, not captured); jtwc_id from article JTWC citations"
+Frank,Fengshen,2008,,07W,https://en.wikipedia.org/wiki/Typhoon_Fengshen,First landfall Samar ~Jun 20-21 (date not captured); jtwc_id from article JTWC citations
+Ruping,Mike,1990,,,https://en.wikipedia.org/wiki/Typhoon_Mike,Central Philippines Nov 1990; JTWC id not verified
+Uring,Thelma,1991,,,https://en.wikipedia.org/wiki/Tropical_Storm_Thelma,JMA tropical storm; Ormoc flood Nov 5 1991 local; JTWC id not verified
+Rosing,Angela,1995,1995-11-02,29W,https://en.wikipedia.org/wiki/Typhoon_Angela_(1995),Article date (UTC/local unspecified); jtwc_id from article JTWC citations
+Sisang,Nina,1987,1987-11-25,,https://en.wikipedia.org/wiki/Typhoon_Nina_(1987),Southern tip of Luzon 15:00 UTC
+Kristine,Trami,2024,2024-10-23,22W,https://en.wikipedia.org/wiki/Tropical_Storm_Trami_(2024),Divilacan Isabela 16:30 UTC; JMA severe tropical storm; jtwc_id from article JTWC citations
+Carina,Gaemi,2024,,05W,https://en.wikipedia.org/wiki/Typhoon_Gaemi,No PH landfall (enhanced SW monsoon flooding); jtwc_id from article JTWC citations
+Egay,Doksuri,2023,2023-07-25,05W,https://en.wikipedia.org/wiki/Typhoon_Doksuri,Fuga Island Aparri 19:10 UTC (03:10 PHT Jul 26); jtwc_id from article JTWC citations
+Paeng,Nalgae,2022,,26W,https://en.wikipedia.org/wiki/Tropical_Storm_Nalgae,Multiple landfalls ~Oct 28-29 2022 (UTC date not captured); name retired (per fetched season page); jtwc_id from article JTWC citations
+Karding,Noru,2022,2022-09-25,18W,https://en.wikipedia.org/wiki/Typhoon_Noru,Burdeos Polillo Is. 09:30 UTC; name retired (per fetched season page); jtwc_id from article JTWC citations
+Agaton,Megi,2022,2022-04-09,03W,https://en.wikipedia.org/wiki/Tropical_Storm_Megi,Calicoan Guiuan 23:30 UTC; do not confuse with Megi 2010 (Juan); name retired (per fetched season page); jtwc_id from article JTWC citations
+Pedring,Nesat,2011,2011-09-27,20W,https://en.wikipedia.org/wiki/Typhoon_Nesat_(2011),'Early on September 27' (UTC/local unspecified); jtwc_id from article JTWC citations
+Juan,Megi,2010,2010-10-18,15W,https://en.wikipedia.org/wiki/Typhoon_Megi,Isabela 03:25 UTC; jtwc_id from article JTWC citations
+Basyang,Conson,2010,,03W,https://en.wikipedia.org/wiki/Typhoon_Conson_(2010),Quezon landfall 15:00 UTC ~Jul 13 (date not explicit in fetched text); jtwc_id from article JTWC citations
+Seniang,Jangmi,2014,2014-12-28,23W,https://en.wikipedia.org/wiki/Tropical_Storm_Jangmi_(2014),Hinatuan Surigao del Sur 19:45 UTC; jtwc_id from article JTWC citations
+Nina,Nock-ten,2016,2016-12-25,30W,https://en.wikipedia.org/wiki/Typhoon_Nock-ten,Bato Catanduanes 10:30 UTC; jtwc_id from article JTWC citations
+Kabayan,Jelawat,2023,2023-12-18,,https://en.wikipedia.org/wiki/2023_Pacific_typhoon_season#Tropical_Storm_Jelawat_(Kabayan),Manay Davao Oriental 01:30 UTC; source is season page section (no standalone article)
+Usman,,2018,2018-12-29,35W,https://en.wikipedia.org/wiki/Tropical_Depression_Usman,"PAGASA-named JMA tropical depression, no international name; Borongan 06:00 UTC; jtwc_id from article JTWC citations"
+Winnie,,2004,,,https://en.wikipedia.org/wiki/Tropical_Depression_Winnie,"PAGASA-named JMA tropical depression, no international name; late Nov 2004 floods"
+Vinta,Tembin,2017,,33W,https://en.wikipedia.org/wiki/Typhoon_Tembin,Cateel Davao Oriental 17:45 UTC (date ~Dec 21 UTC not captured); jtwc_id from article JTWC citations
+Urduja,Kai-tak,2017,2017-12-16,32W,https://en.wikipedia.org/wiki/Tropical_Storm_Kai-tak,San Policarpo Eastern Samar 05:30 UTC; jtwc_id from article JTWC citations
+Unding,Muifa,2004,,29W,https://en.wikipedia.org/wiki/Typhoon_Muifa_(2004),PH landfall date not captured; jtwc_id from article JTWC citations
+Yoyong,Nanmadol,2004,2004-12-02,30W,https://en.wikipedia.org/wiki/Typhoon_Nanmadol_(2004),Casiguran Aurora 12:00 UTC; jtwc_id from article JTWC citations
+Loleng,Babs,1998,,20W,https://en.wikipedia.org/wiki/Typhoon_Babs,Catanduanes first; Luzon landfall 18:00 UTC Oct 22; jtwc_id from article JTWC citations
+Sening,Joan,1970,,,https://en.wikipedia.org/wiki/Typhoon_Joan,Bicol ~Oct 13 1970 (not captured); JTWC id not verified
+Yoling,Patsy,1970,1970-11-19,,https://en.wikipedia.org/wiki/Typhoon_Patsy,Luzon; article date (UTC/local unspecified)
+Kading,Rita,1978,1978-10-26,,https://en.wikipedia.org/wiki/Typhoon_Rita_(1978),Luzon overnight Oct 26
+Nitang,Ike,1984,1984-09-01,,https://en.wikipedia.org/wiki/Typhoon_Ike,NE tip of Mindanao 14:00 UTC
+Betty,Mawar,2023,,02W,https://en.wikipedia.org/wiki/Typhoon_Mawar,No PH landfall; jtwc_id from article JTWC citations
+Tino,Kalmaegi,2025,2025-11-03,31W,https://en.wikipedia.org/wiki/Typhoon_Kalmaegi_(2025),Silago Southern Leyte 16:00 UTC (00:00 PHT Nov 4); jtwc_id from article JTWC citations
+Uwan,Fung-wong,2025,2025-11-09,32W,https://en.wikipedia.org/wiki/Typhoon_Fung-wong_(2025),Dinalungan Aurora 13:10 UTC; jtwc_id from article JTWC citations
+Opong,Bualoi,2025,,26W,https://en.wikipedia.org/wiki/Typhoon_Bualoi_(2025),San Policarpo Eastern Samar 15:30 UTC (date ~Sep 25 not captured); jtwc_id from article JTWC citations
+Nando,Ragasa,2025,2025-09-22,24W,https://en.wikipedia.org/wiki/Typhoon_Ragasa,Panuitan Is. Calayan 07:00 UTC; jtwc_id from article JTWC citations
+Crising,Wipha,2025,,,https://en.wikipedia.org/wiki/Tropical_Storm_Wipha_(2025),Crossed extreme N Luzon area; no PH landfall time captured
+Ramil,Fengshen,2025,2025-10-18,30W,https://en.wikipedia.org/wiki/Tropical_Storm_Fengshen_(2025),Gubat Sorsogon 08:00 UTC; date from 2025 season page; jtwc_id from article JTWC citations
+Aghon,Ewiniar,2024,2024-05-24,01W,https://en.wikipedia.org/wiki/Typhoon_Ewiniar_(2024),Homonhon early May 25 PHT (=May 24 UTC approx); jtwc_id from article JTWC citations
+Pepito,Man-yi,2024,2024-11-16,25W,https://en.wikipedia.org/wiki/Typhoon_Man-yi,Panganiban Catanduanes 13:40 UTC; jtwc_id from article JTWC citations
+Tisoy,Kammuri,2019,2019-12-02,,https://en.wikipedia.org/wiki/Typhoon_Kammuri,Gubat Sorsogon 11 pm PHT Dec 2 (~15:00 UTC)
+Ursula,Phanfone,2019,2019-12-24,,https://en.wikipedia.org/wiki/Typhoon_Phanfone,Salcedo Eastern Samar 4:45 pm PHT (~08:45 UTC)
+Quinta,Molave,2020,2020-10-25,21W,https://en.wikipedia.org/wiki/Typhoon_Molave,San Miguel Is. Albay 10:10 UTC; jtwc_id from article JTWC citations
+Ambo,Vongfong,2020,2020-05-14,01W,https://en.wikipedia.org/wiki/Typhoon_Vongfong_(2020),San Policarpo Eastern Samar 04:15 UTC; Vongfong retired (replaced by Penha); jtwc_id from article JTWC citations
+Lando,Koppu,2015,2015-10-17,24W,https://en.wikipedia.org/wiki/Typhoon_Koppu,Casiguran Aurora 17:00 UTC; jtwc_id from article JTWC citations
+Florita,Ma-on,2022,,10W,https://en.wikipedia.org/wiki/Tropical_Storm_Ma-on,Maconacon Isabela 02:30 UTC (date ~Aug 23 not explicit); name retired (per fetched season page); jtwc_id from article JTWC citations
+Auring,Dujuan,2021,,01W,https://en.wikipedia.org/wiki/Tropical_Storm_Dujuan_(2021),Batag Is. Laoang 01:00 UTC (date ~Feb 22 not captured); jtwc_id from article JTWC citations
+Onyok,Mitag,2019,,,https://en.wikipedia.org/wiki/Typhoon_Mitag_(2019),No PH landfall
+Ada,Nokaen,2026,,01W,https://en.wikipedia.org/wiki/Tropical_Storm_Nokaen,Jan 2026 PH flooding; landfall details not captured; jtwc_id from article JTWC citations
+Basyang,Penha,2026,2026-02-05,02W,https://en.wikipedia.org/wiki/Tropical_Storm_Penha,Bayabas Surigao del Sur 15:50 UTC; 'Basyang' also = Conson 2010 (name reuse); jtwc_id from article JTWC citations
+Francisco,Mekkhala,2026,,07W,https://en.wikipedia.org/wiki/Typhoon_Mekkhala_(2026),No PH landfall (signals over Batanes/Babuyan); jtwc_id from article JTWC citations
+Inday,Bavi,2026,,09W,https://en.wikipedia.org/wiki/Typhoon_Bavi_(2026),"No PH landfall found in article (Rota, Zhejiang landfalls); jtwc_id from article JTWC citations"

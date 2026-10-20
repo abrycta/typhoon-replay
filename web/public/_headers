@@ -1,0 +1,30 @@
+# Cloudflare Pages response headers (also applied by `wrangler pages dev`).
+# Docs: https://developers.cloudflare.com/pages/configuration/headers/
+# Note: when several rules match, values of the same header are joined with a
+# comma, so Cache-Control is set only on non-overlapping paths below.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # 'wasm-unsafe-eval' and blob: workers are for DuckDB-WASM and MapLibre later.
+  # Add new data/tile hosts to connect-src when the app starts fetching them.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://tiles.openfreemap.org; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+
+# Vite emits content-hashed file names here, so they never change in place.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Per-storm frame files. Immutable: the pipeline must write a new file name
+# (or versioned directory) when a storm is re-processed, never overwrite one.
+/frames/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The HTML entry point must always revalidate so new deploys show up at once.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

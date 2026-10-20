@@ -1,0 +1,44 @@
+# Install, typecheck, lint, test, build and size guard on every push and PR.
+# The steps live in scripts/ci.sh (commands from deploy.config), so this file
+# doesn't change when the frontend framework does.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read # private @abrycta/* packages on GitHub Packages
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+          # Writes an .npmrc that reads NODE_AUTH_TOKEN, so adding the private
+          # design-system package later needs no workflow change.
+          registry-url: https://npm.pkg.github.com
+          scope: "@abrycta"
+
+      - name: Install, check, build, size guard
+        run: bash scripts/ci.sh --clean
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+# TODO(data pipeline): add a separate workflow (e.g. pipeline.yml) for the
+# Python data pipeline; see README "Running & deploying".

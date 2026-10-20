@@ -1,0 +1,23 @@
+{
+  "name": "typhoon-replay",
+  "private": true,
+  "description": "Deploy tooling for Typhoon Replay (Cloudflare Pages). The app itself lives in web/.",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "preview": "bash scripts/preview.sh",
+    "ci": "bash scripts/ci.sh",
+    "deploy:preview": "bash scripts/deploy.sh --preview",
+    "deploy:production": "bash scripts/deploy.sh --production"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.3"
+  },
+  "allowScripts": {
+    "workerd": true,
+    "esbuild": true,
+    "fsevents": false
+  }
+}

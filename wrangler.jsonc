@@ -1,0 +1,13 @@
+// Cloudflare Pages configuration. wrangler.jsonc is the format Cloudflare
+// recommends for new projects. Once a deploy uses this file it is the source
+// of truth for these settings; the dashboard shows them read-only.
+// Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+//
+// The scripts and workflows read the project name and output directory from
+// here. Change pages_build_output_dir if the frontend framework changes.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "typhoon-replay",
+  "pages_build_output_dir": "./web/dist",
+  "compatibility_date": "2026-10-01"
+}
