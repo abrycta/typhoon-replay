@@ -72,6 +72,10 @@ vN/storms/<sid>/<sid>.s<k>.tyf           frames, 7-day segments (see below)
 vN/storms/<sid>/<sid>.s<k>.<var>.webp    the same frames as lossless WebP sprite sheets
 vN/places/index.json, <shard>.json       places per PH province / JP prefecture with their storm exposure
 vN/places/<shard>.geojson                display boundaries (at most 1,500 vertices per place)
+vN/stats/seasons.json                    per season: storms by intensity class, PH/JP landfalls, ACE, strongest
+vN/stats/climatology.json                storms forming per month x decade; landfalls per month by country
+vN/stats/admin.json                      per province / prefecture: storms within 100 km, landfalls, strongest
+vN/stats/records.json                    top-10 lists (strongest, lowest pressure, ACE, rapid intensification...)
 vN/tables/*.parquet                      storms, storm_fixes, storm_landfalls, pagasa_names, places,
                                          exposure, hourly_tracks
 ```

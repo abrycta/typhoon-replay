@@ -41,7 +41,7 @@ import numpy as np
 import pandas as pd
 import shapely
 
-from . import catalog, exposure, og, sources, tables
+from . import catalog, exposure, og, sources, stats, tables
 from . import places as places_mod
 from .config import BUILD, ERA5_HONESTY, HF_REPO, PROCESSED, ensure_dir
 from .frames import MAX_FILE_BYTES, parse_tyf, unsprite
@@ -258,8 +258,8 @@ def affected_places(ex: pd.DataFrame | None, places: dict[str, dict[str, Any]]) 
 
 
 def summary_doc(s: Any, landfalls: pd.DataFrame, place_names: dict[str, str], frames: dict[str, Any] | None,
-                base: str, ex: pd.DataFrame | None = None, places: dict[str, dict[str, Any]] | None = None
-                ) -> dict[str, Any]:
+                base: str, ex: pd.DataFrame | None = None, places: dict[str, dict[str, Any]] | None = None,
+                storm_stats: dict[str, Any] | None = None) -> dict[str, Any]:
     """summary.json: contract StormDetail plus frames, reanalysisCheck, affectedPlaces, ogImage."""
     intensity = []
     for ag, (_, _, minutes) in AGENCY_COLUMNS.items():
@@ -288,7 +288,7 @@ def summary_doc(s: Any, landfalls: pd.DataFrame, place_names: dict[str, str], fr
                             "placeName": place_names.get(r.place_id)})
                       for r in landfalls.sort_values("seq").itertuples()],
         "sources": [DATA_SOURCES[k] for k in srcs], "replayAvailable": frames is not None,
-        "track": "track.json", "ogImage": "og.png",
+        "track": "track.json", "ogImage": "og.png", "stats": storm_stats,
         "affectedRadiusKm": AFFECTED_RADIUS_KM, "affectedPlaces": affected_places(ex, places or {}),
     }
     if frames:
@@ -368,6 +368,8 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     place_names = dict(zip(pl.place_id, pl.name, strict=True))
     place_objs = {p.place_id: place_summary(p) for p in pl.itertuples()}
     ex_by = dict(tuple(ex[ex.closest_approach_km <= AFFECTED_RADIUS_KM].groupby("sid")))
+    st_stats = stats.storm_stats(st.set_index("sid"), fixes, hourly,
+                                 shapely.STRtree(shapely.from_wkb(pl.geom_wkb.to_numpy())))
     local = replay_storms()
     prev, prev_frames = load_previous(previous)
     prev_paths = {r["sid"]: (r["path"], r["contentHash"]) for r in index_storms(prev)}
@@ -400,7 +402,8 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
             h = fr["era5VsBestTrack"]
             replay[sid] = {"frames": fr["frames"], "ratio": h.get("headlineRatio"), "agency": h.get("headlineAgency")}
             frames_index[sid] = {"trackHash": th, "frames": fr}
-        summ = summary_doc(s, lf_by.get(sid, empty_lf), place_names, fr, base, ex_by.get(sid), place_objs)
+        summ = summary_doc(s, lf_by.get(sid, empty_lf), place_names, fr, base, ex_by.get(sid), place_objs,
+                           st_stats.get(sid))
         trk = track_doc(s, fx_by[sid], hr_by[sid])
         (sdir / "summary.json").write_bytes(dumps(summ))
         (sdir / "track.json").write_bytes(dumps(trk))
@@ -423,6 +426,7 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
             "peakWindAgency": s.peak_wind_agency if isinstance(s.peak_wind_agency, str) else None,
             "minPressureHpa": num(s.min_pressure_hpa), "landfallCountries": list(s.landfall_countries),
             "replayAvailable": bool(fr), "frameCount": fr["frames"] if fr else None,
+            "saffirSimpson": st_stats.get(sid, {}).get("saffirSimpson"), "ace": st_stats.get(sid, {}).get("ace"),
             "era5Ratio": replay[sid]["ratio"] if fr else None, "bbox": [num(v, 2) for v in s.bbox],
             "path": path, "contentHash": content, "trackHash": th,
         }))
@@ -434,15 +438,35 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         "storms": index_rows,
         "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables/",
         "framesIndex": f"{base_v}frames-index.json", "era5Note": ERA5_HONESTY,
+        "stats": {k: f"{base_v}stats/{k}.json" for k in ("seasons", "climatology", "admin", "records")},
     }
     (vdir / "index.json").write_bytes(dumps(index))
     (vdir / "frames-index.json").write_bytes(dumps(frames_index))
     write_places(vdir, base_v, pl, ex, st)
-    tinfo = tables.build_tables(vdir / "tables", replay)
+    write_stats(vdir, st, st_stats, lfs, pl, ex)
+    tinfo = tables.build_tables(vdir / "tables", replay, st_stats)
     write_manifest(vdir, version, index, tinfo, local, reused, remote_files, len(replay), reused_frames)
     log.info("built %s: %d storms, %d with frames (%d built now, %d reused), %d storm folders reused",
              vdir, len(index_rows), len(replay), len(local), reused_frames, reused)
     return vdir
+
+
+def write_stats(vdir: Path, st: pd.DataFrame, st_stats: dict[str, dict[str, Any]], lfs: pd.DataFrame,
+                pl: pd.DataFrame, ex: pd.DataFrame) -> None:
+    sdir = ensure_dir(vdir / "stats")
+    s = st.set_index("sid")
+    docs = {
+        "seasons": {"note": "Per season: catalogue storms (PH/JP-affecting), intensity classes by the preferred agency "
+                            "(typhoon >= 64 kt; super typhoon = JTWC >= 130 kt), storms making PH/JP landfall, ACE "
+                            "(JTWC, 6-hourly, >= 35 kt).", "seasons": stats.seasons(s, st_stats, lfs)},
+        "climatology": stats.climatology(s.reset_index(), lfs),
+        "admin": {"note": "Per PH province / JP prefecture (place shards): storms whose track came within 100 km of "
+                          "any place, landfalls, the strongest (best-track wind within 100 km) and the latest.",
+                  "admin": stats.admin(pl, ex, lfs, s)},
+        "records": {"note": "Top 10 per measure over the catalogue.", **stats.records(s, st_stats)},
+    }
+    for name, doc in docs.items():
+        (sdir / f"{name}.json").write_bytes(dumps(doc))
 
 
 def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st: pd.DataFrame) -> None:
@@ -450,6 +474,7 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
     names = st.set_index("sid")[["name", "season"]]
     shards = []
     exb = ex.merge(pl[["place_id", "shard"]], on="place_id")
+    summaries = stats.place_summaries(ex, st.set_index("sid"))
     for shard, g in pl.groupby("shard", sort=True):
         g = g.sort_values("place_id")
         pidx = {p: i for i, p in enumerate(g.place_id)}
@@ -461,7 +486,8 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
                 "id": r.place_id, "kind": r.kind, "name": r.name, "nameJa": r.name_ja if isinstance(r.name_ja, str) else None,
                 "admin1": r.admin1, "admin1Ja": r.admin1_ja if isinstance(r.admin1_ja, str) else None,
                 "admin2": r.admin2 if isinstance(r.admin2, str) else None, "areaKm2": r.area_km2,
-                "centroid": [r.centroid_lon, r.centroid_lat], "bbox": list(r.bbox)}.items() if v is not None}
+                "centroid": [r.centroid_lon, r.centroid_lat], "bbox": list(r.bbox),
+                "summary": summaries.get(r.place_id)}.items() if v is not None}
                 for r in g.itertuples()],
             "exposureNote": "Best-track based, as served by GET /v1/places/{placeId}/storms: closest approach of the "
                             "hourly track to the boundary, and the best-track sustained wind / gust (kt) while the "

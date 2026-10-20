@@ -55,7 +55,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 # Row-wise pandas code (itertuples / .loc scalars): pandas-stubs types every cell as a broad scalar union,
 # which makes these checks noise here. Everything else is checked.
-module = ["typhoon.__main__", "typhoon.catalog", "typhoon.dataset", "typhoon.exposure", "typhoon.places", "typhoon.ibtracs",
+module = ["typhoon.__main__", "typhoon.stats", "typhoon.catalog", "typhoon.dataset", "typhoon.exposure", "typhoon.places", "typhoon.ibtracs",
           "typhoon.frames", "typhoon.era5_arco", "typhoon.era5_ncar"]
 disable_error_code = ["arg-type", "union-attr", "index", "operator", "call-overload", "attr-defined",
                       "assignment", "return-value"]

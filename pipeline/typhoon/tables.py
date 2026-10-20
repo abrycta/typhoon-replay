@@ -34,8 +34,14 @@ def _utc(s: pd.Series) -> pd.Series:
     return pd.to_datetime(s, utc=True).dt.floor("s")
 
 
-def storms_table(replay: dict[str, dict[str, Any]]) -> pd.DataFrame:
+def storms_table(replay: dict[str, dict[str, Any]], st_stats: dict[str, dict[str, Any]] | None = None) -> pd.DataFrame:
     st = catalog.load("storms").copy()
+    if st_stats:
+        for col, key in (("ace", "ace"), ("max_intensification_24h_kt", "maxIntensification24hKt"),
+                         ("distance_km", "distanceKm"), ("mean_forward_speed_kmh", "meanForwardSpeedKmh"),
+                         ("hours_in_par", "hoursInPar"), ("hours_over_land", "hoursOverLand"),
+                         ("saffir_simpson", "saffirSimpson"), ("jma_class", "jmaClass"), ("pagasa_class", "pagasaClass")):
+            st[col] = st.sid.map(lambda s, key=key: st_stats.get(s, {}).get(key))
     fx = catalog.load("fixes")
     line = {sid: shapely.to_wkb(shapely.linestrings(g[["lon", "lat"]].to_numpy())) if len(g) > 1 else None
             for sid, g in fx.sort_values("observed_at").groupby("sid")}
@@ -54,7 +60,8 @@ def places_table() -> pd.DataFrame:
     return p.drop(columns=["psgc_name"], errors="ignore")
 
 
-def build_tables(out: Path, replay: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def build_tables(out: Path, replay: dict[str, dict[str, Any]],
+                 st_stats: dict[str, dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
     """Write every table to `out`; returns {table: {rows, bytes}}."""
     out.mkdir(parents=True, exist_ok=True)
     fx = catalog.load("fixes")
@@ -71,7 +78,7 @@ def build_tables(out: Path, replay: dict[str, dict[str, Any]]) -> dict[str, dict
     hr = catalog.load("hourly")
     hr["lon"] = lon180(hr.lon.to_numpy()).round(3)
     hr["lat"] = hr.lat.round(3)
-    frames = {"storms": storms_table(replay), "storm_fixes": fx, "storm_landfalls": lf, "pagasa_names": pg,
+    frames = {"storms": storms_table(replay, st_stats), "storm_fixes": fx, "storm_landfalls": lf, "pagasa_names": pg,
               "places": places_table(), "exposure": ex, "hourly_tracks": hr}
     info = {}
     for name, df in frames.items():

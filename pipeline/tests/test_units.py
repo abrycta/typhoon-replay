@@ -11,7 +11,7 @@ import pytest
 import shapely
 from PIL import Image
 
-from typhoon import catalog, dataset, era5, exposure, frames, places, track
+from typhoon import catalog, dataset, era5, exposure, frames, places, stats, track
 
 # ----------------------------------------------------------------------------- track
 
@@ -195,3 +195,26 @@ def test_antimeridian_track_does_not_cross_the_philippines() -> None:
     t = np.array(["2019-08-30T00", "2019-08-30T01", "2019-08-30T02"], dtype="datetime64[s]")
     # 179.6E -> 180.1E -> 180.6E at 11N: in -180..180 the first segment would span the globe through 125E
     assert land.entries(np.array([179.6, 180.1, 180.6]), np.array([11.0, 11.0, 11.0]), t) == []
+
+
+# ----------------------------------------------------------------------------- stats
+
+def test_intensity_classes() -> None:
+    assert stats.classify(170, stats.SSHS) == "cat5" and stats.classify(64, stats.SSHS) == "cat1"
+    assert stats.classify(125, stats.JMA_CLASS) == "violent-typhoon"
+    assert stats.classify(100, stats.PAGASA_CLASS) == "super-typhoon" and stats.classify(None, stats.SSHS) is None
+
+
+def test_ace_uses_six_hourly_fixes_at_tropical_storm_strength() -> None:
+    f = pd.DataFrame({"observed_at": pd.to_datetime(["2013-11-07 00:00", "2013-11-07 03:00", "2013-11-07 06:00",
+                                                     "2013-11-07 12:00"], utc=True),
+                      "jtwc_wind_kt": [100.0, 120.0, 30.0, 50.0]})
+    assert stats.ace(f) == round((100**2 + 50**2) / 1e4, 2)
+
+
+def test_max_intensification_over_24_hours() -> None:
+    t = pd.date_range("2021-12-14", periods=49, freq="h", tz="UTC")
+    w = np.concatenate([np.full(12, 50.0), np.linspace(50, 130, 25), np.full(12, 130.0)])
+    h = pd.DataFrame({"time": t, "jtwc_wind_kt": w, "jma_wind_kt": np.nan})
+    kt, at = stats.max_intensification(h)
+    assert kt == 80.0 and at == "2021-12-15T12:00:00Z"
