@@ -10,18 +10,30 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Cross-Origin-Opener-Policy: same-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains
-  # 'wasm-unsafe-eval' and blob: workers are for DuckDB-WASM and MapLibre later.
-  # Add new data/tile hosts to connect-src when the app starts fetching them.
+  # Data: the Hugging Face dataset (resolve URLs redirect to *.hf.co); basemap: OpenFreeMap (style, tiles,
+  # glyphs, sprites). 'wasm-unsafe-eval' is kept for a later DuckDB-WASM page. Add new hosts to connect-src.
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://tiles.openfreemap.org; frame-ancestors 'none'; base-uri 'self'; object-src 'none'
 
 # Vite emits content-hashed file names here, so they never change in place.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Per-storm frame files. Immutable: the pipeline must write a new file name
-# (or versioned directory) when a storm is re-processed, never overwrite one.
-/frames/*
-  Cache-Control: public, max-age=31536000, immutable
+# Bundled sample dataset (fallback while the published dataset is unreachable). Stable names, so a short TTL.
+/fixtures/*
+  Cache-Control: public, max-age=300
+  Access-Control-Allow-Origin: *
+
+# Runtime configuration: hosts and backends change without a rebuild.
+/config.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Per-storm share shells (stamped at build time from the storm index).
+/storm/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The MSW service worker for mock mode must never be cached stale.
+/mockServiceWorker.js
+  Cache-Control: no-cache
 
 # The HTML entry point must always revalidate so new deploys show up at once.
 /

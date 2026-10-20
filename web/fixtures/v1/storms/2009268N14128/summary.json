@@ -1,0 +1,100 @@
+{
+ "sid": "2009268N14128",
+ "name": "Ketsana",
+ "season": 2009,
+ "basin": "WP",
+ "startedAt": "2009-09-25T00:00:00Z",
+ "endedAt": "2009-09-30T18:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Ondoy",
+  "ja": "平成21年台風第16号"
+ },
+ "atcfId": "WP172009",
+ "durationHours": 138.0,
+ "fixCount": 47,
+ "peak": {
+  "windKt": 90.0,
+  "agency": "jtwc",
+  "pressureHpa": 960.0,
+  "at": "2009-09-28T12:00:00Z",
+  "position": [
+   111.2,
+   16.0
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 90.0,
+   "minPressureHpa": 955.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 70.0,
+   "minPressureHpa": 960.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2009-09-26T06:00:00Z",
+   "position": [
+    121.2,
+    15.4
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-1380600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "City of Manila",
+    "admin1": "National Capital Region",
+    "centroid": [
+     120.9842,
+     14.5995
+    ]
+   },
+   "closestApproachKm": 89.0,
+   "closestApproachAt": "2009-09-26T07:00:00Z",
+   "hoursWithinRadius": 13,
+   "maxWindKtWithinRadius": 41
+  },
+  {
+   "place": {
+    "id": "PH-0502011000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Virac",
+    "admin1": "Bicol Region",
+    "centroid": [
+     124.2306,
+     13.58
+    ],
+    "admin2": "Catanduanes"
+   },
+   "closestApproachKm": 178.3,
+   "closestApproachAt": "2009-09-25T17:00:00Z",
+   "hoursWithinRadius": 7,
+   "maxWindKtWithinRadius": 35
+  }
+ ]
+}

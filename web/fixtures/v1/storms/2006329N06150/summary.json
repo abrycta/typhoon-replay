@@ -1,0 +1,100 @@
+{
+ "sid": "2006329N06150",
+ "name": "Durian",
+ "season": 2006,
+ "basin": "WP",
+ "startedAt": "2006-11-24T12:00:00Z",
+ "endedAt": "2006-12-09T18:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Reming",
+  "ja": "平成18年台風第21号"
+ },
+ "atcfId": "WP242006",
+ "durationHours": 366.0,
+ "fixCount": 123,
+ "peak": {
+  "windKt": 135.0,
+  "agency": "jtwc",
+  "pressureHpa": 915.0,
+  "at": "2006-11-29T12:00:00Z",
+  "position": [
+   126.4,
+   13.3
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 135.0,
+   "minPressureHpa": 904.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 105.0,
+   "minPressureHpa": 915.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2006-11-30T06:00:00Z",
+   "position": [
+    123.6,
+    13.4
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-0502011000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Virac",
+    "admin1": "Bicol Region",
+    "centroid": [
+     124.2306,
+     13.58
+    ],
+    "admin2": "Catanduanes"
+   },
+   "closestApproachKm": 20.4,
+   "closestApproachAt": "2006-11-30T02:00:00Z",
+   "hoursWithinRadius": 22,
+   "maxWindKtWithinRadius": 135
+  },
+  {
+   "place": {
+    "id": "PH-1380600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "City of Manila",
+    "admin1": "National Capital Region",
+    "centroid": [
+     120.9842,
+     14.5995
+    ]
+   },
+   "closestApproachKm": 122.3,
+   "closestApproachAt": "2006-11-30T19:00:00Z",
+   "hoursWithinRadius": 17,
+   "maxWindKtWithinRadius": 115
+  }
+ ]
+}

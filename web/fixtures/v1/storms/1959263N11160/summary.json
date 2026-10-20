@@ -1,0 +1,81 @@
+{
+ "sid": "1959263N11160",
+ "name": "Vera",
+ "season": 1959,
+ "basin": "WP",
+ "startedAt": "1959-09-20T00:00:00Z",
+ "endedAt": "1959-09-29T12:00:00Z",
+ "landfallCountries": [
+  "JP"
+ ],
+ "localNames": {
+  "ja": "伊勢湾台風（昭和34年台風第15号）"
+ },
+ "atcfId": "WP151959",
+ "durationHours": 228.0,
+ "fixCount": 77,
+ "peak": {
+  "windKt": 165.0,
+  "agency": "jtwc",
+  "pressureHpa": 895.0,
+  "at": "1959-09-23T12:00:00Z",
+  "position": [
+   141.9,
+   19.6
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 165.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "minPressureHpa": 895.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "JP",
+   "at": "1959-09-26T09:00:00Z",
+   "position": [
+    135.7,
+    33.6
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "JP-27100",
+    "country": "JP",
+    "kind": "city",
+    "name": "Osaka",
+    "admin1": "Osaka",
+    "centroid": [
+     135.5023,
+     34.6937
+    ],
+    "nameJa": "大阪市",
+    "admin1Ja": "大阪府"
+   },
+   "closestApproachKm": 66.9,
+   "closestApproachAt": "1959-09-26T11:00:00Z",
+   "hoursWithinRadius": 6,
+   "maxWindKtWithinRadius": 130
+  }
+ ]
+}

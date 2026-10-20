@@ -45,6 +45,6 @@ if (( status != 0 )); then
   die "size guard failed"
 fi
 ok "size guard passed (largest files below)"
-find "$dir" -type f -exec du -k {} + | sort -rn | head -n 3 | while read -r kib f; do
+find "$dir" -type f -exec du -k {} + | sort -rn | awk 'NR <= 3' | while read -r kib f; do  # awk, not head: head closing the pipe early makes sort exit 141 under pipefail
   printf '  %6s KiB  %s\n' "$kib" "${f#"$dir"/}"
 done

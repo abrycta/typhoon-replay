@@ -1,0 +1,160 @@
+{
+ "sid": "2013306N07162",
+ "name": "Haiyan",
+ "season": 2013,
+ "basin": "WP",
+ "startedAt": "2013-11-02T06:00:00Z",
+ "endedAt": "2013-11-11T12:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Yolanda",
+  "ja": "平成25年台風第30号"
+ },
+ "atcfId": "WP312013",
+ "durationHours": 222.0,
+ "fixCount": 75,
+ "peak": {
+  "windKt": 170.0,
+  "agency": "jtwc",
+  "pressureHpa": 895.0,
+  "at": "2013-11-07T12:00:00Z",
+  "position": [
+   129.1,
+   10.2
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 170.0,
+   "minPressureHpa": 895.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 125.0,
+   "minPressureHpa": 895.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2013-11-08T00:00:00Z",
+   "position": [
+    124.8,
+    11.0
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  },
+  {
+   "id": "era5",
+   "name": "ERA5 hourly single levels (Copernicus C3S)",
+   "url": "https://cds.climate.copernicus.eu/",
+   "license": "CC BY 4.0"
+  }
+ ],
+ "replayAvailable": true,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-0803738000",
+    "country": "PH",
+    "kind": "city",
+    "name": "Ormoc City",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     124.6075,
+     11.0064
+    ],
+    "admin2": "Leyte"
+   },
+   "closestApproachKm": 20.2,
+   "closestApproachAt": "2013-11-08T01:00:00Z",
+   "hoursWithinRadius": 10,
+   "maxWindKtWithinRadius": 169
+  },
+  {
+   "place": {
+    "id": "PH-0802616000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Guiuan",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     125.7247,
+     11.0333
+    ],
+    "admin2": "Eastern Samar"
+   },
+   "closestApproachKm": 27.9,
+   "closestApproachAt": "2013-11-07T22:00:00Z",
+   "hoursWithinRadius": 10,
+   "maxWindKtWithinRadius": 170
+  },
+  {
+   "place": {
+    "id": "PH-0831600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "Tacloban City",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     125.0039,
+     11.2433
+    ],
+    "admin2": "Leyte"
+   },
+   "closestApproachKm": 35.0,
+   "closestApproachAt": "2013-11-08T00:00:00Z",
+   "hoursWithinRadius": 10,
+   "maxWindKtWithinRadius": 169
+  }
+ ],
+ "frames": {
+  "format": "tyf",
+  "path": "frames.tyf",
+  "bytes": 2364456,
+  "frames": 72,
+  "start": "2013-11-06T00:00:00Z",
+  "end": "2013-11-08T23:00:00Z",
+  "vars": [
+   "wind",
+   "gust",
+   "mslp",
+   "tp",
+   "wdir"
+  ],
+  "resDeg": 0.25,
+  "nx": 81,
+  "ny": 81,
+  "sha256": "42600baaa0c65719955a085d973b7d0c6e08449faa8a9b48b82bd91bc11f12b4"
+ },
+ "reanalysisCheck": {
+  "radiusDeg": 2.0,
+  "peakTime": "2013-11-07T12:00:00Z",
+  "atPeak": {
+   "jtwcMs": 87.5,
+   "jmaMs": 64.3,
+   "era5WindMs": 26.9,
+   "era5GustMs": 39.5,
+   "ratioToJtwc": 0.308,
+   "ratioToJma": 0.419,
+   "era5MslpMinHpa": 982.9,
+   "jmaPressureHpa": 895.0
+  },
+  "typhoonHoursMedianRatioToJtwc": 0.379,
+  "typhoonHoursMedianRatioToJma": 0.528
+ }
+}

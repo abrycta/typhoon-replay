@@ -1,0 +1,83 @@
+{
+ "sid": "2019242N14180",
+ "name": "Faxai",
+ "season": 2019,
+ "basin": "EP",
+ "startedAt": "2019-08-30T06:00:00Z",
+ "endedAt": "2019-09-11T12:00:00Z",
+ "landfallCountries": [
+  "JP"
+ ],
+ "localNames": {
+  "ja": "令和元年房総半島台風（台風第15号）"
+ },
+ "atcfId": "WP142019",
+ "durationHours": 294.0,
+ "fixCount": 101,
+ "peak": {
+  "windKt": 115.0,
+  "agency": "jtwc",
+  "pressureHpa": 955.0,
+  "at": "2019-09-07T18:00:00Z",
+  "position": [
+   140.5,
+   30.1
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 115.0,
+   "minPressureHpa": 940.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 85.0,
+   "minPressureHpa": 955.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "JP",
+   "at": "2019-09-08T18:00:00Z",
+   "position": [
+    139.7,
+    35.3
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "JP-13101",
+    "country": "JP",
+    "kind": "special-ward",
+    "name": "Chiyoda",
+    "admin1": "Tokyo",
+    "centroid": [
+     139.7536,
+     35.694
+    ],
+    "nameJa": "千代田区",
+    "admin1Ja": "東京都"
+   },
+   "closestApproachKm": 25.3,
+   "closestApproachAt": "2019-09-08T19:00:00Z",
+   "hoursWithinRadius": 15,
+   "maxWindKtWithinRadius": 100
+  }
+ ]
+}

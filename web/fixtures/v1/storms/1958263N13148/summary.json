@@ -1,0 +1,81 @@
+{
+ "sid": "1958263N13148",
+ "name": "Ida",
+ "season": 1958,
+ "basin": "WP",
+ "startedAt": "1958-09-20T06:00:00Z",
+ "endedAt": "1958-09-29T00:00:00Z",
+ "landfallCountries": [
+  "JP"
+ ],
+ "localNames": {
+  "ja": "狩野川台風（昭和33年台風第22号）"
+ },
+ "atcfId": "WP151958",
+ "durationHours": 210.0,
+ "fixCount": 71,
+ "peak": {
+  "windKt": 175.0,
+  "agency": "jtwc",
+  "pressureHpa": 877.0,
+  "at": "1958-09-24T12:00:00Z",
+  "position": [
+   134.9,
+   20.6
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 175.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "minPressureHpa": 877.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "JP",
+   "at": "1958-09-26T15:00:00Z",
+   "position": [
+    139.9,
+    35.6
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "JP-13101",
+    "country": "JP",
+    "kind": "special-ward",
+    "name": "Chiyoda",
+    "admin1": "Tokyo",
+    "centroid": [
+     139.7536,
+     35.694
+    ],
+    "nameJa": "千代田区",
+    "admin1Ja": "東京都"
+   },
+   "closestApproachKm": 16.9,
+   "closestApproachAt": "1958-09-26T15:00:00Z",
+   "hoursWithinRadius": 9,
+   "maxWindKtWithinRadius": 78
+  }
+ ]
+}

@@ -1,0 +1,122 @@
+{
+ "sid": "2021346N05145",
+ "name": "Rai",
+ "season": 2021,
+ "basin": "WP",
+ "startedAt": "2021-12-11T12:00:00Z",
+ "endedAt": "2021-12-21T12:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Odette",
+  "ja": "令和3年台風第22号"
+ },
+ "atcfId": "WP282021",
+ "durationHours": 240.0,
+ "fixCount": 81,
+ "peak": {
+  "windKt": 150.0,
+  "agency": "jtwc",
+  "pressureHpa": 915.0,
+  "at": "2021-12-16T00:00:00Z",
+  "position": [
+   127.6,
+   9.7
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 150.0,
+   "minPressureHpa": 908.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 105.0,
+   "minPressureHpa": 915.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2021-12-16T06:00:00Z",
+   "position": [
+    126.0,
+    10.0
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "PH-0803738000",
+    "country": "PH",
+    "kind": "city",
+    "name": "Ormoc City",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     124.6075,
+     11.0064
+    ],
+    "admin2": "Leyte"
+   },
+   "closestApproachKm": 105.2,
+   "closestApproachAt": "2021-12-16T11:00:00Z",
+   "hoursWithinRadius": 11,
+   "maxWindKtWithinRadius": 135,
+   "maxGustKtWithinRadius": 160
+  },
+  {
+   "place": {
+    "id": "PH-0802616000",
+    "country": "PH",
+    "kind": "municipality",
+    "name": "Guiuan",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     125.7247,
+     11.0333
+    ],
+    "admin2": "Eastern Samar"
+   },
+   "closestApproachKm": 114.9,
+   "closestApproachAt": "2021-12-16T07:00:00Z",
+   "hoursWithinRadius": 10,
+   "maxWindKtWithinRadius": 143,
+   "maxGustKtWithinRadius": 160
+  },
+  {
+   "place": {
+    "id": "PH-0831600000",
+    "country": "PH",
+    "kind": "city",
+    "name": "Tacloban City",
+    "admin1": "Eastern Visayas",
+    "centroid": [
+     125.0039,
+     11.2433
+    ],
+    "admin2": "Leyte"
+   },
+   "closestApproachKm": 136.4,
+   "closestApproachAt": "2021-12-16T10:00:00Z",
+   "hoursWithinRadius": 9,
+   "maxWindKtWithinRadius": 135,
+   "maxGustKtWithinRadius": 160
+  }
+ ]
+}

@@ -1,0 +1,83 @@
+{
+ "sid": "2019278N16165",
+ "name": "Hagibis",
+ "season": 2019,
+ "basin": "WP",
+ "startedAt": "2019-10-04T12:00:00Z",
+ "endedAt": "2019-10-14T18:00:00Z",
+ "landfallCountries": [
+  "JP"
+ ],
+ "localNames": {
+  "ja": "令和元年東日本台風（台風第19号）"
+ },
+ "atcfId": "WP202019",
+ "durationHours": 246.0,
+ "fixCount": 85,
+ "peak": {
+  "windKt": 160.0,
+  "agency": "jtwc",
+  "pressureHpa": 915.0,
+  "at": "2019-10-07T10:00:00Z",
+  "position": [
+   147.1,
+   15.9
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 160.0,
+   "minPressureHpa": 890.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 105.0,
+   "minPressureHpa": 915.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "JP",
+   "at": "2019-10-12T12:00:00Z",
+   "position": [
+    139.4,
+    35.6
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": [
+  {
+   "place": {
+    "id": "JP-13101",
+    "country": "JP",
+    "kind": "special-ward",
+    "name": "Chiyoda",
+    "admin1": "Tokyo",
+    "centroid": [
+     139.7536,
+     35.694
+    ],
+    "nameJa": "千代田区",
+    "admin1Ja": "東京都"
+   },
+   "closestApproachKm": 33.6,
+   "closestApproachAt": "2019-10-12T12:00:00Z",
+   "hoursWithinRadius": 8,
+   "maxWindKtWithinRadius": 82
+  }
+ ]
+}

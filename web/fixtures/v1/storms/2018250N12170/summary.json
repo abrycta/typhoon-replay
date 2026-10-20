@@ -1,0 +1,64 @@
+{
+ "sid": "2018250N12170",
+ "name": "Mangkhut",
+ "season": 2018,
+ "basin": "WP",
+ "startedAt": "2018-09-06T12:00:00Z",
+ "endedAt": "2018-09-17T18:00:00Z",
+ "landfallCountries": [
+  "PH"
+ ],
+ "localNames": {
+  "ph": "Ompong",
+  "ja": "平成30年台風第22号"
+ },
+ "atcfId": "WP262018",
+ "durationHours": 270.0,
+ "fixCount": 99,
+ "peak": {
+  "windKt": 155.0,
+  "agency": "jtwc",
+  "pressureHpa": 905.0,
+  "at": "2018-09-12T06:00:00Z",
+  "position": [
+   135.2,
+   14.0
+  ]
+ },
+ "intensity": [
+  {
+   "agency": "jtwc",
+   "windAveragingMinutes": 1,
+   "maxWindKt": 155.0,
+   "minPressureHpa": 896.0
+  },
+  {
+   "agency": "jma",
+   "windAveragingMinutes": 10,
+   "maxWindKt": 110.0,
+   "minPressureHpa": 905.0
+  }
+ ],
+ "landfalls": [
+  {
+   "country": "PH",
+   "at": "2018-09-14T21:00:00Z",
+   "position": [
+    121.4,
+    18.0
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "ibtracs",
+   "name": "IBTrACS v04r01 (NOAA NCEI)",
+   "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+   "license": "Public domain (NOAA)"
+  }
+ ],
+ "replayAvailable": false,
+ "ogImage": "og.png",
+ "affectedRadiusKm": 200,
+ "affectedPlaces": []
+}
