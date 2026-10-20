@@ -82,12 +82,6 @@ db-reset:
     {{ compose }} --profile db down -v
     just db-up
 
-# --- side services ------------------------------------------------------------
-
-# Mailpit SMTP sink (UI on :8025)
-mail:
-    {{ compose }} --profile mail up -d mailpit
-
 # --- backends -----------------------------------------------------------------
 
 # Java backend (api/java) in Docker on :8081, with PostGIS and the seed: then `just conformance java`

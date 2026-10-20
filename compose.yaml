@@ -1,6 +1,5 @@
 # Local dev and CI services. Use the justfile rather than calling this directly:
 #   just db-up        PostGIS + dbmate migrations + fixture seed       (profile: db)
-#   just mail         Mailpit SMTP sink + UI on :8025                  (profile: mail)
 #   just mock         Prism mock of contracts/dist/openapi.json on :4010 (profile: mock)
 #   just java-run     Java backend on :8081 (+ db, seed)                (profile: java)
 # Backend services (profiles java|node|rust|go|all) are added as each backend lands.
@@ -60,13 +59,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-
-  mailpit:
-    profiles: [mail, all]
-    image: axllent/mailpit:v1.31
-    ports:
-      - "8025:8025" # web UI
-      - "1025:1025" # SMTP
 
   prism:
     profiles: [mock, all]

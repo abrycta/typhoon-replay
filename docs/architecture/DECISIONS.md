@@ -19,6 +19,16 @@ Decided 2026-10-21 by Kurt, after the research in this folder, `contracts/docs/`
 
 - The app is served at **https://typhoon.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). This is System option A on the owner's domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
 
+## Update 2026-10-21: no accounts; static-first visitors; Under the hood showcase
+
+Supersedes the account parts of the table above (System: "shared, language-neutral session table" and "alert mail"; Java: "Spring Security 7"; Node: "Arctic") and the alert-email step of the custom-domain update.
+
+- **No account features.** No sign-in (Google/GitHub OAuth), sessions, `/v1/me`, saved places, alert preferences, alert email or unsubscribe. The API keeps only public reads: health/readiness, meta, storms, places, hits, live (snapshot + SSE stream), plus the live-event test hook.
+- **Visitors are served static-first.** Visitor features come from static files (Pages, Hugging Face) and the browser, not from the API, so the site works without any backend awake.
+- **The API is a showcase.** An "Under the hood" page races the same request across the backends. Reads must stay fast and identical across backends (status, headers, ETag, JSON); every response except the live stream is publicly cacheable, no cookies, no CSRF.
+- **Contract 2.0.0** (breaking, removals only) is still served under `/v1`: the URL major changes only when an operation that stays changes (`contracts/docs/CONTRACT-GUIDE.md` §2, §14; `contracts/CHANGELOG.md`). Database migration `20261021000600_drop_accounts` drops `auth.*` and the `app` account tables.
+- **Four backends, unchanged build order:** contract → Java → Go → Node → Rust. The frontend is built in parallel.
+
 ## Noted for later
 
 - Earth Engine is optional: the spike found NCAR ERA5 on AWS about 21× cheaper per storm window than ARCO-ERA5.

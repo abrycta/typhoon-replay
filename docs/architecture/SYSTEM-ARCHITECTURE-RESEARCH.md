@@ -1,5 +1,7 @@
 # Typhoon Replay: system and contract architecture (research)
 
+> **Update 2026-10-21:** accounts were dropped (no OAuth, sessions, saved places or alert email); the API is a public, read-only showcase. See `DECISIONS.md` ("Update 2026-10-21: no accounts…") and `contracts/docs/CONTRACT-GUIDE.md` §14. The account parts below are kept as research history.
+
 Status: research and recommendations, 2026-10-21. Nothing here is implemented yet.
 Scope: everything the four backends (Java Spring Boot, Node/TypeScript, Rust, Go) share: the contract, conformance tests, database schema and migrations, auth, the edge proxy, backend selection, repo layout, CI and free-tier capacity. Each backend's internal design belongs to its language's own docs (`api/<lang>/docs/`).
 Companion docs: [`contracts/docs/CONTRACT-GUIDE.md`](../../contracts/docs/CONTRACT-GUIDE.md) (draft rules every backend follows) and [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
