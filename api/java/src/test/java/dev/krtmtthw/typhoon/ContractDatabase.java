@@ -47,8 +47,13 @@ public class ContractDatabase {
                 .withDatabaseName("typhoon").withUsername("tr").withPassword("tr")
                 // Like Neon, the database starts without extensions: the first migration creates them.
                 .withTmpFs(Map.of("/docker-entrypoint-initdb.d", "rw"))
-                .withCopyFileToContainer(MountableFile.forHostPath(contracts), "/db");
+                .withCopyFileToContainer(MountableFile.forHostPath(contracts), "/db")
+                // Reused across runs when ~/.testcontainers.properties has testcontainers.reuse.enable=true.
+                .withReuse(true);
         db.start();
+        if (migrated(db)) {
+            return db;
+        }
         try {
             psql(db, "-q", "-c", "CREATE TABLE public.schema_migrations (version varchar(128) PRIMARY KEY)");
             List<Path> files;
@@ -69,6 +74,15 @@ public class ContractDatabase {
         }
         psql(db, "-q", "-1", "-f", "/db/seed/seed.sql");
         return db;
+    }
+
+    private static boolean migrated(PostgreSQLContainer db) {
+        try {
+            return db.execInContainer("psql", "-U", "tr", "-d", "typhoon", "-Atc",
+                    "SELECT to_regclass('public.schema_migrations') IS NOT NULL").getStdout().trim().equals("t");
+        } catch (IOException | InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static void psql(PostgreSQLContainer db, String... args) {

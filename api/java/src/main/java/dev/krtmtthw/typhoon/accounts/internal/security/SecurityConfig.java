@@ -104,6 +104,24 @@ class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Query strings are parsed leniently and validated against the contract (tolerant reader), so the firewall's
+     * parameter checks would only turn odd-but-harmless input into errors. Path and header checks stay on.
+     */
+    @Bean
+    org.springframework.security.web.firewall.HttpFirewall firewall() {
+        var firewall = new org.springframework.security.web.firewall.StrictHttpFirewall();
+        firewall.setAllowedParameterNames(name -> true);
+        firewall.setAllowedParameterValues(value -> true);
+        return firewall;
+    }
+
+    /** Anything the firewall still rejects becomes a 400 problem, not the container's error page. */
+    @Bean
+    org.springframework.security.web.firewall.RequestRejectedHandler requestRejected(ProblemWriter problems) {
+        return (req, res, ex) -> problems.write(req, res, ProblemType.VALIDATION, "The request was rejected as malformed.");
+    }
+
     /** Provider access and refresh tokens are never stored (CONTRACT-GUIDE §9). */
     private static final class NoTokenStorage implements OAuth2AuthorizedClientRepository {
 

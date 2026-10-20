@@ -128,6 +128,9 @@ class ApiContractTest {
                 .andExpect(jsonPath("$.code").value("unauthenticated"));
         mvc.perform(get("/v1/no-such-route")).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("not-found"));
+        mvc.perform(get("/v1/hits?lat=0&lon=1&sort=")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].pointer").value("#/query/sort"));
+        mvc.perform(get("/v1/storms?=x&limit=2")).andExpect(status().isOk());
         mvc.perform(request(HttpMethod.PUT, "/v1/storms")).andExpect(status().isMethodNotAllowed())
                 .andExpect(header().string("Allow", containsString("GET")));
     }

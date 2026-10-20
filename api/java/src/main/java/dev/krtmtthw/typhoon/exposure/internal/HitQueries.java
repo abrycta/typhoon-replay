@@ -9,6 +9,8 @@ import java.util.Map;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import dev.krtmtthw.typhoon.contract.model.PlaceHit;
 import dev.krtmtthw.typhoon.contract.model.PlaceHitPage;
@@ -72,9 +74,12 @@ public class HitQueries {
             )""";
 
     private final JdbcClient jdbc;
+    private final TransactionTemplate readOnly;
 
-    public HitQueries(JdbcClient jdbc) {
+    public HitQueries(JdbcClient jdbc, PlatformTransactionManager tx) {
         this.jdbc = jdbc;
+        this.readOnly = new TransactionTemplate(tx);
+        this.readOnly.setReadOnly(true);
     }
 
     public record Filter(Integer minWindKt, Integer from, Integer to) {}
@@ -119,7 +124,12 @@ public class HitQueries {
             seasons.append(" AND s.season <= :to");
             p.put("to", f.to());
         }
-        return stormHits(POINT_HITS.formatted(seasons), p, radius, f, sort, cursor, limit);
+        // The planner over-estimates the interpolated rows and JIT-compiles the plan: about 1 s of LLVM time for a
+        // 60 ms query. SET LOCAL lasts only for this transaction, so it is safe through the transaction-mode pooler.
+        return readOnly.execute(status -> {
+            jdbc.sql("SET LOCAL jit = off").update();
+            return stormHits(POINT_HITS.formatted(seasons), p, radius, f, sort, cursor, limit);
+        });
     }
 
     private StormHitPage stormHits(String hitsCte, Map<String, Object> p, RadiusKm radius, Filter f, HitSort sort,

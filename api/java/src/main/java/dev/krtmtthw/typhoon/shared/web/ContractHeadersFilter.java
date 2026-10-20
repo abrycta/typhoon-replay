@@ -62,7 +62,13 @@ public class ContractHeadersFilter extends OncePerRequestFilter {
                         "Method " + request.getMethod() + " is not supported here.", List.of(), Map.of("Allow", allow.get())));
                 return;
             }
-            chain.doFilter(new LenientQueryRequest(request), new JsonCharsetResponse(response));
+            LenientQueryRequest lenient = new LenientQueryRequest(request);
+            var empty = routes.emptyParameter(request.getMethod(), RequestContext.path(request), lenient.getParameterMap());
+            if (empty.isPresent()) {
+                problems.write(request, response, ApiException.validation("#/query/" + empty.get(), "must not be empty"));
+                return;
+            }
+            chain.doFilter(lenient, new JsonCharsetResponse(response));
         } finally {
             MDC.put("method", request.getMethod());
             MDC.put("path", RequestContext.path(request));
