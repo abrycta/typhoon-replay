@@ -38,6 +38,14 @@ const BACKGROUND_TIMEOUT_MS = 29_000;
 const WAKE_RETRY_AFTER_S = 20;
 const STATIC_RETRY_AFTER_S = 3600;
 const WAKE_DEDUPE_MS = 15_000;
+/** After a backend says its database is still waking, retry once in the background after this long. */
+const UPSTREAM_WAKE_RETRY_MS = 5_000;
+/**
+ * Paths whose ETag does not change with the dataset (`/v1/meta`'s is `c{contract}-{impl}-{implVersion}`, CONTRACT-GUIDE
+ * §6, yet its body carries `datasetVersion`). A conditional revalidation would get a 304 and keep a stale body, so
+ * these are revalidated with a plain GET. The body is a few hundred bytes.
+ */
+const UNCONDITIONAL_REVALIDATION = new Set(["/v1/meta"]);
 
 /** Paths a backend serves at its root (CONTRACT-GUIDE §2). Anything else never leaves the edge. */
 export function allowedPath(rest: string): boolean {
@@ -138,17 +146,18 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   // --- cacheable public read ---
   const entry = await lookup(cache, key, settings.staleIfErrorS);
   if (entry?.state === "fresh") return done(fromEntry(entry, request), "HIT");
+  const validator = entry && !UNCONDITIONAL_REVALIDATION.has(rest) ? entry.etag : null;
 
   if (entry?.state === "revalidate") {
     // stale-while-revalidate: answer now, refresh in the background (which also wakes a sleeping backend).
-    ctx.waitUntil(revalidate(cache, key, entry, target, request, impl, requestId, settings).catch(() => undefined));
+    ctx.waitUntil(revalidate(cache, key, entry, validator, target, request, impl, requestId, settings).catch(() => undefined));
     return done(fromEntry(entry, request), "STALE", "revalidating");
   }
 
   if (entry && entry.state === "if-error") {
     // stale-if-error: give the origin a short chance; otherwise serve the stale copy and finish in the background.
     const keep = entry.response.clone();
-    const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, entry.etag);
+    const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, validator);
     const r = await raceTimer(pending, settings.staleTimeoutMs);
     if (r && r.kind === "response" && !isGatewayError(r.response)) {
       const fresh = await settle(cache, key, keep, r.response, settings);
@@ -183,6 +192,14 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   }
   if (r.kind === "error") return fail("bad-gateway");
   const response = r.response;
+  const upstreamWaking = await wakingRetryAfter(response);
+  if (upstreamWaking !== undefined) {
+    // The backend is up but its database is still resuming (Neon scales to zero): the same "waking" answer as a
+    // sleeping Render service, plus one background retry that fills the cache once the database is back.
+    void response.body?.cancel();
+    if (request.method === "GET") ctx.waitUntil(retryWaking(cache, key, target, request, impl, requestId, settings).catch(() => undefined));
+    return fail("backend-waking", { retryAfter: upstreamWaking, detail: "the backend is waking its database; retry shortly" });
+  }
   if (request.method === "GET") {
     const toStore = response.clone();
     ctx.waitUntil(store(cache, key, toStore, settings.staleIfErrorS).catch(() => undefined));
@@ -270,13 +287,40 @@ async function settle(cache: Cache, key: Request, cached: Response, response: Re
 
 const revalidating = new Set<string>();
 
-async function revalidate(cache: Cache, key: Request, entry: Entry, target: URL, request: Request, impl: string, requestId: string, settings: Settings) {
+async function revalidate(cache: Cache, key: Request, entry: Entry, etag: string | null, target: URL, request: Request, impl: string, requestId: string, settings: Settings) {
   if (revalidating.has(key.url)) return;
   revalidating.add(key.url);
   try {
     const keep = entry.response.clone();
-    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, entry.etag);
+    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, etag);
     if (r.kind === "response") await settle(cache, key, keep, r.response, settings);
+  } finally {
+    revalidating.delete(key.url);
+  }
+}
+
+/**
+ * A backend's own 503 problem saying it can't serve yet (`not-ready`: its database is unreachable, e.g. Neon resuming;
+ * or `backend-waking`): returns the Retry-After to use, otherwise undefined.
+ */
+async function wakingRetryAfter(response: Response): Promise<number | undefined> {
+  if (response.status !== 503 || !(response.headers.get("Content-Type") ?? "").includes("json")) return undefined;
+  try {
+    const { code } = (await response.clone().json()) as { code?: unknown };
+    if (code !== "not-ready" && code !== "backend-waking") return undefined;
+  } catch {
+    return undefined;
+  }
+  return Number(response.headers.get("Retry-After") ?? "") || WAKE_RETRY_AFTER_S;
+}
+
+async function retryWaking(cache: Cache, key: Request, target: URL, request: Request, impl: string, requestId: string, settings: Settings) {
+  if (revalidating.has(key.url)) return;
+  revalidating.add(key.url);
+  try {
+    await new Promise((resolve) => setTimeout(resolve, UPSTREAM_WAKE_RETRY_MS));
+    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS - UPSTREAM_WAKE_RETRY_MS, null);
+    if (r.kind === "response") await store(cache, key, r.response, settings.staleIfErrorS);
   } finally {
     revalidating.delete(key.url);
   }

@@ -232,6 +232,30 @@ describe("edge cache", () => {
     expect(h.calls).toHaveLength(1);
   });
 
+  it("keeps 404s at most 60 s and never serves them stale (a dataset publish can turn them into 200s)", async () => {
+    const notFound = { "Content-Type": "application/problem+json", "Cache-Control": "public, max-age=300" };
+    await h.seed("/api/java/v1/storms/2013306N07162", { code: "not-found" }, notFound, 61, {}, 404);
+    h.setOrigin(async (req) => {
+      await delay(400, req.signal); // asleep: a stale-if-error copy would win the race
+      return json({ sid: "2013306N07162" }, { headers: CATALOGUE });
+    });
+    const { res } = await h.call("/api/java/v1/storms/2013306N07162", {}, { STALE_TIMEOUT_MS: "100", ORIGIN_TIMEOUT_MS: "1000" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Edge-Cache")).toBe("MISS");
+    expect(await res.json()).toEqual({ sid: "2013306N07162" });
+  });
+
+  it("revalidates /v1/meta without If-None-Match: its ETag doesn't change with datasetVersion", async () => {
+    const meta = { "Cache-Control": "public, max-age=60", ETag: 'W/"c2.0.0-java-0.2.0"', "X-Backend-Impl": "java" };
+    await h.seed("/api/java/v1/meta", { datasetVersion: 0 }, meta, 3600);
+    h.setOrigin((req) =>
+      req.headers.has("If-None-Match") ? new Response(null, { status: 304, headers: meta }) : json({ datasetVersion: 1 }, { headers: meta }),
+    );
+    const { res } = await h.call("/api/java/v1/meta");
+    expect(h.calls[0]!.headers.get("If-None-Match")).toBeNull();
+    expect(await res.json()).toEqual({ datasetVersion: 1 });
+  });
+
   it.each([
     ["private", { "Cache-Control": "private, no-store" }],
     ["no-cache (live snapshot)", { "Cache-Control": "no-cache", ETag: 'W/"s5"' }],
@@ -344,6 +368,24 @@ describe("cold start", () => {
     expect(next.res.headers.get("X-Edge-Cache")).toBe("HIT"); // the woken backend's answer filled the cache
     expect(h.calls).toHaveLength(1);
   });
+
+  it("a backend whose database is still waking (503 not-ready) is a backend-waking answer, retried in the background", async () => {
+    let ready = false;
+    h.setOrigin(() =>
+      ready
+        ? json({ sid: "2013306N07162" }, { headers: CATALOGUE })
+        : json({ code: "not-ready", status: 503 }, { status: 503, headers: { "Content-Type": "application/problem+json", "Cache-Control": "no-store", "Retry-After": "10" } }),
+    );
+    const { res, settle } = await h.call("/api/java/v1/storms/2013306N07162");
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("10");
+    expect((await problemOf(res)).code).toBe("backend-waking");
+    ready = true;
+    await settle();
+    expect(h.calls).toHaveLength(2);
+    const next = await h.call("/api/java/v1/storms/2013306N07162");
+    expect(next.res.headers.get("X-Edge-Cache")).toBe("HIT");
+  }, 15_000);
 
   it("a slow health probe is cut short with 503 and kicks a background /healthz wake", async () => {
     h.setOrigin(async (req) => {

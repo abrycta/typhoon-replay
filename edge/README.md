@@ -67,7 +67,15 @@ Under the contract's table (CONTRACT-GUIDE §6), that covers catalogue reads, `/
 catalogue 404s. The live snapshot (`no-cache`), `/me`, auth, errors and health never qualify.
 
 **Key.** The key is the full URL with its query parameters sorted, plus a hash of `Accept` and `Accept-Language`
-(the request headers a `Vary` may name). Query parameters with different values never share an entry.
+(the request headers a `Vary` may name) and `KEY_VERSION` (`edge/src/cache.ts`). Query parameters with different
+values never share an entry. Bumping `KEY_VERSION` orphans every stored entry on the next deploy: that is the purge.
+
+**Dataset changes.** Catalogue ETags carry the dataset version (`W/"d{n}-…"`), so a revalidation after a publish gets
+a full 200. Two cases need more:
+- 404 and 410 are kept at most 60 s (`NEGATIVE_MAX_AGE_S`) and never served stale, so a storm that a new dataset
+  adds shows up within a minute even while the backend sleeps.
+- `/v1/meta`'s ETag (`W/"c{contract}-{impl}-{implVersion}"`) ignores `datasetVersion`, so a conditional
+  revalidation would get a 304 and keep the old body. It is revalidated with a plain GET (a few hundred bytes).
 
 | State | Condition (age since stored) | Behaviour |
 |---|---|---|
@@ -102,6 +110,9 @@ Render's free services sleep after 15 minutes and take about a minute to wake.
 - Unsafe methods are never cut short with "waking", because the write might still happen. They wait up to 100 s
   (then 504 `gateway-timeout`).
 - Render's own HTML 502/503/504 pages become a 503 `backend-unavailable` problem.
+- A backend that is up while its database is not (Neon resuming from scale-to-zero) answers 503 `not-ready` with
+  `Retry-After`. On a cacheable miss the edge returns its own 503 `backend-waking` with that `Retry-After`, and retries
+  once in the background 5 s later to fill the cache. A stale copy, when there is one, is served instead (stale-if-error).
 
 ## SSE
 

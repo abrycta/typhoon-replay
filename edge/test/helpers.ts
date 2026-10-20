@@ -18,7 +18,7 @@ export interface Harness {
   env: Env;
   setOrigin(h: Handler): void;
   call(path: string, init?: RequestInit, envOverride?: Partial<Env>): Promise<{ res: Response; settle: () => Promise<void> }>;
-  seed(path: string, body: unknown, headers: Record<string, string>, ageS: number, reqHeaders?: Record<string, string>): Promise<void>;
+  seed(path: string, body: unknown, headers: Record<string, string>, ageS: number, reqHeaders?: Record<string, string>, status?: number): Promise<void>;
 }
 
 let n = 0;
@@ -50,9 +50,9 @@ export function harness(): Harness {
       const res = await handleProxy(new Request(site + path, { ...init, headers }), { ...env, ...envOverride }, ctx);
       return { res, settle: () => waitOnExecutionContext(ctx) };
     },
-    async seed(path, body, headers, ageS, reqHeaders = {}) {
+    async seed(path, body, headers, ageS, reqHeaders = {}, status = 200) {
       const key = cacheKey(new Request(site + path, { headers: reqHeaders }));
-      const res = json(body, { headers });
+      const res = json(body, { headers, status });
       await store(caches.default, key, res, 7 * 86_400, Date.now() - ageS * 1000);
     },
   };

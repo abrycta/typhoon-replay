@@ -44,6 +44,18 @@ export function parseCacheControl(value: string | null): Directives {
 const KEY_HEADERS = ["accept", "accept-language"];
 const VARY_ALLOWED = new Set(["accept-encoding", ...KEY_HEADERS]);
 const STORABLE_STATUS = new Set([200, 203, 404, 410]);
+/**
+ * Negative answers (404, 410) turn into 200s as soon as a dataset that has the resource is published, and their
+ * problem bodies carry no dataset ETag to revalidate against. They are kept at most this long, and never served
+ * stale (no stale-while-revalidate, no stale-if-error).
+ */
+export const NEGATIVE_MAX_AGE_S = 60;
+/**
+ * Part of every cache key. Bumping it orphans every stored entry at once (the Cache API is per data centre and
+ * has no purge-all of its own): do so when entries stored under older rules must not be served again.
+ * 2: 2026-10-21, after stale 404s and a datasetVersion-0 /v1/meta outlived a dataset publish.
+ */
+export const KEY_VERSION = "2";
 
 export const STORED_AT = "X-Edge-Stored-At";
 export const ORIGIN_CC = "X-Edge-Origin-Cache-Control";
@@ -67,7 +79,7 @@ export function cacheKey(request: Request): Request {
   const pairs = [...url.searchParams].sort(([a, av], [b, bv]) => (a < b ? -1 : a > b ? 1 : av < bv ? -1 : av > bv ? 1 : 0));
   const q = new URLSearchParams(pairs);
   const variant = KEY_HEADERS.map((h) => (request.headers.get(h) ?? "").trim().toLowerCase()).join("\n");
-  q.append("__edge_v", fnv1a(variant));
+  q.append("__edge_v", `${KEY_VERSION}.${fnv1a(variant)}`);
   url.search = q.toString();
   url.hash = "";
   return new Request(url.toString(), { method: "GET" });
@@ -79,18 +91,25 @@ export interface Lifetimes {
   sie: number;
 }
 
+function lifetimes(status: number, d: Directives, defaultSie: number): Lifetimes | undefined {
+  const fresh = d.sMaxAge ?? d.maxAge;
+  if (!fresh) return undefined;
+  if (status === 404 || status === 410) return { fresh: Math.min(fresh, NEGATIVE_MAX_AGE_S), swr: 0, sie: 0 };
+  return { fresh, swr: d.swr ?? 0, sie: d.sie ?? defaultSie };
+}
+
 /** Whether an origin response may be stored, per the contract's Cache-Control table (CONTRACT-GUIDE §6). */
 export function storable(response: Response, defaultSie: number): Lifetimes | undefined {
   if (!STORABLE_STATUS.has(response.status)) return undefined;
   const d = parseCacheControl(response.headers.get("Cache-Control"));
   if (!d.public || d.private || d.noStore || d.noCache) return undefined;
-  const fresh = d.sMaxAge ?? d.maxAge;
-  if (!fresh) return undefined;
+  const life = lifetimes(response.status, d, defaultSie);
+  if (!life) return undefined;
   if (response.headers.has("Set-Cookie")) return undefined;
   const vary = response.headers.get("Vary");
   if (vary && vary.split(",").some((v) => !VARY_ALLOWED.has(v.trim().toLowerCase()))) return undefined;
   if ((response.headers.get("Content-Type") ?? "").includes("text/event-stream")) return undefined;
-  return { fresh, swr: d.swr ?? 0, sie: d.sie ?? defaultSie };
+  return life;
 }
 
 /** Store a (cloned) origin response. Returns false when it isn't storable. */
@@ -127,11 +146,10 @@ export async function lookup(cache: Cache, key: Request, defaultSie: number, now
   const storedAt = Number(response.headers.get(STORED_AT));
   const originCc = response.headers.get(ORIGIN_CC);
   if (!Number.isFinite(storedAt) || !originCc) return undefined;
-  const d = parseCacheControl(originCc);
-  const fresh = d.sMaxAge ?? d.maxAge ?? 0;
+  const life = lifetimes(response.status, parseCacheControl(originCc), defaultSie) ?? { fresh: 0, swr: 0, sie: 0 };
   const ageS = Math.max(0, Math.floor((now - storedAt) / 1000));
   const state: Freshness =
-    ageS < fresh ? "fresh" : ageS < fresh + (d.swr ?? 0) ? "revalidate" : ageS < fresh + (d.sie ?? defaultSie) ? "if-error" : "expired";
+    ageS < life.fresh ? "fresh" : ageS < life.fresh + life.swr ? "revalidate" : ageS < life.fresh + life.sie ? "if-error" : "expired";
   return { response, ageS, state, etag: response.headers.get("ETag") };
 }
 
