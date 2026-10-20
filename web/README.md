@@ -9,7 +9,7 @@ cp .npmrc.example .npmrc; export NODE_AUTH_TOKEN=$(gh auth token)   # @abrycta/a
 npm ci
 npm run dev          # http://localhost:5173 (fixtures served at /fixtures/ with Range support)
 npm run build        # dist/ + storm share shells + sitemap
-npm run test         # Vitest (units, MSW-backed API tests)
+npm run test         # Vitest (units)
 npm run e2e          # Playwright against `vite preview` of dist/ (build first)
 npm run size         # JS/CSS per route, gzip
 ```
@@ -21,23 +21,33 @@ From the repo root, `scripts/ci.sh` runs install, typecheck, lint, unit tests, b
 ```
 src/
   app/          providers, router, shell (header, footer), error pages
-  routes/       thin TanStack file routes: /, /storms, /storm/$sid, /compare, /town, /about
-  features/     replay, compare, storm-search, dataset-info (static only)
-                town-history, storm-places, backend-switch (use the API)
-  api/          the only code that talks to a backend: openapi-fetch client generated from
-                contracts/, backend registry + health probes, MSW mock handlers
+  routes/       thin TanStack file routes: /, /storms, /storm/$sid, /compare, /town, /about, /under-the-hood
+  features/     replay, compare, storm-search, dataset-info, town-history, storm-places (static only)
+                under-the-hood (the only feature that uses the API)
+  api/          the only code that talks to a backend: requests through the edge proxy classified
+                by its problem codes, the wake/retry policy, response comparison; contract types
   data/         static dataset: pointer/manifest/index/summary/track loaders, TYF frame
-                loader in a Comlink worker (range windows or streaming), track interpolation
+                loader in a Comlink worker (range windows or streaming), track interpolation,
+                place index + in-browser place search, per-place exposure shards
   shared/       config, i18n (Lingui catalogues), domain types, colour/time/unit helpers, UI wrappers
 ```
 
-`eslint-plugin-boundaries` enforces: only `src/api` talks to a backend and features import it only via `@/api`; `src/data` never imports `src/api`; features never import each other; replay, compare, storm-search and dataset-info cannot import the API. Bare `fetch` is banned outside `api/` and `data/`.
+`eslint-plugin-boundaries` enforces: only `src/api` talks to a backend, and only the `under-the-hood` feature may import it (via `@/api`); app, routes and every other feature cannot, so no visitor page calls `/api/*` (an e2e test crawls them to check). `src/data` never imports `src/api`; features never import each other. Bare `fetch` is banned outside `api/` and `data/`.
 
 ## Data and backends
 
 - **Data** is read from `config.json` → `data.baseUrl` (the Hugging Face dataset), falling back to the bundled fixture in `fixtures/` (16 real IBTrACS storms; ERA5 frames for 72 h of Haiyan). Layout and the assumptions the pipeline should confirm: [docs/DATA-LAYOUT.md](docs/DATA-LAYOUT.md). Regenerate the fixture with `npm run fixtures -- --data <spike data/processed>`.
-- **Backends** come from `config.json` → `backends` (`/api/{java,node,rust,go}` behind the same-origin proxy, plus `mock`). `?backend=mock` runs the contract's examples in the browser through MSW. Health is probed only for the backend a feature needs, or on request from the "Served by" switch.
+- **Visitor pages are static-only.** "My town" searches `places/search.json` in the browser (loaded on the town page only) and reads storms near a place from that place's shard; the storm page's affected places come from `summary.json`. Nothing global selects a backend.
+- **Backends** come from `config.json` → `backends` (`/api/{java,node,rust,go}` behind the same-origin proxy) and are used only by `/under-the-hood`: a race of one question on all four (edge `backend-waking` retried with backoff honouring `Retry-After` for up to 3 minutes; `backend-not-deployed` not retried), an endpoint explorer, and the conformance table. Opening that page sends one idle-priority `/healthz` to Java to start waking it.
 - **API types**: `npm run gen:api` regenerates `src/api/generated/` from `contracts/dist/openapi.json` (`-- --check` fails on drift).
+
+## Conformance figures
+
+The Under the hood page's conformance table is `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). Today it is edited by hand from the Java CI run (99/99 scenario tests, 2,150/2,150 Schemathesis cases, p95 storms list 2.8 ms locally, cold start ≈100 s on Render free). The plan for CI:
+
+1. Each backend's workflow uploads a `conformance-<impl>.json` artifact on `main` with the same per-backend shape (`scenarios`, `generated`, `p95StormsListMs`, `coldStartS`, `status: "measured"`).
+2. A small job merges the latest artifact of every backend into this file, sets `updatedAt`, and opens a PR (or commits to `main` when only numbers changed), so the next deploy carries the figures.
+3. A backend without an artifact keeps `status: "next"` and shows "next" / "—".
 
 ## Replay
 

@@ -25,6 +25,9 @@ If the primary host fails (HTTP error, CORS, or an HTML page), the next base URL
 | `v<N>/storms/<sid>/track.json` | `{"fixes": [TrackFix…]}` plus optional `"hours"` | yes per storm |
 | `v<N>/storms/<sid>/frames.tyf` or `.tyf.gz` | TYF1 frame file (`pipeline/typhoon/frames.py`) | only when `summary.frames` is present |
 | `v<N>/storms/<sid>/og.png` | 1200×630 share image | no (`summary.ogImage` names it) |
+| `v<N>/places/index.json` | `{shards: [{shard, country, admin1, admin2?, places, hits, bbox, path, geojson}], search?}` (pipeline `write_places`) | for "My town" |
+| `v<N>/places/search.json` | compact place search index (below); **assumption**: the pipeline does not write it yet | no (falls back to the shards) |
+| `v<N>/places/<shard>.json` | places of one PH province / JP prefecture and their storm exposure (below) | for "My town" |
 
 `<sid>` is the IBTrACS SID (`^[0-9]{7}[NS][0-9]{5}$`).
 
@@ -36,9 +39,18 @@ Field names follow the API contract (`contracts/openapi`) wherever the concept e
 - **StormDetail** (`summary.json`) = contract `StormDetail` (`peak, intensity[], landfalls[], sources[], replayAvailable, …`) plus:
   - `frames`: `{format: "tyf" | "tyf.gz", path, bytes, frames, start, end, vars[], sha256}`; `path` is relative to the storm directory (absolute URLs also work).
   - `reanalysisCheck`: the pipeline's ERA5-vs-best-track cross-check at the JTWC peak: `{radiusDeg, peakTime, atPeak: {jtwcMs, jmaMs, era5WindMs, era5GustMs, ratioToJtwc, ratioToJma, era5MslpMinHpa, jmaPressureHpa}, typhoonHoursMedianRatioToJtwc, typhoonHoursMedianRatioToJma}`.
-  - `affectedPlaces`: contract `PlaceHit[]` within `affectedRadiusKm` (closest first). When absent, the storm page asks the selected API backend (`GET /v1/storms/{sid}/places`).
+  - `affectedPlaces`: contract `PlaceHit[]` within `affectedRadiusKm` (closest first; the pipeline uses 100 km, at most 100 places). When absent, the storm page says the list is not in this dataset version; it never asks an API.
   - `ogImage`: file name of the share image.
 - **TrackFix** (`track.json`): `{t: RFC 3339 UTC, lon (-180,180], lat, jtwcKt?, jtwcHpa?, jmaKt?, jmaHpa?, overLand?}`; observed fixes only. Missing values are omitted, never `null`.
+
+## Places ("My town")
+
+No visitor page calls the API: place search and storms-near-a-place are answered from these files.
+
+- **Place shard** (`places/<shard>.json`, as `dataset.write_places` on m1-pipeline writes it): `{country, admin1, admin2?, places: [{id, kind, name, nameJa?, admin1, admin1Ja?, admin2?, centroid, bbox, summary?}], hits: {columns, rows}, storms: {sid: [name, season]}}`. `hits.columns` are `place, sid, km, at, w50…w500, g500, h50…h500`: `place` indexes `places`, `at` is unix seconds, `w<r>`/`h<r>` are the best-track wind (kt) and hours within each radius. The app filters `km <= radius` and takes `w<radius>`, `h<radius>`; it reads columns by name, accepts object rows, ISO times and place ids, and skips rows it cannot read.
+- **Search index** (`places/search.json`, or the path `places/index.json` names in `search`): `{columns: ["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"], shards: ["v1/places/ph-leyte.json", …], rows: [[…], …]}`, `shard` an index into `shards` (a path also works), `storms100` = `summary.stormsWithin100Km` (ranking only). For ~3,500 places this is about 250 kB raw, ~60 kB gzip. **Asked of the pipeline**; until it exists the app builds the same index by fetching every shard (correct, but ~130 requests and the full exposure tables).
+- Paths in these files are dataset-root relative (`v1/places/…`); absolute URLs and bare file names (relative to `places/`) also work.
+- The fixture's 10 places (contract seed) are written by `scripts/make-place-fixtures.mjs` from the fixture tracks, with distances to the centroid instead of the boundary.
 
 ## Assumptions for the pipeline to confirm
 

@@ -13,7 +13,8 @@ const PAGES = [
   { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}` },
   { name: "storms", path: "/storms" },
   { name: "compare", path: `/compare?a=${HAIYAN}&b=2021346N05145` },
-  { name: "town", path: "/town?backend=mock&q=tacloban&place=PH-0831600000" },
+  { name: "town", path: "/town?q=tacloban&place=PH-0831600000" },
+  { name: "under the hood", path: "/under-the-hood" },
   { name: "about", path: "/about" },
 ];
 

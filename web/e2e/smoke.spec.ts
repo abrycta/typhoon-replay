@@ -66,33 +66,20 @@ test("compare keeps both storms and the hour in the URL", async ({ page }) => {
   await expect(page).toHaveURL(/a=2019278N16165/);
 });
 
-test("hit my town against the mock backend, with X-Backend-Impl in the footer", async ({ page }) => {
-  await page.goto("/town?backend=mock");
-  await page.getByLabel("City or municipality").fill("tacloban");
-  await page.getByRole("button", { name: /Tacloban City/ }).click();
-  await expect(page.getByTestId("town-hits")).toContainText("Haiyan (Yolanda) 2013");
-  await expect(page.getByTestId("served-by")).toContainText("Served by mock");
-  await expect(page).toHaveURL(/place=PH-0831600000/);
-});
-
 test("graceful degradation: the replay works with every API blocked", async ({ page }) => {
   await page.route("**/api/**", (r) => r.abort());
   await page.goto(`/storm/${HAIYAN}?t=${PEAK}`);
   await waitForReplay(page);
   await expect(page.getByTestId("honesty-ratio")).toContainText("0.31×");
-  await page.goto("/town?backend=java");
-  await expect(page.getByTestId("api-status")).toContainText("unavailable");
 });
 
-test("backend switch shows per-backend status without probing all of them", async ({ page }) => {
-  const probes: string[] = [];
-  page.on("request", (r) => r.url().includes("/healthz") && probes.push(r.url()));
-  await page.goto("/about");
-  await page.getByTestId("backend-switch").click();
-  for (const id of ["java", "node", "rust", "go", "mock"]) await expect(page.getByTestId(`backend-${id}`)).toBeVisible();
-  expect(probes).toEqual([]);
-  await page.getByTestId("backend-mock").click();
-  await expect(page.getByTestId("backend-switch")).toHaveAccessibleName(/Served by Mock/);
+test("storm header: one landfall phrase per country; each landfall in the timeline", async ({ page }) => {
+  await page.goto(`/storm/${HAIYAN}?t=${PEAK}`);
+  await waitForReplay(page);
+  const lede = page.getByTestId("storm-lede");
+  await expect(lede).toContainText("in the Philippines");
+  expect((await lede.textContent())!.match(/in the Philippines/g)).toHaveLength(1);
+  await expect(page.getByTestId("timeline-landfall").first()).toContainText("Landfall in the Philippines at");
 });
 
 test("errors: unknown storm and unknown page show the 404", async ({ page }) => {
