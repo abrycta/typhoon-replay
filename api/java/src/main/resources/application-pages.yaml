@@ -1,0 +1,4 @@
+# Served through the Cloudflare Pages project domain instead of the custom domain.
+tr:
+  site-origin: ${TR_SITE_ORIGIN:https://typhoon-replay.pages.dev}
+  allowed-origins: ${TR_ALLOWED_ORIGINS:https://typhoon.krtmtthw.dev}
