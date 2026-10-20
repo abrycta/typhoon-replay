@@ -50,9 +50,12 @@ Verified 2026-10-21; all upstream links answered the health probe. The chain ord
 |---|---|---|---|---|
 | IBTrACS v04r01 WP (`ibtracs-wp`) | NCEI WP CSV → NCEI **ALL** CSV filtered to storms with any WP row → archive | NCEI WP NetCDF (needs a converter) | every snapshot | The ALL→WP filter is **byte-identical** to NCEI's WP file (checked 2026-10-21). 114.6 MB, 249,100 rows; updated three times a week |
 | IBTrACS v04r01 ALL (`ibtracs-all`) | NCEI ALL CSV → archive | NCEI ALL NetCDF | every snapshot | 333 MB, about 730k rows |
-| ERA5 (`era5`) | NSF NCAR on AWS → ARCO-ERA5 on GCS | Earth Engine (needs a project), Copernicus CDS (account, slow queues) | **no** (petabytes; the derived frames on HF are our durable copy) | Two independent no-account mirrors |
+| ERA5, three remote datasets: `era5-an-sfc` (u/v/MSLP), `era5-fc-gust` (10fg), `era5-fc-precip-rate` (mtpr) | NSF NCAR on AWS → the same NCAR files via OSDF → ARCO-ERA5 on GCS, chosen per file by `typhoon.era5` | Earth Engine (needs a project), Copernicus CDS (account, slow queues) | **no** (petabytes; the derived frames on HF are our durable copy) | NCAR is read by HTTP range requests of the exact HDF5 chunks (index cached per file); ARCO covers the ~3 months NCAR has not published. Which link served is recorded per storm in `provenance.json` and in the version manifest |
 | PH ADM3 (`geoboundaries-phl-adm3`) | geoBoundaries at pinned commit `9469f09` → the same file from `media.githubusercontent.com` (Git LFS) → archive | HDX COD-AB PHL (1.06 GB zip, COD-AB p-codes) | once (pinned; sha256 `0a125b17…`) | CC BY 3.0 IGO (NAMRIA, PSA via OCHA). 532 MB, 1,647 units |
-| JP municipalities (`geoboundaries-jpn-adm2`) | geoBoundaries `9469f09` → LFS media → archive | MLIT 国土数値情報 N03 (GML zip) | once (pinned; sha256 `27a0a8fa…`) | **OSM-derived:** treat as ODbL, credit "© OpenStreetMap contributors". 10.9 MB, 1,742 units |
+| JP municipalities (`mlit-n03-jpn`) | MLIT N03 2025-01-01 zip → archive | — | once (pinned; sha256 `df20ebf7…`) | Boundaries, JIS codes and Japanese names; government standard terms (CC BY 4.0 compatible). 632 MB zip, 1,747 municipalities after dissolving designated-city wards |
+| JP romanised names (`geoboundaries-jpn-adm2`) | geoBoundaries `9469f09` → LFS media → archive | — | once (pinned; sha256 `27a0a8fa…`) | **OSM-derived:** treat as ODbL, credit "© OpenStreetMap contributors". Matched to N03 by overlap |
+| PH codes (`hdx-cod-ab-phl-tabular`, `psgc-cities-municipalities`) | HDX COD-AB xlsx → archive; PSGC API mirror → archive | PSA PSGC page (403 to scripts) | once / every snapshot | COD rows matched to geoBoundaries shapes by centre and name; 10-digit PSGC from the PSGC list. 1,633 places |
+| JMA best track (`jma-rsmc-besttrack`) | JMA RSMC zip → archive | — | every snapshot | JMA typhoon numbers (台風第N号) |
 | Natural Earth 50m coastline and countries | raw GitHub at the `v5.1.2` commit → jsDelivr → archive | naciscdn shapefile zip | once (pinned sha256) | Public domain; jsDelivr serves identical bytes |
 | PAGASA crosswalk (`pagasa-crosswalk`) | — (it's `pipeline/crosswalk/*.csv` in this repo; git is its history) | — | no | **The source of truth.** Health validates its columns |
 | Wikipedia season pages (`wikipedia-season-pages`) | — | enwiki `?action=raw` | no | CC BY-SA 4.0. **An update input only**, never read at runtime; throttle under 1 request/s |
@@ -105,25 +108,38 @@ HDX, MLIT, NetCDF and the shapefile zips have a different schema or format. An a
 
 ## Dataset versions: atomic publish and rollback
 
-Frames and Parquet go to the Hugging Face dataset (per DECISIONS.md).
-- **Immutable versions.** Each pipeline run that changes data builds a `data_version` named `YYYY.MM.DD-N` under `versions/<data_version>/`. It is uploaded in **one commit** (`HfApi.upload_folder`) and tagged `data-<data_version>`. Nothing in an existing version is ever modified.
-- **Gates first.** The new version is uploaded only if every data-quality test passes and every input fetched successfully. That includes inputs served by the archive, which only changes the metadata.
-- **One pointer flip.** A second commit updates `current.json`:
+Frames and Parquet go to the Hugging Face dataset `permission-alluring/typhoon-replay` (per DECISIONS.md).
+The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (upload, verify, flip).
+- **Immutable versions.** Each run that publishes builds data version `N` (an integer, next after the
+  published one) under `v<N>/`: `index.json`, `manifest.json`, `storms/<sid>/…`, `places/…`, `tables/*.parquet`.
+  Nothing under an existing `v<N>/` is modified afterwards; the version is tagged `data-v<N>`.
+- **Incremental.** A storm whose summary, track and frames are unchanged keeps pointing at the earlier
+  version's folder (`index.json` `path`), and frames are rebuilt only when IBTrACS changed the storm's
+  hourly track (`trackHash`). A weekly refresh therefore uploads a few storms, not 18 GB.
+- **Gates first.** `dataset.check` verifies every file's checksum against the manifest, the 25 MiB per-file
+  cap, `.tyf` headers, WebP sheets byte-identical to the `.tyf` planes, nodata, plausible ERA5 ratios and
+  referential integrity of the tables; `pytest -m data` checks the catalogue, places and exposure. Batch jobs
+  validate each storm's frames before uploading them. `publish.verify` then checks every uploaded file's
+  size and that a frame answers HTTP Range requests (206) with CORS.
+- **One pointer flip.** Only then does one commit write `README.md` (the dataset card) and `latest.json`:
 
   ```json
-  {
-    "data_version": "…",
-    "path": "versions/…/",
-    "published_at": "…",
-    "data_as_of": null,
-    "archive_used": false,
-    "inputs": { … }
-  }
+  {"dataVersion": 1, "path": "v1/", "index": "v1/index.json", "manifest": "v1/manifest.json",
+   "publishedAt": "…", "dataAsOf": "…", "archiveUsed": false, "previous": null}
   ```
 
-  `inputs` is the output of `archivekit.data_version_metadata()`. The app reads `current.json` (short cache) and then only versioned, immutable, cacheable paths. A half-uploaded version is therefore never visible.
-- **Rollback** means committing `current.json` pointing at the previous version (or its tag). Nothing is deleted. Old versions are kept until a retention step (keep the last 10) prunes them.
-- **Attribution.** The dataset card lists every source's `attribution` from the registry. Derived files keep CC BY-SA where it applies (crosswalk names) and ODbL for the JP-boundary-derived tables.
+  `manifest.json` carries `archivekit.data_version_metadata()` (`inputs`, `archive_used`, `data_as_of`), the
+  ERA5 reads per link, the attribution of every source and the checksum of every file. The app reads
+  `latest.json` (short cache) and then only versioned, immutable paths, so a half-uploaded version is never
+  visible.
+- **Rollback** is `python -m typhoon publish rollback --to <N>`: one commit pointing `latest.json` at an
+  older version still in the repo. Nothing is deleted. Old versions stay while a retained version
+  references their folders.
+- **Database.** `typhoon.dbload` loads a version's `tables/` into the catalogue schema (COPY into
+  `catalog_next`, validate, swap all tables and insert the `dataset_version` row in one transaction).
+  Rolling the database back means loading the previous version's tables (a new, higher dataset_version).
+- **Attribution.** The dataset card lists every source's `attribution` from the registry. Derived files keep
+  CC BY-SA where it applies (PAGASA names) and ODbL for the OSM-derived romanised JP names.
 
 ## Live tracker: degrading gracefully
 
