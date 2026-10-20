@@ -104,7 +104,7 @@ jobs:
           {
             echo "### Deployed \`$BRANCH\` to Cloudflare Pages"
             echo "- Deployment: $URL"
-            [ -n "$ALIAS" ] && echo "- Branch alias: $ALIAS"
+            if [ -n "$ALIAS" ]; then echo "- Branch alias: $ALIAS"; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on the PR
