@@ -50,7 +50,7 @@ from .track import AGENCY_COLUMNS, lon180
 
 log = logging.getLogger("typhoon.dataset")
 SCHEMA = "typhoon-replay/dataset@1"
-INDEX_MAX_BYTES = 1_500_000   # raw; about 150 kB gzipped
+INDEX_MAX_BYTES = 2_500_000   # raw; about 200 kB gzipped
 
 
 def iso(t: Any) -> str | None:
@@ -118,81 +118,188 @@ def local_names(s: Any) -> dict[str, str]:
     return out
 
 
+def omit(d: dict[str, Any]) -> dict[str, Any]:
+    """The contract omits unknown fields rather than sending null."""
+    return {k: v for k, v in d.items() if v is not None}
+
+
+DATA_SOURCES = {  # contract DataSource objects referenced by summary.json `sources`
+    "ibtracs-v04r01": {"id": "ibtracs-v04r01", "name": "IBTrACS v04r01 (NOAA NCEI)",
+                       "url": "https://www.ncei.noaa.gov/products/international-best-track-archive",
+                       "license": "Full and open access (WMO Resolution 40)"},
+    "era5": {"id": "era5", "name": "ERA5 hourly single levels (Copernicus C3S/ECMWF; NSF NCAR ds633.0, ARCO-ERA5)",
+             "url": "https://doi.org/10.24381/cds.adbb2d47", "license": "CC BY 4.0"},
+    "jma-rsmc-besttrack": {"id": "jma-rsmc-besttrack", "name": "RSMC Tokyo best track (JMA)",
+                           "url": "https://www.jma.go.jp/jma/jma-eng/jma-center/rsmc-hp-pub-eg/besttrack.html",
+                           "license": "JMA website terms of use"},
+    "pagasa-crosswalk": {"id": "pagasa-crosswalk", "name": "PAGASA names (curated crosswalk and Wikipedia season articles)",
+                         "url": "https://github.com/abrycta/typhoon-replay/tree/main/pipeline/crosswalk",
+                         "license": "CC BY-SA 4.0"},
+}
+
+
 def track_doc(s: Any, fixes: pd.DataFrame, hourly: pd.DataFrame) -> dict[str, Any]:
+    """track.json: observed fixes (TrackFix objects) and the pipeline's hourly track (`hours`)."""
     f = fixes.sort_values("observed_at")
     h = hourly.sort_values("time")
-    return {
-        "sid": s.sid, "name": s["name"],
-        "note": "Observed best-track fixes (IBTrACS, original O flags) and an hourly track interpolated "
-                "linearly in time between IBTrACS rows; 'obs' marks hours that coincide with an observed fix. "
-                "Wind in knots: JTWC 1-min, JMA 10-min; 'agency' says which value 'windKt' is.",
-        "fixes": {
-            "t": [int(pd.Timestamp(t).timestamp()) for t in f.observed_at],
-            "lon": [num(v, 2) for v in f.lon], "lat": [num(v, 2) for v in f.lat],
-            "windKt": [num(v) for v in f.wind_kt], "agency": [a if isinstance(a, str) else None for a in f.wind_agency],
-            "pressureHpa": [num(v) for v in f.pressure_hpa],
-            "jtwcKt": [num(v) for v in f.jtwc_wind_kt], "jmaKt": [num(v) for v in f.jma_wind_kt],
-            "jmaHpa": [num(v) for v in f.jma_pressure_hpa], "nature": list(f.nature.where(f.nature.notna(), None)),
-        },
-        "hourly": {
-            "t": [int(pd.Timestamp(t).timestamp()) for t in h.time],
-            "lon": [num(v, 3) for v in lon180(h.lon.to_numpy())], "lat": [num(v, 3) for v in h.lat],
-            "windKt": [num(v) for v in h.wind_kt], "agency": [a or None for a in h.wind_agency],
-            "pressureHpa": [num(v) for v in h.pressure_hpa],
-            "jtwcKt": [num(v) for v in h.jtwc_wind_kt], "jmaKt": [num(v) for v in h.jma_wind_kt],
-            "obs": [int(bool(v)) for v in h.observed],
-        },
+    fix_t = np.array([int(pd.Timestamp(t).timestamp()) for t in f.observed_at])
+    out_fixes = [omit({
+        "t": iso(r.observed_at), "lon": num(r.lon, 2), "lat": num(r.lat, 2),
+        "jtwcKt": num(r.jtwc_wind_kt), "jtwcHpa": num(r.jtwc_pressure_hpa),
+        "jmaKt": num(r.jma_wind_kt), "jmaHpa": num(r.jma_pressure_hpa),
+        "windKt": num(r.wind_kt), "windAgency": r.wind_agency if isinstance(r.wind_agency, str) else None,
+        "pressureHpa": num(r.pressure_hpa), "nature": r.nature if isinstance(r.nature, str) else None,
+        "overLand": (num(r.dist_to_land_km) == 0) if num(r.dist_to_land_km) is not None else None,
+    }) for r in f.itertuples()]
+    hours = []
+    for r in h.itertuples():
+        t = int(pd.Timestamp(r.time).timestamp())
+        d: dict[str, Any] = {"t": t, "lon": num(track_lon(r.lon), 3), "lat": num(r.lat, 3),
+                             "jtwcKt": num(r.jtwc_wind_kt), "jmaKt": num(r.jma_wind_kt),
+                             "jmaHpa": num(r.jma_pressure_hpa), "windKt": num(r.wind_kt),
+                             "agency": r.wind_agency or None, "observed": bool(r.observed)}
+        if not r.observed and len(fix_t):
+            i = int(np.searchsorted(fix_t, t))
+            if 0 < i < len(fix_t):
+                d["between"] = [int(fix_t[i - 1]), int(fix_t[i])]
+        hours.append(omit(d))
+    return {"sid": s.sid, "name": s["name"],
+            "note": "fixes: observed best-track fixes (IBTrACS rows with an original O flag). hours: hourly track "
+                    "interpolated linearly in time between IBTrACS rows by the pipeline; `between` names the observed "
+                    "fixes around an interpolated hour. Winds in knots: JTWC 1-min, JMA 10-min.",
+            "fixes": out_fixes, "hours": hours}
+
+
+def track_lon(lon: float) -> float:
+    return float(lon180(lon))
+
+
+def rel(path: str, storm_base: str) -> str:
+    """A dataset-root path as seen from the storm directory (frames may live in an earlier version)."""
+    return path[len(storm_base):] if path.startswith(storm_base) else "../../../" + path
+
+
+def frames_entry(meta: dict[str, Any], base: str) -> dict[str, Any]:
+    """frames.json -> the frames record with dataset-root paths (stored in frames-index.json)."""
+    segs = meta["segments"]
+    first = segs[0]
+    out: dict[str, Any] = {
+        "format": "tyf", "path": base + first["tyf"]["file"], "bytes": first["tyf"]["bytes"],
+        "sha256": first["tyf"]["sha256"], "headerBytes": first["tyf"]["headerBytes"],
+        "frameBytes": first["tyf"]["frameBytes"], "frames": meta["frames"], "start": meta["start"], "end": meta["end"],
+        "nx": meta["nx"], "ny": meta["ny"], "resDeg": meta["resDeg"], "nodata": meta["nodata"],
+        "vars": meta["vars"], "servedBy": meta["servedBy"], "credit": meta["credit"],
+        "quantisation": meta["quantisation"], "era5VsBestTrack": meta["era5VsBestTrack"],
     }
+    if len(segs) == 1 and "webp" in first:
+        out["webp"] = {k: {kk: (base + vv if kk == "file" else vv) for kk, vv in v.items()}
+                       for k, v in first["webp"].items()}
+        for v in out["webp"].values():
+            v["path"] = v.pop("file")
+    if len(segs) > 1:
+        out["segments"] = [{"index": sg["index"], "frames": sg["frames"], "start": sg["start"], "end": sg["end"],
+                            "path": base + sg["tyf"]["file"], "bytes": sg["tyf"]["bytes"], "sha256": sg["tyf"]["sha256"],
+                            "headerBytes": sg["tyf"]["headerBytes"],
+                            "webp": {k: dict(v, path=base + v["file"]) for k, v in sg.get("webp", {}).items()}}
+                           for sg in segs]
+    return out
+
+
+def frame_files(fr: dict[str, Any]) -> list[tuple[str, int, str]]:
+    """(root path, bytes, sha256) of every file a frames record references."""
+    out = [(fr["path"], fr["bytes"], fr["sha256"])]
+    for v in fr.get("webp", {}).values():
+        out.append((v["path"], v["bytes"], v["sha256"]))
+    for sg in fr.get("segments", [])[1:]:
+        out.append((sg["path"], sg["bytes"], sg["sha256"]))
+    for sg in fr.get("segments", []):
+        out += [(v["path"], v["bytes"], v["sha256"]) for v in sg.get("webp", {}).values()]
+    return list(dict.fromkeys(out))
+
+
+def summary_frames(fr: dict[str, Any], storm_base: str) -> dict[str, Any]:
+    """The summary's `frames`: paths relative to the storm directory, cross-check moved out."""
+    out = json.loads(json.dumps(fr))
+    out.pop("era5VsBestTrack", None)
+    out["path"] = rel(out["path"], storm_base)
+    for v in out.get("webp", {}).values():
+        v["path"] = rel(v["path"], storm_base)
+    for sg in out.get("segments", []):
+        sg["path"] = rel(sg["path"], storm_base)
+        for v in sg.get("webp", {}).values():
+            v["path"] = rel(v["path"], storm_base)
+    return out
+
+
+AFFECTED_RADIUS_KM = 100
+AFFECTED_MAX = 100
+
+
+def place_summary(p: Any) -> dict[str, Any]:
+    return omit({"id": p.place_id, "country": p.country, "kind": p.kind, "name": p.name,
+                 "nameJa": p.name_ja if isinstance(p.name_ja, str) else None, "admin1": p.admin1,
+                 "admin1Ja": p.admin1_ja if isinstance(p.admin1_ja, str) else None,
+                 "admin2": p.admin2 if isinstance(p.admin2, str) else None,
+                 "centroid": [num(p.centroid_lon, 4), num(p.centroid_lat, 4)]})
+
+
+def affected_places(ex: pd.DataFrame | None, places: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """Contract PlaceHit[] within AFFECTED_RADIUS_KM, closest first (best-track based, like the API)."""
+    if ex is None:
+        return []
+    e = ex[ex.closest_approach_km <= AFFECTED_RADIUS_KM].sort_values(["closest_approach_km", "place_id"])
+    r = AFFECTED_RADIUS_KM
+    return [omit({"place": places[x.place_id], "closestApproachKm": float(x.closest_approach_km),
+                  "closestApproachAt": iso(x.closest_approach_at),
+                  "maxWindKtWithinRadius": num(getattr(x, f"max_wind_kt_r{r}")),
+                  "maxGustKtWithinRadius": num(getattr(x, f"max_gust_kt_r{r}")),
+                  "hoursWithinRadius": int(getattr(x, f"hours_r{r}"))})
+            for x in e.head(AFFECTED_MAX).itertuples()]
 
 
 def summary_doc(s: Any, landfalls: pd.DataFrame, place_names: dict[str, str], frames: dict[str, Any] | None,
-                base: str) -> dict[str, Any]:
+                base: str, ex: pd.DataFrame | None = None, places: dict[str, dict[str, Any]] | None = None
+                ) -> dict[str, Any]:
+    """summary.json: contract StormDetail plus frames, reanalysisCheck, affectedPlaces, ogImage."""
     intensity = []
     for ag, (_, _, minutes) in AGENCY_COLUMNS.items():
         w, p = s[f"{ag}_max_wind_kt"], s[f"{ag}_min_pressure_hpa"]
         if num(w) is not None or num(p) is not None:
-            d: dict[str, Any] = {"agency": ag, "windAveragingMinutes": minutes}
-            if num(w) is not None:
-                d["maxWindKt"] = num(w)
-            if num(p) is not None:
-                d["minPressureHpa"] = num(p)
-            intensity.append(d)
+            intensity.append(omit({"agency": ag, "windAveragingMinutes": minutes, "maxWindKt": num(w),
+                                   "minPressureHpa": num(p)}))
     peak: dict[str, Any] = {}
     if num(s.peak_wind_kt) is not None:
         peak = {"windKt": num(s.peak_wind_kt), "agency": s.peak_wind_agency, "at": iso(s.peak_at),
                 "position": [num(s.peak_lon, 4), num(s.peak_lat, 4)]}
     if num(s.min_pressure_hpa) is not None:
         peak["pressureHpa"] = num(s.min_pressure_hpa)
+    srcs = ["ibtracs-v04r01"] + (["era5"] if frames else []) + \
+        (["jma-rsmc-besttrack"] if num(s.jma_number) is not None else []) + \
+        (["pagasa-crosswalk"] if isinstance(s.name_pagasa, str) else [])
     doc: dict[str, Any] = {
-        "schema": SCHEMA, "sid": s.sid, "name": s["name"], "nameIbtracs": s.name_ibtracs, "localNames": local_names(s),
-        "season": int(s.season), "basin": s.basin, "number": num(s.number), "atcfId": s.atcf_id if isinstance(s.atcf_id, str) else None,
-        "jmaNumber": num(s.jma_number), "trackType": s.track_type,
-        "startedAt": iso(s.started_at), "endedAt": iso(s.ended_at), "durationHours": num(s.duration_h, 1),
-        "fixCount": int(s.fix_count), "hours": int(s.hours), "landfallCountries": list(s.landfall_countries),
-        "enteredPar": bool(s.entered_par), "bbox": list(s.bbox), "peak": peak, "intensity": intensity,
-        "landfalls": [{"country": r.country, "at": iso(r.at), "position": [r.lon, r.lat], "placeId": r.place_id,
-                       "placeName": place_names.get(r.place_id)} for r in landfalls.sort_values("seq").itertuples()],
-        "replayAvailable": frames is not None,
-        "sources": ["ibtracs-wp"] + (["era5-an-sfc", "era5-fc-gust", "era5-fc-precip-rate"] if frames else []),
-        "track": f"{base}track.json", "og": f"{base}og.png",
+        "schema": SCHEMA, "sid": s.sid, "name": s["name"], "nameIbtracs": s.name_ibtracs,
+        "localNames": local_names(s), "season": int(s.season), "basin": s.basin, "number": num(s.number),
+        "atcfId": s.atcf_id if isinstance(s.atcf_id, str) else None, "jmaNumber": num(s.jma_number),
+        "trackType": s.track_type, "startedAt": iso(s.started_at), "endedAt": iso(s.ended_at),
+        "durationHours": num(s.duration_h, 1), "fixCount": int(s.fix_count), "hours": int(s.hours),
+        "landfallCountries": list(s.landfall_countries), "enteredPar": bool(s.entered_par), "bbox": list(s.bbox),
+        "peak": peak, "intensity": intensity,
+        "landfalls": [omit({"country": r.country, "at": iso(r.at), "position": [r.lon, r.lat], "placeId": r.place_id,
+                            "placeName": place_names.get(r.place_id)})
+                      for r in landfalls.sort_values("seq").itertuples()],
+        "sources": [DATA_SOURCES[k] for k in srcs], "replayAvailable": frames is not None,
+        "track": "track.json", "ogImage": "og.png",
+        "affectedRadiusKm": AFFECTED_RADIUS_KM, "affectedPlaces": affected_places(ex, places or {}),
     }
     if frames:
-        doc["frames"] = frames
-        doc["era5VsBestTrack"] = frames.pop("era5VsBestTrack")
+        chk = frames["era5VsBestTrack"]
+        doc["frames"] = summary_frames(frames, base)
+        doc["frameCount"] = frames["frames"]
+        if chk.get("reanalysisCheck"):
+            doc["reanalysisCheck"] = chk["reanalysisCheck"]
+        doc["era5VsBestTrack"] = {k: v for k, v in chk.items() if k != "reanalysisCheck"}
         doc["era5Note"] = ERA5_HONESTY
-    return {k: v for k, v in doc.items() if v is not None}
-
-
-def frames_entry(meta: dict[str, Any], base: str) -> dict[str, Any]:
-    """frames.json -> the summary's frame manifest with dataset-root-relative paths."""
-    m = json.loads(json.dumps(meta))
-    for seg in m["segments"]:
-        if "tyf" in seg:
-            seg["tyf"]["path"] = base + seg["tyf"].pop("file")
-        for v in seg.get("webp", {}).values():
-            v["path"] = base + v.pop("file")
-    m.pop("sid", None)
-    return m
+    return omit(doc)
 
 
 # ----------------------------------------------------------------------------- build
@@ -215,16 +322,16 @@ def track_hash(h: pd.DataFrame) -> str:
     return hashlib.sha256(a.astype("float64").tobytes()).hexdigest()[:16]
 
 
-def _get_json(root: str, rel: str) -> Any:
+def _get_json(root: str, rel_path: str) -> Any:
     if root.startswith("https://"):
         import httpx
 
-        r = httpx.get(f"{root.rstrip('/')}/{rel}", follow_redirects=True, timeout=120)
-        if r.status_code == 404:
+        r = httpx.get(f"{root.rstrip('/')}/{rel_path}", follow_redirects=True, timeout=120)
+        if r.status_code in (401, 404):
             return None
         r.raise_for_status()
         return r.json()
-    p = Path(root) / rel
+    p = Path(root) / rel_path
     return json.loads(p.read_text()) if p.exists() else None
 
 
@@ -236,6 +343,10 @@ def load_previous(root: str | None) -> tuple[dict[str, Any] | None, dict[str, An
     if not latest:
         return None, {}
     return _get_json(root, latest["index"]), _get_json(root, latest["path"] + "frames-index.json") or {}
+
+
+def index_storms(prev: dict[str, Any] | None) -> list[dict[str, Any]]:
+    return list(prev["storms"]) if prev else []
 
 
 def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
@@ -255,17 +366,14 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     pl = places_mod.load()
     ex = exposure.load()
     place_names = dict(zip(pl.place_id, pl.name, strict=True))
+    place_objs = {p.place_id: place_summary(p) for p in pl.itertuples()}
+    ex_by = dict(tuple(ex[ex.closest_approach_km <= AFFECTED_RADIUS_KM].groupby("sid")))
     local = replay_storms()
     prev, prev_frames = load_previous(previous)
-    prev_paths = {}
-    if prev:
-        cols = prev["storms"]["columns"]
-        for row in prev["storms"]["rows"]:
-            r = dict(zip(cols, row, strict=True))
-            prev_paths[r["sid"]] = (r["path"], r["contentHash"])
+    prev_paths = {r["sid"]: (r["path"], r["contentHash"]) for r in index_storms(prev)}
     fx_by, lf_by, hr_by = dict(tuple(fixes.groupby("sid"))), dict(tuple(lfs.groupby("sid"))), dict(tuple(hourly.groupby("sid")))
     empty_lf = lfs.iloc[0:0]
-    index_rows: list[list[Any]] = []
+    index_rows: list[dict[str, Any]] = []
     frames_index: dict[str, Any] = {}
     remote_files: dict[str, dict[str, Any]] = {}
     replay: dict[str, dict[str, Any]] = {}
@@ -280,53 +388,50 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         if sid in local:
             rp = local[sid]
             fr = frames_entry(rp["meta"], base)
-            for seg in rp["meta"]["segments"]:
-                items = ([seg["tyf"]] if "tyf" in seg else []) + list(seg.get("webp", {}).values())
-                for it in items:
-                    if frames_uploaded:
-                        remote_files[base + it["file"]] = {"bytes": it["bytes"], "sha256": it["sha256"]}
-                    else:
-                        shutil.copy2(rp["dir"] / it["file"], sdir / it["file"])
+            for path, nbytes, sha in frame_files(fr):
+                if frames_uploaded:
+                    remote_files[path] = {"bytes": nbytes, "sha256": sha}
+                else:
+                    shutil.copy2(rp["dir"] / path[len(base):], sdir / path[len(base):])
         elif sid in prev_frames and prev_frames[sid]["trackHash"] == th:
-            fr = json.loads(json.dumps(prev_frames[sid]["frames"]))   # paths point at the older version
+            fr = json.loads(json.dumps(prev_frames[sid]["frames"]))   # root paths into the older version
             reused_frames += 1
         if fr:
             h = fr["era5VsBestTrack"]
             replay[sid] = {"frames": fr["frames"], "ratio": h.get("headlineRatio"), "agency": h.get("headlineAgency")}
-            frames_index[sid] = {"trackHash": th, "frames": json.loads(json.dumps(fr))}
-        summ = summary_doc(s, lf_by.get(sid, empty_lf), place_names, fr, base)
+            frames_index[sid] = {"trackHash": th, "frames": fr}
+        summ = summary_doc(s, lf_by.get(sid, empty_lf), place_names, fr, base, ex_by.get(sid), place_objs)
         trk = track_doc(s, fx_by[sid], hr_by[sid])
         (sdir / "summary.json").write_bytes(dumps(summ))
         (sdir / "track.json").write_bytes(dumps(trk))
         h = hr_by[sid]
         (sdir / "og.png").write_bytes(og.render(s.to_dict(), h.lon.to_numpy(), h.lat.to_numpy(), h.wind_kt.to_numpy()))
-        # content hash of the storm's documents with this version's prefix normalised away (the summary lists
-        # every frame file's sha256, so it covers the frames too)
+        # content hash of the storm's documents (the summary lists every frame file's sha256, so it covers the
+        # frames too); frame paths relative to the storm directory make it version-independent
         hsh = hashlib.sha256()
         for name in ("summary.json", "track.json", "og.png"):
-            data = (sdir / name).read_bytes()
-            if name.endswith(".json"):
-                data = data.replace(base_v.encode(), b"v{N}/")
-            hsh.update(name.encode() + b"\0" + hashlib.sha256(data).digest())
+            hsh.update(name.encode() + b"\0" + hashlib.sha256((sdir / name).read_bytes()).digest())
         content = hsh.hexdigest()[:32]
-        path = f"{base_v}storms/{sid}/"
+        path = base
         if sid in prev_paths and prev_paths[sid][1] == content and sid not in local:
             path = prev_paths[sid][0]
             shutil.rmtree(sdir)
             reused += 1
-        index_rows.append([
-            sid, s["name"], s.name_pagasa if isinstance(s.name_pagasa, str) else None,
-            s.name_ja if isinstance(s.name_ja, str) else None, int(s.season), iso(s.started_at), iso(s.ended_at),
-            num(s.peak_wind_kt), s.peak_wind_agency if isinstance(s.peak_wind_agency, str) else None,
-            num(s.min_pressure_hpa), list(s.landfall_countries), [num(v, 2) for v in s.bbox], bool(fr),
-            replay[sid]["ratio"] if fr else None, path, content, th,
-        ])
+        index_rows.append(omit({
+            "sid": sid, "name": s["name"], "localNames": local_names(s), "season": int(s.season), "basin": s.basin,
+            "startedAt": iso(s.started_at), "endedAt": iso(s.ended_at), "peakWindKt": num(s.peak_wind_kt),
+            "peakWindAgency": s.peak_wind_agency if isinstance(s.peak_wind_agency, str) else None,
+            "minPressureHpa": num(s.min_pressure_hpa), "landfallCountries": list(s.landfall_countries),
+            "replayAvailable": bool(fr), "frameCount": fr["frames"] if fr else None,
+            "era5Ratio": replay[sid]["ratio"] if fr else None, "bbox": [num(v, 2) for v in s.bbox],
+            "path": path, "contentHash": content, "trackHash": th,
+        }))
     index = {
-        "schema": SCHEMA, "dataVersion": version, "generatedAt": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "storms": {"columns": ["sid", "name", "pagasa", "ja", "season", "start", "end", "peakWindKt", "peakAgency",
-                               "minPressureHpa", "landfall", "bbox", "replay", "era5Ratio", "path", "contentHash",
-                               "trackHash"],
-                   "rows": index_rows},
+        "schema": SCHEMA, "dataVersion": version, "datasetVersion": version,
+        "generatedAt": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "note": "storms: contract StormSummary + replayAvailable, frameCount, era5Ratio, bbox; `path` is the storm "
+                "directory (dataset-root relative; may be an earlier version's when nothing changed).",
+        "storms": index_rows,
         "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables/",
         "framesIndex": f"{base_v}frames-index.json", "era5Note": ERA5_HONESTY,
     }
@@ -422,8 +527,16 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
     fi = json.loads((vdir / "frames-index.json").read_text())
     ratios = [v["frames"]["era5VsBestTrack"].get("headlineRatio") for v in fi.values()]
     ratios = [r for r in ratios if r is not None]
+    reg = {s["id"]: s for s in sources.registry().sources}
+    web_sources = [{"id": a["id"], "name": " ".join(str(reg[a["id"]]["description"]).split())[:160],
+                    "url": next((lk["url"] for lk in reg[a["id"]].get("links", []) if str(lk.get("url", "")).startswith("https")),
+                                "https://github.com/abrycta/typhoon-replay/blob/main/pipeline/sources.yaml"),
+                    "license": a["licence"], "attribution": a["attribution"]}
+                   for a in sources.attributions() if a["kind"] != "live-feed"]
     manifest = {
-        "schema": SCHEMA, "dataVersion": version, "createdAt": index["generatedAt"], "repo": HF_REPO,
+        "schema": SCHEMA, "dataVersion": version, "datasetVersion": version, "createdAt": index["generatedAt"],
+        "generatedAt": index["generatedAt"], "dataAsOf": meta.get("data_as_of") or ibtracs_as_of(run),
+        "sources": web_sources, "repo": HF_REPO,
         "pipelineCommit": git_commit(),
         "provenance": meta, "era5Reads": era5,
         "attribution": list(sources.attributions()),
@@ -441,10 +554,15 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
         "era5": {"note": ERA5_HONESTY, "stormsWithFrames": with_frames, "framesBuiltThisVersion": len(replay),
                  "framesReusedFromPrevious": reused_frames,
                  "medianHeadlineRatio": round(float(np.median(ratios)), 3) if ratios else None},
-        "counts": {"storms": len(index["storms"]["rows"]), "reusedStormFolders": reused, "tables": tinfo},
+        "counts": {"storms": len(index["storms"]), "reusedStormFolders": reused, "tables": tinfo},
         "files": files,
     }
     (vdir / "manifest.json").write_bytes(json.dumps(manifest, ensure_ascii=False, indent=1).encode())
+
+
+def ibtracs_as_of(run: sources.RunManifest) -> str | None:
+    p = run.items.get("ibtracs-wp")
+    return p.data_as_of if p else None
 
 
 # ----------------------------------------------------------------------------- checks (gates before latest flips)
@@ -473,47 +591,45 @@ def check(vdir: Path) -> dict[str, Any]:
     raw = (vdir / "index.json").stat().st_size
     if raw > INDEX_MAX_BYTES:
         problems.append(f"index.json is {raw} bytes")
-    cols = idx["storms"]["columns"]
-    rows = [dict(zip(cols, r, strict=True)) for r in idx["storms"]["rows"]]
+    rows = idx["storms"]
     if len(rows) < 1500:
         problems.append(f"only {len(rows)} storms")
+    fi = json.loads((vdir / "frames-index.json").read_text())
     replay = 0
     for r in rows:
         sdir = root / r["path"]
-        if not (sdir / "summary.json").exists() and r["path"].startswith(vdir.name + "/"):
-            problems.append(f"{r['sid']}: summary.json missing")
-            continue
         if not r["path"].startswith(vdir.name + "/"):
             continue  # reused from a previous, already-validated version
+        if not (sdir / "summary.json").exists():
+            problems.append(f"{r['sid']}: summary.json missing")
+            continue
         s = json.loads((sdir / "summary.json").read_text())
-        if s["sid"] != r["sid"] or s.get("replayAvailable") != r["replay"]:
+        if s["sid"] != r["sid"] or s.get("replayAvailable") != r["replayAvailable"]:
             problems.append(f"{r['sid']}: summary/index disagree")
-        if r["replay"]:
-            replay += 1
-            fr = s["frames"]
-            h = s.get("era5VsBestTrack", {})
-            if h.get("headlineRatio") is None:
-                problems.append(f"{r['sid']}: no ERA5 honesty ratio")
-            elif not 0.05 < h["headlineRatio"] < 1.5:
-                problems.append(f"{r['sid']}: implausible ERA5 ratio {h['headlineRatio']}")
-            total = 0
-            for seg in fr["segments"]:
-                total += seg["frames"]
-                if "tyf" in seg and (root / seg["tyf"]["path"]).exists():
-                    hdr, q = parse_tyf((root / seg["tyf"]["path"]).read_bytes())
-                    if hdr["frames"] != seg["frames"] or hdr["sid"] != r["sid"]:
-                        problems.append(f"{r['sid']}: bad tyf header in segment {seg['index']}")
-                    nod = float((q[:, :4] == 255).mean())
-                    if nod > 0.01:
-                        problems.append(f"{r['sid']}: {nod:.1%} nodata in segment {seg['index']}")
-                    for vi, (name, w) in enumerate(seg.get("webp", {}).items()):
-                        data = (root / w["path"]).read_bytes()
-                        if not np.array_equal(unsprite(data, seg["frames"], hdr["ny"], hdr["nx"], w["cols"]),
-                                              q[:, [v["name"] for v in hdr["vars"]].index(name)]):
-                            problems.append(f"{r['sid']}: webp {name} differs from tyf in segment {seg['index']}")
-                        del vi
-            if total != fr["frames"]:
-                problems.append(f"{r['sid']}: segment frames {total} != {fr['frames']}")
+        if r["replayAvailable"] != (r["sid"] in fi):
+            problems.append(f"{r['sid']}: index and frames-index disagree")
+    for sid, entry in fi.items():
+        fr = entry["frames"]
+        replay += 1
+        h = fr["era5VsBestTrack"]
+        if h.get("headlineRatio") is None:
+            problems.append(f"{sid}: no ERA5 honesty ratio")
+        elif not 0.05 < h["headlineRatio"] < 1.5:
+            problems.append(f"{sid}: implausible ERA5 ratio {h['headlineRatio']}")
+        tyf = root / fr["path"]
+        if not tyf.exists():
+            continue  # uploaded by a batch job, or reused from an earlier version
+        hdr, q = parse_tyf(tyf.read_bytes())
+        if hdr["sid"] != sid or (not fr.get("segments") and hdr["frames"] != fr["frames"]):
+            problems.append(f"{sid}: bad tyf header")
+        nod = float((q[:, :4] == 255).mean())
+        if nod > 0.01:
+            problems.append(f"{sid}: {nod:.1%} nodata")
+        names = [v["name"] for v in hdr["vars"]]
+        for name, w in fr.get("webp", {}).items():
+            back = unsprite((root / w["path"]).read_bytes(), hdr["frames"], hdr["ny"], hdr["nx"], w["cols"])
+            if not np.array_equal(back, q[:, names.index(name)]):
+                problems.append(f"{sid}: webp {name} differs from tyf")
     # tables
     import pyarrow.parquet as pq
 

@@ -121,7 +121,7 @@ def flip(version: int, root: Path = BUILD, *, note: str = "") -> dict[str, Any]:
     man = json.loads((root / f"v{version}" / "manifest.json").read_text())
     prev = current()
     latest = {
-        "schema": "typhoon-replay/latest@1", "dataVersion": version, "path": f"v{version}/",
+        "schema": "typhoon-replay/latest@1", "version": version, "dataVersion": version, "path": f"v{version}/",
         "index": f"v{version}/index.json", "manifest": f"v{version}/manifest.json",
         "publishedAt": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "dataAsOf": man["provenance"].get("data_as_of"), "archiveUsed": man["provenance"].get("archive_used", False),

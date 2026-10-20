@@ -88,3 +88,11 @@ def test_known_landfalls(st):
 def test_durations(st):
     assert (st.duration_h >= 0).all()
     assert st.duration_h.max() < 24 * 60
+
+
+def test_antimeridian_segments_are_not_landfalls(st):
+    # Faxai 2019 starts at 179.6E and crosses to 180.1E; a -180..180 segment would span the globe and
+    # "cross" the Philippines (found by the web app's fixture build).
+    f = st.set_index("sid").loc["2019242N14180"]
+    assert f["name"] == "FAXAI" and f.landfall_jp and not f.landfall_ph and not f.entered_par
+    assert 700 <= st[st.season >= 1940].landfall_ph.sum() <= 740   # 760 before the fix

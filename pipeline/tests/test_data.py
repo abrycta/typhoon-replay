@@ -91,3 +91,8 @@ def test_frames_honesty() -> None:
     h = m["era5VsBestTrack"]
     assert 0.25 < h["jtwc"]["ratioAtPeak"] < 0.4 and 0.35 < h["jma"]["ratioAtPeak"] < 0.5   # SPIKE.md: 0.31, 0.42
     assert all(q["nodata"] == 0 and q["clipped"] == 0 for q in m["quantisation"].values())
+
+
+def test_faxai_is_a_japan_landfall_only(storms: pd.DataFrame) -> None:
+    f = storms.loc["2019242N14180"]
+    assert list(f.landfall_countries) == ["JP"] and not f.entered_par

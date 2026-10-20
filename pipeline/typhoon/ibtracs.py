@@ -79,7 +79,9 @@ def _countries() -> dict[str, shapely.Geometry]:
 def add_geo_flags(fx: pd.DataFrame) -> pd.DataFrame:
     c = _countries()
     lon = fx["lon"].to_numpy()
-    lon180 = np.where(lon > 180, lon - 360, lon)
+    # Keep 0..360: the WP storms that cross the antimeridian stay continuous (179.6E -> 180.1E is a short
+    # segment, not one spanning the globe), and PH, JP, PAR and the study box all lie east of 0 deg.
+    lon180 = lon
     pts = shapely.points(lon180, fx["lat"].to_numpy())
     fx["in_par"] = shapely.contains_xy(PAR, lon180, fx["lat"].to_numpy())
     fx["in_study_box"] = shapely.contains_xy(STUDY_BOX, lon180, fx["lat"].to_numpy())

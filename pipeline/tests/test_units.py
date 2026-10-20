@@ -188,3 +188,10 @@ def test_json_cleaning_and_track_hash() -> None:
     h = pd.DataFrame({"time": pd.date_range("2020", periods=3, freq="h", tz="UTC"), "lat": [1.0, 2, 3], "lon": [359.0, 1, 2]})
     h2 = h.assign(lat=[1.0, 2, 3.5])
     assert dataset.track_hash(h) == dataset.track_hash(h.copy()) != dataset.track_hash(h2)
+
+
+def test_antimeridian_track_does_not_cross_the_philippines() -> None:
+    land = catalog.Land(places_frame([square(125.0, 11.0, 0.5)], ["PH-0000000004"]))
+    t = np.array(["2019-08-30T00", "2019-08-30T01", "2019-08-30T02"], dtype="datetime64[s]")
+    # 179.6E -> 180.1E -> 180.6E at 11N: in -180..180 the first segment would span the globe through 125E
+    assert land.entries(np.array([179.6, 180.1, 180.6]), np.array([11.0, 11.0, 11.0]), t) == []

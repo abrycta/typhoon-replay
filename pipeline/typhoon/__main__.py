@@ -62,7 +62,7 @@ def plan(batches: int, list_file: Path | None, previous: str | None, mode: str =
         prev_index, prev_frames = load_previous(previous)
         known = set()
         if prev_index:
-            known = {r[0] for r in prev_index["storms"]["rows"]}
+            known = {r["sid"] for r in prev_index["storms"]}
         hr = catalog.load("hourly")
         keep = []
         for sid, h in hr[hr.sid.isin(st.sid)].groupby("sid"):
