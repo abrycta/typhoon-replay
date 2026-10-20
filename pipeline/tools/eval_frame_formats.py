@@ -181,8 +181,8 @@ def evaluate(sid: str) -> dict:
     return res
 
 
-def colourise(codes: np.ndarray) -> Image.Image:
-    v = codes.astype(float) / 254
+def colourise(codes: np.ndarray, vmax: float = 254) -> Image.Image:
+    v = np.clip(codes.astype(float) / vmax, 0, 1)
     rgb = np.stack([np.clip(1.5 * v, 0, 1), np.clip(1.5 * v - 0.5, 0, 1), np.clip(0.6 - v, 0, 1) + 0.15 * v], -1)
     rgb[codes == 255] = 0.2
     return Image.fromarray((rgb * 255).astype(np.uint8)).resize((324, 324), Image.NEAREST)
@@ -208,9 +208,9 @@ def stills(sid: str, outdir: Path) -> list[str]:
     im = Image.new("RGB", (334 * len(panels), 350), (20, 20, 20))
     d = ImageDraw.Draw(im)
     for k, (title, codes) in enumerate(panels):
-        im.paste(colourise(codes), (334 * k + 5, 22))
+        im.paste(colourise(codes, float(panels[0][1].max())), (334 * k + 5, 22))
         d.text((334 * k + 8, 4), title, fill=(230, 230, 230))
-    d.text((8, 350 - 14), f"{sid} 10 m wind, hour {t} ({h['time'][t]}); same colour scale in every panel",
+    d.text((8, 350 - 14), f"{sid} 10 m wind, hour {t} ({h['time'][t]}); colour scaled to the exact frame's maximum",
            fill=(170, 170, 170))
     p = outdir / f"{sid}-wind-formats.png"
     im.save(p)
