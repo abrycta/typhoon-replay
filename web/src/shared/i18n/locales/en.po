@@ -52,16 +52,26 @@ msgstr "{0} kt max wind"
 msgid "{0} of {1} storms"
 msgstr "{0} of {1} storms"
 
-#. placeholder {0}: search.data?.length ?? 0
+#. placeholder {0}: results.length
 #: src/features/town-history/TownHistory.tsx
 msgid "{0} places found"
 msgstr "{0} places found"
+
+#. placeholder {0}: items.length
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "{0} storms."
+msgstr "{0} storms."
 
 #. placeholder {0}: stormTitle(d.data, lang)
 #. placeholder {1}: d.data.season
 #: src/routes/index.tsx
 msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
 msgstr "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
+
+#. placeholder {0}: pending.join(", ")
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "{0}: built next, against the same suite."
+msgstr "{0}: built next, against the same suite."
 
 #. placeholder {0}: ratioJma.toFixed(2)
 #: src/features/replay/IntensityPanel.tsx
@@ -82,9 +92,69 @@ msgstr "{AUTHOR}'s portfolio"
 msgid "{d}s"
 msgstr "{d}s"
 
+#. placeholder {0}: lane.httpStatus
+#. placeholder {1}: lane.reason ?? "?"
+#. placeholder {2}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} answered HTTP {0} ({1}) in {2}."
+msgstr "{label} answered HTTP {0} ({1}) in {2}."
+
+#. placeholder {0}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} answered in {0}."
+msgstr "{label} answered in {0}."
+
+#. placeholder {0}: lane.reason ?? "?"
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} did not answer ({0})."
+msgstr "{label} did not answer ({0})."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} did not wake up within 3 minutes."
+msgstr "{label} did not wake up within 3 minutes."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is awake."
+msgstr "{label} is awake."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is not deployed yet."
+msgstr "{label} is not deployed yet."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is not deployed yet. Nothing to wait for."
+msgstr "{label} is not deployed yet. Nothing to wait for."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
+msgstr "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is waking up; opening this page started it."
+msgstr "{label} is waking up; opening this page started it."
+
+#. placeholder {0}: formatMs(lane.totalMs ?? 0)
+#. placeholder {1}: formatMs(lane.lastMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} woke up and answered in {0}; the answer itself took {1}."
+msgstr "{label} woke up and answered in {0}; the answer itself took {1}."
+
 #: src/features/replay/PlayerControls.tsx
 msgid "{s} h/s"
 msgstr "{s} h/s"
+
+#. placeholder {0}: items.length
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "{SHOW} of {0} storms shown."
+msgstr "{SHOW} of {0} storms shown."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "✓ Same result"
+msgstr "✓ Same result"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "✗ Different result"
+msgstr "✗ Different result"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "1 hour"
@@ -101,6 +171,10 @@ msgstr "10 m wind speed"
 #: src/features/replay/PlayerControls.tsx
 msgid "6 hours"
 msgstr "6 hours"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically."
+msgstr "A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically."
 
 #: src/app/Shell.tsx
 msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
@@ -128,22 +202,26 @@ msgstr "All"
 msgid "All {0} storms"
 msgstr "All {0} storms"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Answers are cached at Cloudflare, so repeat queries are instant"
+msgstr "Answers are cached at Cloudflare, so repeat queries are instant"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Any"
 msgstr "Any"
-
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "API: not used yet"
-msgstr "API: not used yet"
 
 #. placeholder {0}: formatDate(m.dataAsOf, lang)
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "as of {0}"
 msgstr "as of {0}"
 
-#: src/features/backend-switch/health-label.ts
-msgid "asleep"
-msgstr "asleep"
+#: src/features/under-the-hood/Race.tsx
+msgid "asking"
+msgstr "asking"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Asking…"
+msgstr "Asking…"
 
 #. placeholder {0}: check.atPeak.era5WindMs.toFixed(1)
 #. placeholder {1}: check.atPeak.jtwcMs?.toFixed(1) ?? "?"
@@ -154,6 +232,10 @@ msgstr "asleep"
 msgid "At this storm's peak the field's strongest wind was {0} m/s against {1} m/s (JTWC) and {2} m/s (JMA): {3}× and {4}×."
 msgstr "At this storm's peak the field's strongest wind was {0} m/s against {1} m/s (JTWC) and {2} m/s (JMA): {3}× and {4}×."
 
+#: src/features/under-the-hood/Race.tsx
+msgid "awake"
+msgstr "awake"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "Back one hour"
 msgstr "Back one hour"
@@ -162,9 +244,9 @@ msgstr "Back one hour"
 msgid "Back to all storms"
 msgstr "Back to all storms"
 
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Backends"
-msgstr "Backends"
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Backend"
+msgstr "Backend"
 
 #: src/routes/about.tsx
 msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
@@ -212,14 +294,9 @@ msgstr "Catalogue"
 msgid "Centre"
 msgstr "Centre"
 
-#. placeholder {0}: b.label
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Check {0} now"
-msgstr "Check {0} now"
-
-#: src/features/backend-switch/health-label.ts
-msgid "checking"
-msgstr "checking"
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Check"
+msgstr "Check"
 
 #: src/features/compare/CompareView.tsx
 msgid "Choose a storm"
@@ -229,9 +306,17 @@ msgstr "Choose a storm"
 msgid "City or municipality"
 msgstr "City or municipality"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Closest (km)"
+msgstr "Closest (km)"
+
 #: src/features/town-history/TownHistory.tsx
 msgid "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
 msgstr "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Cold start on free hosting"
+msgstr "Cold start on free hosting"
 
 #: src/app/Shell.tsx
 #: src/routes/compare.tsx
@@ -246,10 +331,13 @@ msgstr "Compare Haiyan and Rai"
 msgid "Compare two storms"
 msgstr "Compare two storms"
 
-#. placeholder {0}: last.contractVersion
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "contract {0}"
-msgstr "contract {0}"
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Conformance"
+msgstr "Conformance"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Contract"
+msgstr "Contract"
 
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
@@ -258,6 +346,14 @@ msgstr "Copy link to this hour"
 #: src/features/compare/CompareView.tsx
 msgid "Could not load {sid}."
 msgstr "Could not load {sid}."
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Country"
+msgstr "Country"
+
+#: src/app/Shell.tsx
+msgid "Data served statically · API in four languages → <0>Under the hood</0>"
+msgstr "Data served statically · API in four languages → <0>Under the hood</0>"
 
 #: src/routes/about.tsx
 msgid "Data sources"
@@ -276,9 +372,25 @@ msgstr "Dataset unavailable"
 msgid "Decade"
 msgstr "Decade"
 
-#: src/features/backend-switch/health-label.ts
-msgid "down"
-msgstr "down"
+#: src/features/under-the-hood/Race.tsx
+msgid "Details for Haiyan (Yolanda) 2013"
+msgstr "Details for Haiyan (Yolanda) 2013"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Does each backend keep the contract?"
+msgstr "Does each backend keep the contract?"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Duration"
+msgstr "Duration"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Edge"
+msgstr "Edge"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Endpoint"
+msgstr "Endpoint"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
@@ -300,14 +412,27 @@ msgstr "ERA5 reanalysis, context only (about 28 km grid). Same scale for every s
 msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
 msgstr "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
 
+#: src/features/under-the-hood/Race.tsx
+msgid "error"
+msgstr "error"
+
 #: src/app/errors.tsx
 msgid "Error"
 msgstr "Error"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree."
+msgstr "Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree."
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Explore"
+msgstr "Explore"
 
 #: src/routes/index.tsx
 msgid "Featured replay"
 msgstr "Featured replay"
 
+#: src/features/under-the-hood/ResultTable.tsx
 #: src/routes/compare.tsx
 msgid "Field"
 msgstr "Field"
@@ -332,6 +457,12 @@ msgstr "Field replay"
 msgid "Find a storm"
 msgstr "Find a storm"
 
+#. placeholder {0}: ok.length
+#. placeholder {1}: race.lanes.length
+#: src/features/under-the-hood/Race.tsx
+msgid "Finished: {0} of {1} backends answered."
+msgstr "Finished: {0} of {1} backends answered."
+
 #: src/features/compare/CompareView.tsx
 msgid "First storm"
 msgstr "First storm"
@@ -340,25 +471,26 @@ msgstr "First storm"
 msgid "Forward one hour"
 msgstr "Forward one hour"
 
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Four interchangeable backends implement one contract. Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 s. The replay never needs them."
-msgstr "Four interchangeable backends implement one contract. Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 s. The replay never needs them."
-
 #: src/features/replay/StormReplay.tsx
 msgid "frames {progress}%"
 msgstr "frames {progress}%"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 seconds. Replays and search keep working meanwhile."
-msgstr "Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 seconds. Replays and search keep working meanwhile."
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Free tier: servers sleep when idle and wake on demand"
+msgstr "Free tier: servers sleep when idle and wake on demand"
 
-#: src/features/storm-places/AffectedPlaces.tsx
-msgid "From the API."
-msgstr "From the API."
+#: src/features/under-the-hood/Race.tsx
+msgid "From {firstLabel}. No other backend has answered yet."
+msgstr "From {firstLabel}. No other backend has answered yet."
 
-#: src/features/storm-places/AffectedPlaces.tsx
-msgid "From the static dataset."
-msgstr "From the static dataset."
+#. placeholder {0}: formatDate(CONFORMANCE.updatedAt, lang)
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "From the CI run on main, {0}."
+msgstr "From the CI run on main, {0}."
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Generated API cases (Schemathesis)"
+msgstr "Generated API cases (Schemathesis)"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Go to end"
@@ -404,9 +536,17 @@ msgstr "home"
 msgid "Home"
 msgstr "Home"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Hosting"
+msgstr "Hosting"
+
 #: src/features/replay/TimelineTable.tsx
 msgid "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
 msgstr "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Hours within 100 km"
+msgstr "Hours within 100 km"
 
 #: src/routes/about.tsx
 msgid "How it works"
@@ -415,6 +555,11 @@ msgstr "How it works"
 #: src/routes/about.tsx
 msgid "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
 msgstr "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
+
+#. placeholder {0}: agreeing.map((l) => labels[l.id]).join(", ")
+#: src/features/under-the-hood/Race.tsx
+msgid "Identical across {0} (compared after normalising: key order, number formatting, timestamps, implementation fields)."
+msgstr "Identical across {0} (compared after normalising: key order, number formatting, timestamps, implementation fields)."
 
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
@@ -434,6 +579,10 @@ msgstr "interpolated ({0}–{1})"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Japan"
 msgstr "Japan"
+
+#: src/routes/storm.$sid.tsx
+msgid "Japan {dates}"
+msgstr "Japan {dates}"
 
 #: src/features/replay/labels.ts
 msgid "JMA (10-min mean)"
@@ -479,19 +628,27 @@ msgstr "Landfall"
 msgid "Landfall in Japan"
 msgstr "Landfall in Japan"
 
-#. placeholder {0}: formatDate(l.at, lang)
 #: src/routes/storm.$sid.tsx
-msgid "landfall in Japan {0}"
-msgstr "landfall in Japan {0}"
+msgid "landfall in Japan {dates}"
+msgstr "landfall in Japan {dates}"
+
+#. placeholder {0}: formatShort(l.at, lang, tz)
+#: src/features/replay/TimelineTable.tsx
+msgid "Landfall in Japan at {0}"
+msgstr "Landfall in Japan at {0}"
 
 #: src/routes/index.tsx
 msgid "Landfall in the Philippines"
 msgstr "Landfall in the Philippines"
 
-#. placeholder {0}: formatDate(l.at, lang)
 #: src/routes/storm.$sid.tsx
-msgid "landfall in the Philippines {0}"
-msgstr "landfall in the Philippines {0}"
+msgid "landfall in the Philippines {dates}"
+msgstr "landfall in the Philippines {dates}"
+
+#. placeholder {0}: formatShort(l.at, lang, tz)
+#: src/features/replay/TimelineTable.tsx
+msgid "Landfall in the Philippines at {0}"
+msgstr "Landfall in the Philippines at {0}"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Landfall: Japan"
@@ -501,10 +658,19 @@ msgstr "Landfall: Japan"
 msgid "Landfall: Philippines"
 msgstr "Landfall: Philippines"
 
-#. placeholder {0}: health[selected]?.detail ?? ""
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Last check: {0}"
-msgstr "Last check: {0}"
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Landfalls"
+msgstr "Landfalls"
+
+#. placeholder {0}: g.count
+#: src/routes/storm.$sid.tsx
+msgid "landfalls in Japan {dates} ({0})"
+msgstr "landfalls in Japan {dates} ({0})"
+
+#. placeholder {0}: g.count
+#: src/routes/storm.$sid.tsx
+msgid "landfalls in the Philippines {dates} ({0})"
+msgstr "landfalls in the Philippines {dates} ({0})"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Layers"
@@ -530,6 +696,14 @@ msgstr "Loading sources…"
 msgid "Loading the catalogue…"
 msgstr "Loading the catalogue…"
 
+#: src/features/town-history/TownHistory.tsx
+msgid "Loading the place list…"
+msgstr "Loading the place list…"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Lowest pressure"
+msgstr "Lowest pressure"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "Lowest sea-level pressure"
 msgstr "Lowest sea-level pressure"
@@ -551,6 +725,10 @@ msgstr "Map rendering: MapLibre GL JS (BSD-3-Clause). Particle technique after m
 msgid "Map unavailable"
 msgstr "Map unavailable"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Max wind (kt)"
+msgstr "Max wind (kt)"
+
 #: src/app/Shell.tsx
 msgid "My town"
 msgstr "My town"
@@ -559,9 +737,21 @@ msgstr "My town"
 msgid "n/a"
 msgstr "n/a"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Name"
+msgstr "Name"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "next"
+msgstr "next"
+
 #: src/features/replay/StormReplay.tsx
 msgid "no"
 msgstr "no"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "No answer (network error)."
+msgstr "No answer (network error)."
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No best-track fix at this hour."
@@ -586,6 +776,10 @@ msgstr "No storms in the archive passed this close"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "No storms match"
 msgstr "No storms match"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "not deployed yet"
+msgstr "not deployed yet"
 
 #: src/app/errors.tsx
 msgid "Not found"
@@ -615,9 +809,25 @@ msgstr "Observed fixes only"
 msgid "Off"
 msgstr "Off"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "One API, four languages"
+msgstr "One API, four languages"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "One conformance suite runs against every backend"
+msgstr "One conformance suite runs against every backend"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Only answer so far"
+msgstr "Only answer so far"
+
 #: src/routes/index.tsx
 msgid "Open the full replay"
 msgstr "Open the full replay"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
+msgstr "OpenAPI 3.1, one spec, checked for breaking changes in CI"
 
 #: src/routes/about.tsx
 msgid "PAGASA local names: compiled from Wikipedia, CC BY-SA 4.0."
@@ -645,6 +855,10 @@ msgstr "peak"
 msgid "peak {0} kt ({1})"
 msgstr "peak {0} kt ({1})"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Peak wind"
+msgstr "Peak wind"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Philippines"
 msgstr "Philippines"
@@ -653,17 +867,25 @@ msgstr "Philippines"
 msgid "Philippines · Japan · since 1940"
 msgstr "Philippines · Japan · since 1940"
 
+#: src/routes/storm.$sid.tsx
+msgid "Philippines {dates}"
+msgstr "Philippines {dates}"
+
 #: src/features/compare/CompareView.tsx
 msgid "Pick a storm"
 msgstr "Pick a storm"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Place"
+msgstr "Place"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Places"
 msgstr "Places"
 
 #: src/features/storm-places/AffectedPlaces.tsx
-msgid "Places whose centre the best track passed within {radius} km of, closest first."
-msgstr "Places whose centre the best track passed within {radius} km of, closest first."
+msgid "Places the best track passed within {radius} km of, closest first."
+msgstr "Places the best track passed within {radius} km of, closest first."
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Play"
@@ -681,9 +903,25 @@ msgstr "play/pause"
 msgid "Playback speed"
 msgstr "Playback speed"
 
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Press Send to see the response."
+msgstr "Press Send to see the response."
+
 #: src/features/replay/labels.ts
 msgid "Pressure"
 msgstr "Pressure"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Proof"
+msgstr "Proof"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Question"
+msgstr "Question"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Race"
+msgstr "Race"
 
 #: src/features/replay/labels.ts
 msgid "Rain"
@@ -692,6 +930,10 @@ msgstr "Rain"
 #: src/features/replay/labels.ts
 msgid "Rainfall rate"
 msgstr "Rainfall rate"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "ready"
+msgstr "ready"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "reanalysis context"
@@ -705,6 +947,10 @@ msgstr "Reanalysis is context, not the storm's strength"
 msgid "Recent storms"
 msgstr "Recent storms"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Region"
+msgstr "Region"
+
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
 msgstr "Replay any typhoon, hour by hour"
@@ -713,17 +959,41 @@ msgstr "Replay any typhoon, hour by hour"
 msgid "Replay time"
 msgstr "Replay time"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Replays, search and compare do not need it. You can try another backend, or the mock that runs in your browser."
-msgstr "Replays, search and compare do not need it. You can try another backend, or the mock that runs in your browser."
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Response body"
+msgstr "Response body"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Response time, storms list (p95, local)"
+msgstr "Response time, storms list (p95, local)"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Run again"
+msgstr "Run again"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Run on all four"
+msgstr "Run on all four"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Running…"
+msgstr "Running…"
 
 #: src/routes/compare.tsx
 msgid "Same colour scale, same clock. The URL keeps both storms, the layer and the hour."
 msgstr "Same colour scale, same clock. The URL keeps both storms, the layer and the hour."
 
+#: src/features/under-the-hood/Race.tsx
+msgid "Same question, four answers"
+msgstr "Same question, four answers"
+
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "sample data"
 msgstr "sample data"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Scenario tests (paging, caching, errors, live stream)"
+msgstr "Scenario tests (paging, caching, errors, live stream)"
 
 #: src/features/replay/labels.ts
 msgid "Sea-level pressure"
@@ -734,10 +1004,15 @@ msgid "Search"
 msgstr "Search"
 
 #: src/routes/town.tsx
-msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. Answered by the API backend you pick in the header."
-msgstr "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. Answered by the API backend you pick in the header."
+msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. The search runs in your browser over the published dataset."
+msgstr "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. The search runs in your browser over the published dataset."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Search places: \"Naha\""
+msgstr "Search places: \"Naha\""
 
 #: src/features/storm-search/StormBrowser.tsx
+#: src/features/under-the-hood/ResultTable.tsx
 msgid "Season"
 msgstr "Season"
 
@@ -745,20 +1020,9 @@ msgstr "Season"
 msgid "Second storm"
 msgstr "Second storm"
 
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Served by"
-msgstr "Served by"
-
-#. placeholder {0}: last.impl
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Served by {0}"
-msgstr "Served by {0}"
-
-#. placeholder {0}: current?.label ?? selected
-#. placeholder {1}: label(state)
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Served by {0}, {1}. Change backend"
-msgstr "Served by {0}, {1}. Change backend"
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Send"
+msgstr "Send"
 
 #: src/routes/compare.tsx
 msgid "Side by side"
@@ -788,6 +1052,10 @@ msgstr "Sources and licences"
 msgid "Speed"
 msgstr "Speed"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Storm"
+msgstr "Storm"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Storm name or year"
 msgstr "Storm name or year"
@@ -798,6 +1066,10 @@ msgstr "Storm name or year"
 #: src/routes/storms.tsx
 msgid "Storms"
 msgstr "Storms"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Storms that passed within 100 km of Tacloban"
+msgstr "Storms that passed within 100 km of Tacloban"
 
 #. placeholder {0}: url.radius
 #: src/features/town-history/TownHistory.tsx
@@ -818,9 +1090,14 @@ msgstr "Strongest 10 m wind within {km} km"
 msgid "Tacloban, Naha, 那覇…"
 msgstr "Tacloban, Naha, 那覇…"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "The {name} API is unavailable"
-msgstr "The {name} API is unavailable"
+#. placeholder {0}: res.retryAfterS ?? 20
+#: src/features/under-the-hood/Explorer.tsx
+msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
+msgstr "The backend is waking up (about a minute on free hosting). Send again in {0} s."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "The backends disagree; showing {firstLabel}'s answer."
+msgstr "The backends disagree; showing {firstLabel}'s answer."
 
 #: src/features/replay/StormReplay.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
@@ -830,9 +1107,9 @@ msgstr "The map shows the storm-following ERA5 field window, the best track as a
 msgid "The page failed to render. Reloading usually helps."
 msgstr "The page failed to render. Reloading usually helps."
 
-#: src/features/storm-places/AffectedPlaces.tsx
-msgid "The place list is unavailable right now (the API may be asleep). The replay is unaffected."
-msgstr "The place list is unavailable right now (the API may be asleep). The replay is unaffected."
+#: src/features/town-history/TownHistory.tsx
+msgid "The place list could not be loaded."
+msgstr "The place list could not be loaded."
 
 #. placeholder {0}: snap.error
 #: src/features/replay/StormReplay.tsx
@@ -840,12 +1117,16 @@ msgid "The replay continues with the best track only. ({0})"
 msgstr "The replay continues with the best track only. ({0})"
 
 #: src/routes/about.tsx
-msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") is answered by one of four interchangeable API backends (Java, Node, Rust, Go) that share one contract; a mock runs in your browser when they are asleep. The replay never depends on them."
-msgstr "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") is answered by one of four interchangeable API backends (Java, Node, Rust, Go) that share one contract; a mock runs in your browser when they are asleep. The replay never depends on them."
+msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them."
+msgstr "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them."
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "The storm catalogue could not be loaded"
 msgstr "The storm catalogue could not be loaded"
+
+#: src/features/town-history/TownHistory.tsx
+msgid "The storm list for this place could not be loaded."
+msgstr "The storm list for this place could not be loaded."
 
 #: src/routes/about.tsx
 msgid "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours that are interpolated between best-track fixes."
@@ -855,13 +1136,25 @@ msgstr "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid o
 msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
 msgstr "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
 
+#: src/features/under-the-hood/Explorer.tsx
+msgid "This backend is not deployed yet."
+msgstr "This backend is not deployed yet."
+
 #: src/features/replay/StormReplay.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
 msgstr "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
 
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "This dataset version has no place list for this storm yet."
+msgstr "This dataset version has no place list for this storm yet."
+
 #: src/app/errors.tsx
 msgid "This page blew away"
 msgstr "This page blew away"
+
+#: src/features/town-history/TownHistory.tsx
+msgid "This place is not in the dataset."
+msgstr "This place is not in the dataset."
 
 #: src/routes/storm.$sid.tsx
 msgid "This storm could not be loaded"
@@ -909,6 +1202,14 @@ msgstr "Try again"
 msgid "Try another name (international, PAGASA or Japanese) or clear a filter."
 msgstr "Try another name (international, PAGASA or Japanese) or clear a filter."
 
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Try one endpoint"
+msgstr "Try one endpoint"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Type"
+msgstr "Type"
+
 #: src/features/town-history/TownHistory.tsx
 msgid "Type at least two letters."
 msgstr "Type at least two letters."
@@ -926,19 +1227,17 @@ msgstr "Typhoons that hit my town"
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 
-#: src/features/backend-switch/health-label.ts
-msgid "up"
-msgstr "up"
+#: src/app/Shell.tsx
+#: src/features/under-the-hood/UnderTheHood.tsx
+#: src/routes/under-the-hood.tsx
+msgid "Under the hood"
+msgstr "Under the hood"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Use the mock backend"
-msgstr "Use the mock backend"
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Value"
+msgstr "Value"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Waking the {name} API…"
-msgstr "Waking the {name} API…"
-
-#: src/features/backend-switch/health-label.ts
+#: src/features/under-the-hood/Race.tsx
 msgid "waking up"
 msgstr "waking up"
 

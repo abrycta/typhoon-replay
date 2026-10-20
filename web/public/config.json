@@ -9,8 +9,7 @@
     { "id": "java", "label": "Java", "baseUrl": "/api/java" },
     { "id": "node", "label": "Node", "baseUrl": "/api/node" },
     { "id": "rust", "label": "Rust", "baseUrl": "/api/rust" },
-    { "id": "go", "label": "Go", "baseUrl": "/api/go" },
-    { "id": "mock", "label": "Mock", "baseUrl": "/api/mock" }
+    { "id": "go", "label": "Go", "baseUrl": "/api/go" }
   ],
   "defaultBackend": "java"
 }

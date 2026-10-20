@@ -2,7 +2,7 @@ import { expect, HAIYAN, PEAK, test, waitForReplay } from "./fixtures";
 
 test.use({ viewport: { width: 360, height: 780 }, hasTouch: true, isMobile: true });
 
-for (const path of ["/", `/storm/${HAIYAN}?t=${PEAK}`, "/storms", `/compare?a=${HAIYAN}&b=2021346N05145`, "/town?backend=mock", "/about"]) {
+for (const path of ["/", `/storm/${HAIYAN}?t=${PEAK}`, "/storms", `/compare?a=${HAIYAN}&b=2021346N05145`, "/town?q=tacloban&place=PH-0831600000", "/about", "/under-the-hood"]) {
   test(`360 px: no horizontal page scroll on ${path}`, async ({ page }) => {
     await page.goto(path);
     if (path.startsWith("/storm/")) await waitForReplay(page);

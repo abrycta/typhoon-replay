@@ -52,16 +52,26 @@ msgstr "最大風速 {0} kt"
 msgid "{0} of {1} storms"
 msgstr "{1} 件中 {0} 件"
 
-#. placeholder {0}: search.data?.length ?? 0
+#. placeholder {0}: results.length
 #: src/features/town-history/TownHistory.tsx
 msgid "{0} places found"
 msgstr "{0} 件の地点"
+
+#. placeholder {0}: items.length
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "{0} storms."
+msgstr "{0} 件の台風。"
 
 #. placeholder {0}: stormTitle(d.data, lang)
 #. placeholder {1}: d.data.season
 #: src/routes/index.tsx
 msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
 msgstr "{0}（{1}年）: ERA5 の 10 m 風速（再解析・参考）とベストトラック。"
+
+#. placeholder {0}: pending.join(", ")
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "{0}: built next, against the same suite."
+msgstr "{0}: 次に同じテストスイートで構築します。"
 
 #. placeholder {0}: ratioJma.toFixed(2)
 #: src/features/replay/IntensityPanel.tsx
@@ -82,9 +92,69 @@ msgstr "{AUTHOR} のポートフォリオ"
 msgid "{d}s"
 msgstr "{d}年代"
 
+#. placeholder {0}: lane.httpStatus
+#. placeholder {1}: lane.reason ?? "?"
+#. placeholder {2}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} answered HTTP {0} ({1}) in {2}."
+msgstr "{label} は {2} で HTTP {0}（{1}）を返しました。"
+
+#. placeholder {0}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} answered in {0}."
+msgstr "{label} は {0} で応答しました。"
+
+#. placeholder {0}: lane.reason ?? "?"
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} did not answer ({0})."
+msgstr "{label} から応答がありません（{0}）。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} did not wake up within 3 minutes."
+msgstr "{label} は 3 分以内に起動しませんでした。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is awake."
+msgstr "{label} は稼働中です。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is not deployed yet."
+msgstr "{label} はまだデプロイされていません。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is not deployed yet. Nothing to wait for."
+msgstr "{label} はまだデプロイされていません。待つ必要はありません。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
+msgstr "{label} はスリープから起動中です（無料ホスティングで約 1 分）。このページが再試行を続けます。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is waking up; opening this page started it."
+msgstr "{label} は起動中です（このページを開いたときに起動を始めました）。"
+
+#. placeholder {0}: formatMs(lane.totalMs ?? 0)
+#. placeholder {1}: formatMs(lane.lastMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} woke up and answered in {0}; the answer itself took {1}."
+msgstr "{label} は起動して {0} で応答しました（応答そのものは {1}）。"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "{s} h/s"
 msgstr "{s} 時間/秒"
+
+#. placeholder {0}: items.length
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "{SHOW} of {0} storms shown."
+msgstr "{0} 件中 {SHOW} 件を表示。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "✓ Same result"
+msgstr "✓ 同じ結果"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "✗ Different result"
+msgstr "✗ 異なる結果"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "1 hour"
@@ -101,6 +171,10 @@ msgstr "10 m 風速"
 #: src/features/replay/PlayerControls.tsx
 msgid "6 hours"
 msgstr "6時間"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically."
+msgstr "15 分間アクセスのないバックエンドはスリープし、起動に約 1 分かかります。無料ホスティングでは想定どおりの動作で、このページは自動で待ちます。"
 
 #: src/app/Shell.tsx
 msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
@@ -128,22 +202,26 @@ msgstr "すべて"
 msgid "All {0} storms"
 msgstr "全 {0} 件の台風"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Answers are cached at Cloudflare, so repeat queries are instant"
+msgstr "応答は Cloudflare でキャッシュされ、同じ問い合わせはすぐに返ります"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Any"
 msgstr "指定なし"
-
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "API: not used yet"
-msgstr "API: 未使用"
 
 #. placeholder {0}: formatDate(m.dataAsOf, lang)
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "as of {0}"
 msgstr "{0} 時点"
 
-#: src/features/backend-switch/health-label.ts
-msgid "asleep"
-msgstr "休止中"
+#: src/features/under-the-hood/Race.tsx
+msgid "asking"
+msgstr "問い合わせ中"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Asking…"
+msgstr "問い合わせ中…"
 
 #. placeholder {0}: check.atPeak.era5WindMs.toFixed(1)
 #. placeholder {1}: check.atPeak.jtwcMs?.toFixed(1) ?? "?"
@@ -154,6 +232,10 @@ msgstr "休止中"
 msgid "At this storm's peak the field's strongest wind was {0} m/s against {1} m/s (JTWC) and {2} m/s (JMA): {3}× and {4}×."
 msgstr "この台風の最盛期、場の最大風速は {0} m/s で、JTWC の {1} m/s、気象庁の {2} m/s に対しそれぞれ {3} 倍と {4} 倍でした。"
 
+#: src/features/under-the-hood/Race.tsx
+msgid "awake"
+msgstr "稼働中"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "Back one hour"
 msgstr "1時間戻る"
@@ -162,8 +244,8 @@ msgstr "1時間戻る"
 msgid "Back to all storms"
 msgstr "台風の一覧に戻る"
 
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Backends"
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Backend"
 msgstr "バックエンド"
 
 #: src/routes/about.tsx
@@ -212,14 +294,9 @@ msgstr "カタログ"
 msgid "Centre"
 msgstr "中心位置"
 
-#. placeholder {0}: b.label
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Check {0} now"
-msgstr "{0} を今すぐ確認"
-
-#: src/features/backend-switch/health-label.ts
-msgid "checking"
-msgstr "確認中"
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Check"
+msgstr "項目"
 
 #: src/features/compare/CompareView.tsx
 msgid "Choose a storm"
@@ -229,9 +306,17 @@ msgstr "台風を選択"
 msgid "City or municipality"
 msgstr "市区町村"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Closest (km)"
+msgstr "最接近 (km)"
+
 #: src/features/town-history/TownHistory.tsx
 msgid "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
 msgstr "ベストトラック中心の最接近です。風速は各機関のベストトラック値で、ERA5 の場ではありません。"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Cold start on free hosting"
+msgstr "無料ホスティングでのコールドスタート"
 
 #: src/app/Shell.tsx
 #: src/routes/compare.tsx
@@ -246,10 +331,13 @@ msgstr "ハイエンとライを比較"
 msgid "Compare two storms"
 msgstr "2つの台風を比較"
 
-#. placeholder {0}: last.contractVersion
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "contract {0}"
-msgstr "契約 {0}"
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Conformance"
+msgstr "適合性"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Contract"
+msgstr "契約"
 
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
@@ -258,6 +346,14 @@ msgstr "この時刻へのリンクをコピー"
 #: src/features/compare/CompareView.tsx
 msgid "Could not load {sid}."
 msgstr "{sid} を読み込めませんでした。"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Country"
+msgstr "国"
+
+#: src/app/Shell.tsx
+msgid "Data served statically · API in four languages → <0>Under the hood</0>"
+msgstr "データは静的配信 · API は 4 つの言語で → <0>しくみ</0>"
 
 #: src/routes/about.tsx
 msgid "Data sources"
@@ -276,9 +372,25 @@ msgstr "データセットを利用できません"
 msgid "Decade"
 msgstr "年代"
 
-#: src/features/backend-switch/health-label.ts
-msgid "down"
-msgstr "停止"
+#: src/features/under-the-hood/Race.tsx
+msgid "Details for Haiyan (Yolanda) 2013"
+msgstr "2013 年 Haiyan (Yolanda) の詳細"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Does each backend keep the contract?"
+msgstr "各バックエンドは契約を守っているか"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Duration"
+msgstr "継続時間"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Edge"
+msgstr "エッジ"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Endpoint"
+msgstr "エンドポイント"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
@@ -300,14 +412,27 @@ msgstr "ERA5 再解析（約28 km 格子）。参考情報です。すべての�
 msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
 msgstr "ERA5: Copernicus Climate Change Service、CC BY 4.0。Copernicus Climate Change Service の情報を加工して含みます。"
 
+#: src/features/under-the-hood/Race.tsx
+msgid "error"
+msgstr "エラー"
+
 #: src/app/errors.tsx
 msgid "Error"
 msgstr "エラー"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree."
+msgstr "このサイトのほかのページはすべて静的ファイルで動くので、サーバーを待つことはありません。このページだけは例外で、API と通信します。API は OpenAPI の契約として一度だけ書かれ、Java、Node、Rust、Go の 4 つの言語で実装されています。4 つすべてに同じ問い合わせを送り、結果が一致するか確かめてみてください。"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Explore"
+msgstr "試す"
 
 #: src/routes/index.tsx
 msgid "Featured replay"
 msgstr "注目のリプレイ"
 
+#: src/features/under-the-hood/ResultTable.tsx
 #: src/routes/compare.tsx
 msgid "Field"
 msgstr "場"
@@ -332,6 +457,12 @@ msgstr "場のリプレイ"
 msgid "Find a storm"
 msgstr "台風を探す"
 
+#. placeholder {0}: ok.length
+#. placeholder {1}: race.lanes.length
+#: src/features/under-the-hood/Race.tsx
+msgid "Finished: {0} of {1} backends answered."
+msgstr "完了: {1} 個中 {0} 個のバックエンドが応答しました。"
+
 #: src/features/compare/CompareView.tsx
 msgid "First storm"
 msgstr "1つ目の台風"
@@ -340,25 +471,26 @@ msgstr "1つ目の台風"
 msgid "Forward one hour"
 msgstr "1時間進む"
 
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Four interchangeable backends implement one contract. Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 s. The replay never needs them."
-msgstr "交換可能な4つのバックエンドが同じ契約を実装しています。無料枠のサーバーは15分間アクセスがないと休止し、最初のリクエストに30〜60秒かかることがあります。リプレイはバックエンドを必要としません。"
-
 #: src/features/replay/StormReplay.tsx
 msgid "frames {progress}%"
 msgstr "フレーム {progress}%"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Free-tier servers sleep after 15 minutes idle; the first request can take 30–60 seconds. Replays and search keep working meanwhile."
-msgstr "無料枠のサーバーは15分間アクセスがないと休止し、最初のリクエストに30〜60秒かかることがあります。その間もリプレイと検索は使えます。"
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Free tier: servers sleep when idle and wake on demand"
+msgstr "無料枠: サーバーはアイドル時にスリープし、要求があると起動します"
 
-#: src/features/storm-places/AffectedPlaces.tsx
-msgid "From the API."
-msgstr "API から取得。"
+#: src/features/under-the-hood/Race.tsx
+msgid "From {firstLabel}. No other backend has answered yet."
+msgstr "{firstLabel} の結果です。ほかのバックエンドはまだ応答していません。"
 
-#: src/features/storm-places/AffectedPlaces.tsx
-msgid "From the static dataset."
-msgstr "静的データセットから取得。"
+#. placeholder {0}: formatDate(CONFORMANCE.updatedAt, lang)
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "From the CI run on main, {0}."
+msgstr "main ブランチの CI 実行より（{0}）。"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Generated API cases (Schemathesis)"
+msgstr "自動生成の API テストケース (Schemathesis)"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Go to end"
@@ -404,9 +536,17 @@ msgstr "ホーム"
 msgid "Home"
 msgstr "ホーム"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Hosting"
+msgstr "ホスティング"
+
 #: src/features/replay/TimelineTable.tsx
 msgid "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
 msgstr "1時間ごとの経路、ベストトラックの強度、ERA5 の風速。時刻を選ぶとリプレイがその時刻に移動します。"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Hours within 100 km"
+msgstr "100 km 以内の時間"
 
 #: src/routes/about.tsx
 msgid "How it works"
@@ -415,6 +555,11 @@ msgstr "しくみ"
 #: src/routes/about.tsx
 msgid "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
 msgstr "IBTrACS v04r01: NOAA 国立環境情報センター、パブリックドメイン。"
+
+#. placeholder {0}: agreeing.map((l) => labels[l.id]).join(", ")
+#: src/features/under-the-hood/Race.tsx
+msgid "Identical across {0} (compared after normalising: key order, number formatting, timestamps, implementation fields)."
+msgstr "{0} で一致（キーの順序、数値の書式、時刻表記、実装固有の項目を正規化して比較）。"
 
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
@@ -434,6 +579,10 @@ msgstr "補間（{0}–{1}）"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Japan"
 msgstr "日本"
+
+#: src/routes/storm.$sid.tsx
+msgid "Japan {dates}"
+msgstr "日本 {dates}"
 
 #: src/features/replay/labels.ts
 msgid "JMA (10-min mean)"
@@ -479,18 +628,26 @@ msgstr "上陸"
 msgid "Landfall in Japan"
 msgstr "日本に上陸"
 
-#. placeholder {0}: formatDate(l.at, lang)
 #: src/routes/storm.$sid.tsx
-msgid "landfall in Japan {0}"
+msgid "landfall in Japan {dates}"
+msgstr "{dates} 日本に上陸"
+
+#. placeholder {0}: formatShort(l.at, lang, tz)
+#: src/features/replay/TimelineTable.tsx
+msgid "Landfall in Japan at {0}"
 msgstr "{0} 日本に上陸"
 
 #: src/routes/index.tsx
 msgid "Landfall in the Philippines"
 msgstr "フィリピンに上陸"
 
-#. placeholder {0}: formatDate(l.at, lang)
 #: src/routes/storm.$sid.tsx
-msgid "landfall in the Philippines {0}"
+msgid "landfall in the Philippines {dates}"
+msgstr "{dates} フィリピンに上陸"
+
+#. placeholder {0}: formatShort(l.at, lang, tz)
+#: src/features/replay/TimelineTable.tsx
+msgid "Landfall in the Philippines at {0}"
 msgstr "{0} フィリピンに上陸"
 
 #: src/features/storm-search/StormList.tsx
@@ -501,10 +658,19 @@ msgstr "上陸: 日本"
 msgid "Landfall: Philippines"
 msgstr "上陸: フィリピン"
 
-#. placeholder {0}: health[selected]?.detail ?? ""
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Last check: {0}"
-msgstr "最終確認: {0}"
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Landfalls"
+msgstr "上陸"
+
+#. placeholder {0}: g.count
+#: src/routes/storm.$sid.tsx
+msgid "landfalls in Japan {dates} ({0})"
+msgstr "{dates} 日本に上陸（{0} 回）"
+
+#. placeholder {0}: g.count
+#: src/routes/storm.$sid.tsx
+msgid "landfalls in the Philippines {dates} ({0})"
+msgstr "{dates} フィリピンに上陸（{0} 回）"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Layers"
@@ -530,6 +696,14 @@ msgstr "出典を読み込み中…"
 msgid "Loading the catalogue…"
 msgstr "カタログを読み込み中…"
 
+#: src/features/town-history/TownHistory.tsx
+msgid "Loading the place list…"
+msgstr "地名一覧を読み込み中…"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Lowest pressure"
+msgstr "最低気圧"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "Lowest sea-level pressure"
 msgstr "最低海面気圧"
@@ -551,6 +725,10 @@ msgstr "地図描画: MapLibre GL JS（BSD-3-Clause）。粒子表現は mapbox/
 msgid "Map unavailable"
 msgstr "地図を表示できません"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Max wind (kt)"
+msgstr "最大風速 (kt)"
+
 #: src/app/Shell.tsx
 msgid "My town"
 msgstr "わが町"
@@ -559,9 +737,21 @@ msgstr "わが町"
 msgid "n/a"
 msgstr "なし"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Name"
+msgstr "名前"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "next"
+msgstr "次に対応"
+
 #: src/features/replay/StormReplay.tsx
 msgid "no"
 msgstr "なし"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "No answer (network error)."
+msgstr "応答がありません（ネットワークエラー）。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No best-track fix at this hour."
@@ -586,6 +776,10 @@ msgstr "この距離まで接近した台風は記録にありません"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "No storms match"
 msgstr "該当する台風がありません"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "not deployed yet"
+msgstr "未デプロイ"
 
 #: src/app/errors.tsx
 msgid "Not found"
@@ -615,9 +809,25 @@ msgstr "観測値のみ"
 msgid "Off"
 msgstr "オフ"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "One API, four languages"
+msgstr "1 つの API、4 つの言語"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "One conformance suite runs against every backend"
+msgstr "1 つの適合性テストをすべてのバックエンドに実行"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Only answer so far"
+msgstr "現時点で唯一の応答"
+
 #: src/routes/index.tsx
 msgid "Open the full replay"
 msgstr "リプレイを開く"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
+msgstr "OpenAPI 3.1 の 1 つの仕様。破壊的変更は CI で検査"
 
 #: src/routes/about.tsx
 msgid "PAGASA local names: compiled from Wikipedia, CC BY-SA 4.0."
@@ -645,6 +855,10 @@ msgstr "最盛期"
 msgid "peak {0} kt ({1})"
 msgstr "最大 {0} kt（{1}）"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Peak wind"
+msgstr "最大風速"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Philippines"
 msgstr "フィリピン"
@@ -653,17 +867,25 @@ msgstr "フィリピン"
 msgid "Philippines · Japan · since 1940"
 msgstr "フィリピン・日本・1940年以降"
 
+#: src/routes/storm.$sid.tsx
+msgid "Philippines {dates}"
+msgstr "フィリピン {dates}"
+
 #: src/features/compare/CompareView.tsx
 msgid "Pick a storm"
 msgstr "台風を選んでください"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Place"
+msgstr "地名"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "Places"
 msgstr "地点"
 
 #: src/features/storm-places/AffectedPlaces.tsx
-msgid "Places whose centre the best track passed within {radius} km of, closest first."
-msgstr "ベストトラックが中心から {radius} km 以内を通過した地点（近い順）。"
+msgid "Places the best track passed within {radius} km of, closest first."
+msgstr "ベストトラックが {radius} km 以内を通過した地点（近い順）。"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Play"
@@ -681,9 +903,25 @@ msgstr "再生/一時停止"
 msgid "Playback speed"
 msgstr "再生速度"
 
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Press Send to see the response."
+msgstr "「送信」を押すと応答が表示されます。"
+
 #: src/features/replay/labels.ts
 msgid "Pressure"
 msgstr "気圧"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Proof"
+msgstr "検証"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Question"
+msgstr "質問"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Race"
+msgstr "競争"
 
 #: src/features/replay/labels.ts
 msgid "Rain"
@@ -692,6 +930,10 @@ msgstr "雨"
 #: src/features/replay/labels.ts
 msgid "Rainfall rate"
 msgstr "降水強度"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "ready"
+msgstr "待機中"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "reanalysis context"
@@ -705,6 +947,10 @@ msgstr "再解析は参考情報であり、台風の強さではありません
 msgid "Recent storms"
 msgstr "最近の台風"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Region"
+msgstr "地域"
+
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
 msgstr "どの台風も、1時間ごとにリプレイ"
@@ -713,17 +959,41 @@ msgstr "どの台風も、1時間ごとにリプレイ"
 msgid "Replay time"
 msgstr "リプレイの時刻"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Replays, search and compare do not need it. You can try another backend, or the mock that runs in your browser."
-msgstr "リプレイ、検索、比較には不要です。別のバックエンドか、ブラウザ内で動くモックを試せます。"
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Response body"
+msgstr "応答本文"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Response time, storms list (p95, local)"
+msgstr "応答時間・台風一覧 (p95、ローカル)"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Run again"
+msgstr "もう一度実行"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Run on all four"
+msgstr "4 つすべてで実行"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Running…"
+msgstr "実行中…"
 
 #: src/routes/compare.tsx
 msgid "Same colour scale, same clock. The URL keeps both storms, the layer and the hour."
 msgstr "同じ色スケール、同じ時計。URL に2つの台風、レイヤー、時刻が保存されます。"
 
+#: src/features/under-the-hood/Race.tsx
+msgid "Same question, four answers"
+msgstr "同じ質問、4 つの答え"
+
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "sample data"
 msgstr "サンプルデータ"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Scenario tests (paging, caching, errors, live stream)"
+msgstr "シナリオテスト（ページング、キャッシュ、エラー、ライブ配信）"
 
 #: src/features/replay/labels.ts
 msgid "Sea-level pressure"
@@ -734,10 +1004,15 @@ msgid "Search"
 msgstr "検索"
 
 #: src/routes/town.tsx
-msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. Answered by the API backend you pick in the header."
-msgstr "フィリピンまたは日本の市区町村を検索し、指定した距離以内を通過した台風を一覧します。ヘッダーで選んだ API バックエンドが応答します。"
+msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. The search runs in your browser over the published dataset."
+msgstr "フィリピンの市・町、または日本の市区町村を検索し、指定した距離以内を通過した台風を一覧します。検索は公開データセットを使ってブラウザ内で行われます。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Search places: \"Naha\""
+msgstr "地名検索:「Naha」"
 
 #: src/features/storm-search/StormBrowser.tsx
+#: src/features/under-the-hood/ResultTable.tsx
 msgid "Season"
 msgstr "シーズン"
 
@@ -745,20 +1020,9 @@ msgstr "シーズン"
 msgid "Second storm"
 msgstr "2つ目の台風"
 
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Served by"
-msgstr "応答元"
-
-#. placeholder {0}: last.impl
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Served by {0}"
-msgstr "応答元: {0}"
-
-#. placeholder {0}: current?.label ?? selected
-#. placeholder {1}: label(state)
-#: src/features/backend-switch/BackendSwitch.tsx
-msgid "Served by {0}, {1}. Change backend"
-msgstr "応答元 {0}（{1}）。バックエンドを変更"
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Send"
+msgstr "送信"
 
 #: src/routes/compare.tsx
 msgid "Side by side"
@@ -788,6 +1052,10 @@ msgstr "出典とライセンス"
 msgid "Speed"
 msgstr "速度"
 
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Storm"
+msgstr "台風"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Storm name or year"
 msgstr "台風名または年"
@@ -798,6 +1066,10 @@ msgstr "台風名または年"
 #: src/routes/storms.tsx
 msgid "Storms"
 msgstr "台風"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "Storms that passed within 100 km of Tacloban"
+msgstr "タクロバンの 100 km 以内を通過した台風"
 
 #. placeholder {0}: url.radius
 #: src/features/town-history/TownHistory.tsx
@@ -818,9 +1090,14 @@ msgstr "{km} km 以内の 10 m 最大風速"
 msgid "Tacloban, Naha, 那覇…"
 msgstr "タクロバン、那覇、Naha…"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "The {name} API is unavailable"
-msgstr "{name} API を利用できません"
+#. placeholder {0}: res.retryAfterS ?? 20
+#: src/features/under-the-hood/Explorer.tsx
+msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
+msgstr "バックエンドは起動中です（無料ホスティングで約 1 分）。{0} 秒後にもう一度送信してください。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "The backends disagree; showing {firstLabel}'s answer."
+msgstr "バックエンドの結果が一致しません。{firstLabel} の結果を表示しています。"
 
 #: src/features/replay/StormReplay.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
@@ -830,9 +1107,9 @@ msgstr "地図には台風に追従する ERA5 の場の範囲、線で示した
 msgid "The page failed to render. Reloading usually helps."
 msgstr "ページを表示できませんでした。再読み込みすると直ることがあります。"
 
-#: src/features/storm-places/AffectedPlaces.tsx
-msgid "The place list is unavailable right now (the API may be asleep). The replay is unaffected."
-msgstr "地点の一覧は現在利用できません（API が休止中の可能性があります）。リプレイには影響しません。"
+#: src/features/town-history/TownHistory.tsx
+msgid "The place list could not be loaded."
+msgstr "地名一覧を読み込めませんでした。"
 
 #. placeholder {0}: snap.error
 #: src/features/replay/StormReplay.tsx
@@ -840,12 +1117,16 @@ msgid "The replay continues with the best track only. ({0})"
 msgstr "ベストトラックのみでリプレイを続けます。（{0}）"
 
 #: src/routes/about.tsx
-msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") is answered by one of four interchangeable API backends (Java, Node, Rust, Go) that share one contract; a mock runs in your browser when they are asleep. The replay never depends on them."
-msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードし WebGL で描画します。地点検索（「わが町」）は同じ契約を共有する4つの交換可能な API バックエンド（Java、Node、Rust、Go）のいずれかが応答し、休止中はブラウザ内のモックが動きます。リプレイはこれらに依存しません。"
+msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them."
+msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードして WebGL で描画します。地名検索（「わが町」）も静的な地名索引を使ってブラウザ内で動きます。これとは別に、1 つの API 契約を 4 つの言語（Java、Node、Rust、Go）で実装しており、「しくみ」ページで競わせています。ほかのページはこれらに依存しません。"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "The storm catalogue could not be loaded"
 msgstr "台風カタログを読み込めませんでした"
+
+#: src/features/town-history/TownHistory.tsx
+msgid "The storm list for this place could not be loaded."
+msgstr "この地点の台風一覧を読み込めませんでした。"
 
 #: src/routes/about.tsx
 msgid "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours that are interpolated between best-track fixes."
@@ -855,13 +1136,25 @@ msgstr "風速、瞬間風速、雨、気圧の場は約28 km 格子の ERA5 再
 msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
 msgstr "このアドレスには何もありません。台風 ID が誤っているか、まだ収録されていない可能性があります。"
 
+#: src/features/under-the-hood/Explorer.tsx
+msgid "This backend is not deployed yet."
+msgstr "このバックエンドはまだデプロイされていません。"
+
 #: src/features/replay/StormReplay.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
 msgstr "このブラウザは WebGL 地図を描画できないため、経路を簡易図で表示しています。すべてのデータはタイムライン表にあります。"
 
+#: src/features/storm-places/AffectedPlaces.tsx
+msgid "This dataset version has no place list for this storm yet."
+msgstr "このデータセットの版には、この台風の地点一覧がまだありません。"
+
 #: src/app/errors.tsx
 msgid "This page blew away"
 msgstr "このページは吹き飛ばされました"
+
+#: src/features/town-history/TownHistory.tsx
+msgid "This place is not in the dataset."
+msgstr "この地点はデータセットにありません。"
 
 #: src/routes/storm.$sid.tsx
 msgid "This storm could not be loaded"
@@ -909,6 +1202,14 @@ msgstr "再試行"
 msgid "Try another name (international, PAGASA or Japanese) or clear a filter."
 msgstr "別の名前（国際名、PAGASA 名、日本名）を試すか、絞り込みを解除してください。"
 
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Try one endpoint"
+msgstr "エンドポイントを 1 つ試す"
+
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Type"
+msgstr "種別"
+
 #: src/features/town-history/TownHistory.tsx
 msgid "Type at least two letters."
 msgstr "2文字以上入力してください。"
@@ -926,19 +1227,17 @@ msgstr "わが町を襲った台風"
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "フィリピンと日本に上陸、または接近した台風。"
 
-#: src/features/backend-switch/health-label.ts
-msgid "up"
-msgstr "稼働中"
+#: src/app/Shell.tsx
+#: src/features/under-the-hood/UnderTheHood.tsx
+#: src/routes/under-the-hood.tsx
+msgid "Under the hood"
+msgstr "しくみ"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Use the mock backend"
-msgstr "モックのバックエンドを使う"
+#: src/features/under-the-hood/ResultTable.tsx
+msgid "Value"
+msgstr "値"
 
-#: src/features/backend-switch/ApiStatus.tsx
-msgid "Waking the {name} API…"
-msgstr "{name} API を起動中…"
-
-#: src/features/backend-switch/health-label.ts
+#: src/features/under-the-hood/Race.tsx
 msgid "waking up"
 msgstr "起動中"
 

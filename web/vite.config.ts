@@ -48,7 +48,7 @@ export default defineConfig({
   },
   worker: { format: "es" },
   // MapLibre 6 resolves its worker file relative to its own module; pre-bundling breaks that in dev.
-  optimizeDeps: { exclude: ["maplibre-gl"], include: ["msw/browser", "comlink"] },
+  optimizeDeps: { exclude: ["maplibre-gl"], include: ["comlink"] },
   build: {
     outDir: "dist",
     // Hashed file names under /assets/ get the immutable cache rule in _headers.

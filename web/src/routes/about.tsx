@@ -45,8 +45,8 @@ function About() {
           <p>
             <Trans>
               The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn
-              with WebGL. Place search ("hit my town") is answered by one of four interchangeable API backends (Java, Node, Rust, Go) that share one
-              contract; a mock runs in your browser when they are asleep. The replay never depends on them.
+              with WebGL. Place search ("hit my town") also runs in your browser, over a static place index. Separately, one API contract is
+              implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them.
             </Trans>
           </p>
         </section>
