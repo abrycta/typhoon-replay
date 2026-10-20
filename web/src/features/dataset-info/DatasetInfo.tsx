@@ -1,16 +1,17 @@
 import { Badge, useLang } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 
-import { useDataset } from "@/data";
+import { useManifest } from "@/data";
 import { formatDate } from "@/shared/lib/time";
 
 /** "Data as of <date>" plus attribution, from the dataset manifest. */
 export function DataAsOf() {
   const { t } = useLingui();
   const { lang } = useLang();
-  const ds = useDataset();
-  if (!ds.data) return ds.error ? <span>{t`Dataset unavailable`}</span> : null;
-  const m = ds.data.manifest;
+  const q = useManifest();
+  if (!q.data || !q.dataset) return q.error ? <span>{t`Dataset unavailable`}</span> : null;
+  const m = q.data;
+  const ds = { data: q.dataset };
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="data-as-of">
       <span>
@@ -27,16 +28,14 @@ export function DataAsOf() {
 }
 
 export function Attribution() {
-  const ds = useDataset();
-  const sources = ds.data?.manifest.sources ?? [];
+  const sources = useManifest().data?.sources ?? [];
   if (!sources.length) return null;
   return <span>{sources.map((s) => s.attribution ?? s.name).join(" · ")}</span>;
 }
 
 export function SourcesList() {
   const { t } = useLingui();
-  const ds = useDataset();
-  const sources = ds.data?.manifest.sources ?? [];
+  const sources = useManifest().data?.sources ?? [];
   if (!sources.length) return <p className="text-sm text-muted-foreground">{t`Loading sources…`}</p>;
   return (
     <ul className="grid gap-2 text-sm">

@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f5f1" />
+    <!-- Runtime config and the dataset host are on the critical path of every replay. -->
+    <link rel="preload" href="/config.json" as="fetch" crossorigin="anonymous" />
+    <link rel="preconnect" href="https://huggingface.co" crossorigin />
     <meta name="description" content="Replay any typhoon that hit the Philippines or Japan, hour by hour." />
     <title>Typhoon Replay</title>
   </head>

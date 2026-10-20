@@ -22,7 +22,6 @@ export interface ResolvedDataset {
   root: string;
   baseUrl: string;
   version: number;
-  manifest: DatasetManifest;
   /** "fallback" when the primary host failed and a bundled fixture is used. */
   source: "primary" | "fallback";
   primaryError?: string;
@@ -67,15 +66,17 @@ export function pointerPath(p: unknown): { path: string; version: number } {
 
 async function tryBase(baseUrl: string, pointer: string, f: Fetch): Promise<Omit<ResolvedDataset, "source">> {
   const ptr = pointerPath(await getJson<unknown>(baseUrl + pointer, f));
-  const root = baseUrl + ptr.path;
-  let manifest: DatasetManifest;
+  return { root: baseUrl + ptr.path, baseUrl, version: ptr.version };
+}
+
+/** Dataset manifest ("data as of", sources). Loaded beside the index, never on the replay's critical path. */
+export async function loadManifest(ds: ResolvedDataset, f: Fetch = fetch): Promise<DatasetManifest> {
   try {
-    manifest = await getJson<DatasetManifest>(root + "manifest.json", f);
+    const m = await getJson<DatasetManifest>(ds.root + "manifest.json", f);
+    return { ...m, datasetVersion: m.datasetVersion || ds.version, sources: m.sources ?? [] };
   } catch {
-    manifest = { datasetVersion: ptr.version, sources: [] };
+    return { datasetVersion: ds.version, sources: [] };
   }
-  manifest.sources ??= [];
-  return { root, baseUrl, version: manifest.datasetVersion || ptr.version, manifest };
 }
 
 export async function resolveDataset(cfg: DataSourceConfig, f: Fetch = fetch): Promise<ResolvedDataset> {

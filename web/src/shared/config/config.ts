@@ -43,7 +43,8 @@ export function parseConfig(json: unknown): AppConfig {
 }
 
 export async function loadConfig(url = "/config.json", fetchImpl: typeof fetch = fetch): Promise<AppConfig> {
-  const res = await fetchImpl(url, { cache: "no-cache" });
+  // No cache option: it must match the <link rel=preload> in index.html; _headers makes it revalidate.
+  const res = await fetchImpl(url);
   if (!res.ok) throw new Error(`config.json: HTTP ${res.status}`);
   return parseConfig(await res.json());
 }

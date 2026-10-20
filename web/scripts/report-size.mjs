@@ -37,9 +37,9 @@ for (const [name, prefix] of Object.entries(routes)) {
   const js = deps.reduce((s, x) => s + gz(x), 0);
   console.log(`  ${name.padEnd(11)} +${kb(js).padStart(9)} route JS  (total ${kb(baseJs + js)})`);
 }
-const lazy = { "map (MapLibre + WebGL layer)": "ReplayMap-", "mock mode (MSW)": "browser-", "fonts.css": "fonts-" };
+const lazy = { "map (MapLibre + WebGL layer)": "ReplayMap-", "MapLibre worker": "maplibre-gl-worker-", "mock mode (MSW)": "browser-", "fonts.css": "fonts-" };
 for (const [name, prefix] of Object.entries(lazy)) {
-  const fs = files.filter((x) => x.startsWith(prefix) && /\.(js|css)$/.test(x));
+  const fs = files.filter((x) => x.startsWith(prefix) && /\.(m?js|css)$/.test(x));
   console.log(`  lazy ${name}: ${kb(fs.reduce((s, x) => s + gz(x), 0))} gz`);
 }
 

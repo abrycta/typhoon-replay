@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { filterStorms } from "./catalog";
-import { DataError, framesUrl, loadIndex, loadStormDetail, loadTrack, pointerPath, resolveDataset } from "./dataset";
+import { DataError, framesUrl, loadIndex, loadManifest, loadStormDetail, loadTrack, pointerPath, resolveDataset } from "./dataset";
 
 function host(files: Record<string, unknown>, status: Record<string, number> = {}) {
   return (async (input: RequestInfo | URL) => {
@@ -21,7 +21,7 @@ describe("dataset resolution", () => {
     const f = host({ [`${HF}latest.json`]: { version: 2, path: "v2/" }, [`${HF}v2/manifest.json`]: { datasetVersion: 2, dataAsOf: "2026-10-30", sources: [] } });
     const ds = await resolveDataset(cfg, f);
     expect(ds).toMatchObject({ root: `${HF}v2/`, version: 2, source: "primary" });
-    expect(ds.manifest.dataAsOf).toBe("2026-10-30");
+    expect((await loadManifest(ds, f)).dataAsOf).toBe("2026-10-30");
   });
 
   it("falls back to the bundled fixture when the primary host refuses", async () => {
@@ -45,7 +45,8 @@ describe("dataset resolution", () => {
 
   it("reads the index (object or bare array), summaries and tracks", async () => {
     const root = `${FX}v1/`;
-    const ds = { root, baseUrl: FX, version: 1, manifest: { datasetVersion: 1, sources: [] }, source: "fallback" as const };
+    const ds = { root, baseUrl: FX, version: 1, source: "fallback" as const };
+    expect(await loadManifest(ds, host({}))).toEqual({ datasetVersion: 1, sources: [] });
     const storm = { sid: "2013306N07162", name: "Haiyan", season: 2013, basin: "WP", startedAt: "", endedAt: "", landfallCountries: ["PH"] };
     const f = host({
       [`${root}index.json`]: [storm, { name: "no sid" }],

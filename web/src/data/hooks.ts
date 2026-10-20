@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAppConfig } from "@/shared/config/context";
 import type { StormDetail } from "@/shared/model/types";
 
-import { framesUrl, loadIndex, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset } from "./dataset";
+import { framesUrl, loadIndex, loadManifest, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset } from "./dataset";
 import { FrameStore } from "./frames/store";
 
 const STATIC = { staleTime: Infinity, gcTime: 30 * 60_000, retry: 1 } as const;
@@ -12,6 +12,12 @@ const STATIC = { staleTime: Infinity, gcTime: 30 * 60_000, retry: 1 } as const;
 export function useDataset() {
   const cfg = useAppConfig();
   return useQuery({ queryKey: ["dataset", cfg.data.baseUrl], queryFn: () => resolveDataset(cfg.data), ...STATIC });
+}
+
+export function useManifest() {
+  const ds = useDataset();
+  const q = useQuery({ queryKey: ["manifest", ds.data?.root], queryFn: () => loadManifest(ds.data as ResolvedDataset), enabled: !!ds.data, ...STATIC });
+  return { ...q, dataset: ds.data, error: ds.error ?? q.error };
 }
 
 export function useStormIndex() {
