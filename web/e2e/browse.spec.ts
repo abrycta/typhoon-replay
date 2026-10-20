@@ -92,5 +92,5 @@ test("changing the sort reorders the list and is kept in the URL", async ({ page
   await page.reload();
   await expect(page.getByLabel("Sort", { exact: true })).toHaveValue("oldest");
   await expect(page.getByRole("checkbox", { name: "Replay available" })).toBeChecked();
-  expect(await names(page)).toEqual(["Haiyan (Yolanda)"]);
+  expect(await names(page)).toEqual(["Haiyan (Yolanda)", "Goni (Rolly)"]);
 });
