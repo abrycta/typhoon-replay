@@ -2,6 +2,9 @@
 
 As of 2026-10-21. "Architect" means the owner of `contracts/`. "Spike" means a measurement to make before implementation.
 
+> **Update 2026-10-21 (contract 2.0.0):** no accounts. The session, CSRF and OAuth questions (3–5) and the Spring
+> Security / OAuth2 part of 15 are moot; see `contracts/docs/CONTRACT-GUIDE.md` §14 and the README's measurements.
+
 ## For the system architect (cross-backend, affects all four)
 
 1. **Render free hours.** 750 instance hours per **workspace** per month cannot keep four backends warm (one always-on service uses about 744 h). Options: one workspace per backend (check whether Render's terms allow several free workspaces per person), accept cold starts on three backends, or rotate a single "warm" backend. Do keep-alive pings from the Worker breach Render's terms?

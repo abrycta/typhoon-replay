@@ -102,11 +102,6 @@ public class ProblemAdvice {
         writer.write(req, res, new ApiException(ProblemType.VALIDATION, summary(errors), errors));
     }
 
-    @ExceptionHandler(org.springframework.security.web.firewall.RequestRejectedException.class)
-    public void rejected(Exception e, HttpServletRequest req, HttpServletResponse res) throws IOException {
-        writer.write(req, res, new ApiException(ProblemType.VALIDATION, "The request was rejected as malformed."));
-    }
-
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public void unreadable(HttpMessageNotReadableException e, HttpServletRequest req, HttpServletResponse res)
             throws IOException {

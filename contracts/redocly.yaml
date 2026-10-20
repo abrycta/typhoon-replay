@@ -25,9 +25,9 @@ rules:
   no-invalid-parameter-examples: error
   no-invalid-schema-examples: error
   no-server-example.com: off # the localhost servers (edge proxy, Prism) are intentional
-  operation-2xx-response: off # startLogin and completeLogin only redirect (302)
+  operation-2xx-response: error
   no-unused-components: off # every schema is listed under components.schemas on purpose, so generators emit all models
-  security-defined: error
+  security-defined: error # satisfied by the root `security: []`: every operation is public (CONTRACT-GUIDE §14)
   # Portable subset and naming (redocly/portable-subset.js)
   portable/no-type-arrays: error
   portable/no-null: error
@@ -44,3 +44,4 @@ rules:
   portable/errors-are-problem-json: error
   portable/required-response-headers: error
   portable/sse-events-declared: error
+  portable/public-read-only: error # contract 2.0.0: no security schemes, cookies or public unsafe methods

@@ -1,4 +1,4 @@
-import { BASE_URL, FORWARDED_PREFIX, SITE_ORIGIN } from './env.ts';
+import { BASE_URL, FORWARDED_PREFIX } from './env.ts';
 
 export interface Res {
   status: number;
@@ -14,13 +14,10 @@ export interface Req {
   method?: string;
   headers?: Record<string, string>;
   body?: unknown;
+  /** A Cookie header to send: backends MUST ignore it (contract 2.0.0 has no sessions). */
   cookie?: string;
-  /** Add `Origin` and `X-Requested-With` (the CSRF pair) automatically for unsafe methods. Default true. */
-  csrf?: boolean;
   base?: string;
 }
-
-const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /** One HTTP call with no redirect following, as the browser-facing proxy would forward it. */
 export async function call(path: string, req: Req = {}): Promise<Res> {
@@ -29,7 +26,6 @@ export async function call(path: string, req: Req = {}): Promise<Res> {
     'Accept-Encoding': 'gzip',
     'X-Forwarded-Prefix': FORWARDED_PREFIX,
     ...(req.cookie ? { Cookie: req.cookie } : {}),
-    ...(UNSAFE.has(method) && req.csrf !== false ? { Origin: SITE_ORIGIN, 'X-Requested-With': 'typhoon-replay' } : {}),
     ...(req.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...req.headers,
   };
@@ -51,25 +47,6 @@ export async function call(path: string, req: Req = {}): Promise<Res> {
 }
 
 export const get = (path: string, req: Req = {}) => call(path, { ...req, method: 'GET' });
-
-/** Name=value of the session cookie from a Set-Cookie header, ready for a Cookie header. */
-export function sessionCookie(res: Res): string | undefined {
-  const set = res.headers.getSetCookie().find((c) => c.startsWith('__Host-tr_session='));
-  return set?.split(';')[0];
-}
-
-/** Parsed attributes of the session Set-Cookie (lower-cased names). */
-export function sessionCookieAttributes(res: Res): Record<string, string> | undefined {
-  const set = res.headers.getSetCookie().find((c) => c.startsWith('__Host-tr_session='));
-  if (!set) return undefined;
-  const [first, ...attrs] = set.split(';').map((s) => s.trim());
-  const out: Record<string, string> = { value: (first ?? '').slice('__Host-tr_session='.length) };
-  for (const a of attrs) {
-    const [k, v] = a.split('=');
-    out[(k ?? '').toLowerCase()] = v ?? 'true';
-  }
-  return out;
-}
 
 /** Asserts no `null` anywhere in a JSON value (optional fields are omitted, never null). Returns offending paths. */
 export function nullPaths(value: unknown, path = '$'): string[] {

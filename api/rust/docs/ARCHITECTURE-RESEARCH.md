@@ -421,3 +421,16 @@ api/rust/
 - Docker Hub tags: `postgis/postgis`, `imresamu/postgis`; distroless tags: `gcr.io/v2/distroless/cc-debian13/tags/list`
 - cargo-chef: https://github.com/LukeMathWalker/cargo-chef · rust-cache: https://github.com/Swatinem/rust-cache
 - OWASP CSRF cheat sheet (Origin / Fetch Metadata checks): https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
+
+## Frozen showcase policy (decided 2026-10-21)
+
+Applies once this backend is built (`docs/architecture/DECISIONS.md`, "Frozen showcase policy"; the Java backend's
+README shows it in practice). After its first conformant release the backend only receives security fixes.
+
+- **Pinned:** `Cargo.toml` with exact `=x.y.z` requirements and the committed `Cargo.lock` (`cargo build --locked`); `rust-toolchain.toml` with an exact channel; the runtime base image by digest; CI actions by commit SHA.
+- **Security fixes:** Renovate (`renovate.json`) opens no routine updates under `api/rust/`. Vulnerability fixes
+  (GitHub advisories / OSV) and base-image digest refreshes arrive as one grouped PR ("rust backend security
+  fixes", branch `renovate/rust/security-fixes`) and auto-merge only when this backend's CI is green: its own
+  tests **and** the shared conformance suite against its image.
+- **Unfreezing** for a deliberate upgrade: change the pins (`Cargo.toml` + `cargo update -p <crate> --precise <version>`, or `rust-toolchain.toml`), regenerate the lockfile, re-measure
+  startup/RSS, and open a PR labelled `unfreeze`; the same tests and conformance gate it.

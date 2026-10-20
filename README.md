@@ -16,7 +16,7 @@ each pull request gets its own preview URL.
 | `api/{java,node,rust,go}/` | The four interchangeable backends (research docs so far) |
 | `pipeline/` | Python data pipeline (IBTrACS, ERA5, crosswalks) |
 | `docs/architecture/` | System architecture research and the decisions log |
-| `compose.yaml` | Local services by profile: `db` (PostGIS + migrations + seed), `mail`, `mock` (Prism), `idp` (mock OAuth) |
+| `compose.yaml` | Local services by profile: `db` (PostGIS + migrations + seed), `mock` (Prism), `java` |
 | `justfile` | Entry point for the contract and backend workflow (`just` lists recipes) |
 | `deploy.config` | App directory and the install, check, build, dev and preview commands |
 | `wrangler.jsonc` | Pages project name (`typhoon-replay`) and build output directory |

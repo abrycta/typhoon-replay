@@ -19,7 +19,7 @@ import dev.krtmtthw.typhoon.contract.model.StormSummary;
 
 /**
  * Hand-written SQL fragments and row mappers for the two read models every catalogue query returns
- * ({@code StormSummary}, {@code PlaceSummary}). Kept in the shared module because storms, exposure and accounts all
+ * ({@code StormSummary}, {@code PlaceSummary}). Kept in the shared module because storms, exposure and live all
  * embed them, and Modulith forbids the cycle a storms ↔ exposure dependency would create.
  */
 public final class CatalogRows {

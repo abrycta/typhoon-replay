@@ -19,6 +19,24 @@ Decided 2026-10-21 by Kurt, after the research in this folder, `contracts/docs/`
 
 - The app is served at **https://typhoon.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). This is System option A on the owner's domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
 
+## Update 2026-10-21: no accounts; static-first visitors; Under the hood showcase
+
+Supersedes the account parts of the table above (System: "shared, language-neutral session table" and "alert mail"; Java: "Spring Security 7"; Node: "Arctic") and the alert-email step of the custom-domain update.
+
+- **No account features.** No sign-in (Google/GitHub OAuth), sessions, `/v1/me`, saved places, alert preferences, alert email or unsubscribe. The API keeps only public reads: health/readiness, meta, storms, places, hits, live (snapshot + SSE stream), plus the live-event test hook.
+- **Visitors are served static-first.** Visitor features come from static files (Pages, Hugging Face) and the browser, not from the API, so the site works without any backend awake.
+- **The API is a showcase.** An "Under the hood" page races the same request across the backends. Reads must stay fast and identical across backends (status, headers, ETag, JSON); every response except the live stream is publicly cacheable, no cookies, no CSRF.
+- **Contract 2.0.0** (breaking, removals only) is still served under `/v1`: the URL major changes only when an operation that stays changes (`contracts/docs/CONTRACT-GUIDE.md` §2, §14; `contracts/CHANGELOG.md`). Database migration `20261021000600_drop_accounts` drops `auth.*` and the `app` account tables.
+- **Four backends, unchanged build order:** contract → Java → Go → Node → Rust. The frontend is built in parallel.
+
+## Frozen showcase policy
+
+Once a backend is built (Java now; Go, Node and Rust as they land) it is **pinned and only receives security fixes**, so the "Under the hood" race always compares the same code.
+
+- **Pinned:** every dependency at an exact version with a committed lockfile (Gradle version catalog + `gradle.lockfile`s in strict mode; npm exact versions + `package-lock.json`; `Cargo.lock`; `go.mod` + `go.sum`), and every toolchain (Java 25 / Node 24 base images by digest, Gradle distribution by checksum, `rust-toolchain.toml`, the `go` directive).
+- **Security fixes:** Renovate (`renovate.json`) disables routine updates for `api/**` and opens vulnerability-only PRs (GitHub advisories / OSV), grouped per backend, plus base-image digest bumps for CVE patches. They auto-merge only when that backend's CI is green: its own tests **and** the conformance suite against its image (Renovate waits for every status check; branch protection on `main` should also require them, e.g. java.yml's "Build and test" and "Conformance"). `web/`, `pipeline/` and the rest keep Renovate's normal update policy.
+- **Unfreezing** for a deliberate upgrade: change the pins, regenerate the lockfile, re-measure startup/RSS, open a PR labelled `unfreeze`; the same tests and conformance gate it. Details per backend in `api/<lang>/README.md` (or `docs/`).
+
 ## Noted for later
 
 - Earth Engine is optional: the spike found NCAR ERA5 on AWS about 21× cheaper per storm window than ARCO-ERA5.

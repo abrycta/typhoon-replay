@@ -1,6 +1,10 @@
 # Typhoon Replay: Java backend architecture research
 
 Status: research only (no code yet). Verified on 2026-10-21 unless a line says otherwise.
+
+> **Update 2026-10-21:** contract 2.0.0 removed accounts, so the Spring Security, OAuth2 client, session store and
+> CSRF parts below are history; the implementation (see `../README.md`) has none of them. Once built, the backend is
+> a frozen showcase (`docs/architecture/DECISIONS.md`).
 Scope: the Java implementation of the shared OpenAPI 3.1 contract, deployed at `/api/java/*` behind the same-origin edge proxy.
 
 **TL;DR.** Use **Spring Boot 4.1 on Java 25**, built as a **Spring Modulith modular monolith**. Pair **Spring MVC plus virtual threads** with **`SseEmitter`**, and use **`JdbcClient` with PostGIS SQL** for data access. Generate **`interfaceOnly` controllers** with openapi-generator 7.26 from `contracts/`. Build with **Gradle (Kotlin DSL)** and ship a **JVM image with the Java 25 AOT cache** (Project Leyden). GraalVM native image stays as a measured fallback, not the default. This is Stack A in §12.

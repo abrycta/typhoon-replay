@@ -4,16 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -39,7 +35,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class ApiContractTest {
 
     private static final String SPEC = "file:" + System.getProperty("tr.contract", "../../contracts/dist/openapi.json");
-    private static final Cookie ANA = new Cookie("__Host-tr_session", "fixture-session-token-ana-0000000000000");
     private static final String HAIYAN = "2013306N07162";
     private static final String TACLOBAN = "PH-0831600000";
 
@@ -53,10 +48,6 @@ class ApiContractTest {
 
     private static MockHttpServletRequestBuilder proxied(MockHttpServletRequestBuilder b) {
         return b.header("X-Forwarded-Prefix", "/api/java");
-    }
-
-    private static MockHttpServletRequestBuilder unsafe(MockHttpServletRequestBuilder b) {
-        return proxied(b).cookie(ANA).header("Origin", "http://localhost:8788").header("X-Requested-With", "typhoon-replay");
     }
 
     private static ResultMatcher contract() {
@@ -124,8 +115,6 @@ class ApiContractTest {
                 .andExpect(jsonPath("$.errors[0].pointer").value("#/query/limit"));
         mvc.perform(get("/v1/storms/1999001N00000")).andExpect(status().isNotFound()).andExpect(contract())
                 .andExpect(header().string("Cache-Control", "public, max-age=60"));
-        mvc.perform(get("/v1/me")).andExpect(status().isUnauthorized()).andExpect(contract())
-                .andExpect(jsonPath("$.code").value("unauthenticated"));
         mvc.perform(get("/v1/no-such-route")).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("not-found"));
         mvc.perform(get("/v1/hits?lat=0&lon=1&sort=")).andExpect(status().isBadRequest())
@@ -135,35 +124,40 @@ class ApiContractTest {
                 .andExpect(header().string("Allow", containsString("GET")));
     }
 
+    /** Contract 2.0.0 (CONTRACT-GUIDE §9, §14): no accounts, no cookies, no CSRF. */
     @Test
-    void readsTheSignedInUserAndPrivateData() throws Exception {
-        mvc.perform(get("/v1/me").cookie(ANA)).andExpect(status().isOk()).andExpect(contract())
-                .andExpect(header().string("Cache-Control", "private, no-store"))
-                .andExpect(header().string("Vary", containsString("Cookie")))
-                .andExpect(jsonPath("$.providers[0]").value("github"));
-        mvc.perform(get("/v1/me/alerts").cookie(ANA)).andExpect(status().isOk()).andExpect(contract())
-                .andExpect(jsonPath("$.enabled").value(true));
+    void hasNoAccountsCookiesOrCsrf() throws Exception {
+        for (String path : new String[] {"/v1/me", "/v1/me/places", "/v1/me/alerts", "/v1/auth/providers",
+                "/v1/auth/github/login", "/v1/alerts/unsubscribe?token=x"}) {
+            mvc.perform(get(path)).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("not-found"))
+                    .andExpect(header().doesNotExist("Set-Cookie"));
+        }
+        mvc.perform(post("/v1/auth/logout")).andExpect(status().isNotFound());
+        mvc.perform(post("/v1/_test/sessions").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isNotFound());
+        // Cookies are ignored: same ETag and body, publicly cacheable, no Vary: Cookie, nothing set.
+        MvcResult plain = mvc.perform(get("/v1/places/" + TACLOBAN)).andExpect(status().isOk()).andReturn();
+        mvc.perform(get("/v1/places/" + TACLOBAN).cookie(new jakarta.servlet.http.Cookie("__Host-tr_session", "x")))
+                .andExpect(status().isOk()).andExpect(contract())
+                .andExpect(header().string("ETag", plain.getResponse().getHeader("ETag")))
+                .andExpect(header().string("Cache-Control", "public, max-age=300, stale-while-revalidate=86400"))
+                .andExpect(header().string("Vary", "Accept-Encoding"))
+                .andExpect(header().doesNotExist("Set-Cookie"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"));
+        // Unsafe methods need no Origin / X-Requested-With: public paths answer 405 with Allow.
+        mvc.perform(post("/v1/storms").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isMethodNotAllowed()).andExpect(jsonPath("$.code").value("method-not-allowed"))
+                .andExpect(header().string("Allow", containsString("GET")));
     }
 
     @Test
-    void enforcesCsrfAndValidatesBodiesAgainstTheContract() throws Exception {
-        mvc.perform(proxied(post("/v1/me/places")).cookie(ANA).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"placeId\":\"JP-47207\"}"))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("csrf"));
-        mvc.perform(unsafe(post("/v1/me/places")).contentType(MediaType.APPLICATION_JSON).content("{\"label\":null}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors[0].pointer").value("#/body/label"));
-        MvcResult created = mvc.perform(unsafe(post("/v1/me/places")).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"placeId\":\"JP-47207\",\"label\":\"Ishigaki\"}"))
-                .andExpect(status().isCreated()).andExpect(contract())
-                .andExpect(header().string("Location", containsString("http://localhost:8788/api/java/v1/me/places/")))
-                .andReturn();
-        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
-        mvc.perform(unsafe(post("/v1/me/places")).contentType(MediaType.APPLICATION_JSON).content("{\"placeId\":\"JP-47207\"}"))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("conflict"));
-        mvc.perform(unsafe(put("/v1/me/alerts")).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"enabled\":true,\"radiusKm\":100,\"minWindKt\":80,\"savedPlaceIds\":[\"" + id + "\",\"" + id + "\"]}"))
-                .andExpect(status().isBadRequest());
-        mvc.perform(unsafe(delete("/v1/me/places/" + id))).andExpect(status().isNoContent());
+    void validatesTestHookBodies() throws Exception {
+        mvc.perform(post("/v1/_test/live-events").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"nope\",\"payload\":{}}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("validation"));
+        mvc.perform(post("/v1/_test/live-events").contentType(MediaType.TEXT_PLAIN).content("x"))
+                .andExpect(status().isUnsupportedMediaType()).andExpect(jsonPath("$.code").value("unsupported-media-type"));
     }
 
     @Test
@@ -179,7 +173,7 @@ class ApiContractTest {
     @Test
     void readinessReportsTheSchemaVersion() throws Exception {
         mvc.perform(get("/readyz")).andExpect(status().isOk()).andExpect(contract())
-                .andExpect(jsonPath("$.schemaVersion").value("20261021000500"));
+                .andExpect(jsonPath("$.schemaVersion").value("20261021000600"));
         mvc.perform(get("/healthz")).andExpect(status().isOk()).andExpect(contract());
     }
 }

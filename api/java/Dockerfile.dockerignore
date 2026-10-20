@@ -10,5 +10,6 @@
 !api/java/gradle
 !api/java/settings.gradle.kts
 !api/java/build.gradle.kts
+!api/java/*.lockfile
 !api/java/src
 api/java/src/test

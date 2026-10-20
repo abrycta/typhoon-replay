@@ -27,8 +27,8 @@ import dev.krtmtthw.typhoon.shared.problem.ProblemWriter;
 /**
  * First filter of every request: assigns the request id, sets the headers every response carries
  * (CONTRACT-GUIDE §4) before anything can fail, and writes one structured access-log line per request
- * ({@code ts, level, msg, requestId, impl, method, path, status, durMs}; never cookies, tokens or OAuth codes,
- * which is why only the path, not the query, is logged).
+ * ({@code ts, level, msg, requestId, impl, method, path, status, durMs}; never headers or query strings, so
+ * only the path is logged).
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

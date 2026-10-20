@@ -16,8 +16,8 @@ import dev.krtmtthw.typhoon.shared.web.RequestContext;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Writes RFC 9457 problem documents straight to the servlet response, so filters (rate limit, body size, CSRF,
- * authentication) and the MVC exception handler produce byte-for-byte the same shape. Never includes stack traces
+ * Writes RFC 9457 problem documents straight to the servlet response, so filters (rate limit, body size, method
+ * checks) and the MVC exception handler produce byte-for-byte the same shape. Never includes stack traces
  * or SQL: {@code detail} is always a message written by this application.
  */
 @Component

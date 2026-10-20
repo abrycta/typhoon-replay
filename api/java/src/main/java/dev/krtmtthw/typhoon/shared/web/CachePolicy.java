@@ -2,14 +2,14 @@ package dev.krtmtthw.typhoon.shared.web;
 
 /**
  * The Cache-Control table of CONTRACT-GUIDE §6, by resource class. The request filter applies the success value up
- * front; {@code ProblemWriter} replaces it on errors.
+ * front; {@code ProblemWriter} replaces it on errors. Contract 2.0.0 has no per-user responses: every {@code /v1}
+ * read is publicly cacheable except the live stream.
  */
 public final class CachePolicy {
 
     public static final String CATALOGUE = "public, max-age=300, stale-while-revalidate=86400";
     public static final String META = "public, max-age=60";
     public static final String LIVE = "no-cache";
-    public static final String PRIVATE = "private, no-store";
     public static final String NO_STORE = "no-store";
     public static final String CATALOGUE_NOT_FOUND = "public, max-age=60";
 
@@ -26,9 +26,6 @@ public final class CachePolicy {
         if (path.startsWith("/v1/live/")) {
             return LIVE;
         }
-        if (isSessionScoped(path) || path.startsWith("/v1/alerts/") || path.startsWith("/v1/_test/")) {
-            return PRIVATE;
-        }
         if (isCatalogue(path)) {
             return CATALOGUE;
         }
@@ -44,10 +41,5 @@ public final class CachePolicy {
     public static boolean isCatalogue(String path) {
         return path.equals("/v1/storms") || path.startsWith("/v1/storms/")
                 || path.startsWith("/v1/places/") || path.equals("/v1/hits");
-    }
-
-    /** Responses that depend on the session cookie, so they also carry {@code Vary: Cookie}. */
-    public static boolean isSessionScoped(String path) {
-        return path.equals("/v1/me") || path.startsWith("/v1/me/") || path.startsWith("/v1/auth/");
     }
 }

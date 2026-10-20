@@ -1,7 +1,7 @@
 description: |
   Always present. Values by resource class (CONTRACT-GUIDE §6):
   catalogue reads `public, max-age=300, stale-while-revalidate=86400`; meta and the contract bundle `public, max-age=60`;
-  the live snapshot and stream `no-cache`; anything under `/v1/me` and auth `private, no-store`;
+  the live snapshot and stream `no-cache`;
   errors `no-store` except catalogue 404 (`public, max-age=60`); health probes `no-store`.
 required: true
 schema:
