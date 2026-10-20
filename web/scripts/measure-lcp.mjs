@@ -31,6 +31,8 @@ for (const [name, path] of Object.entries(pages)) {
     const t0 = Date.now();
     await page.goto(base + path, { waitUntil: "load" });
     if (name === "storm") {
+      // First field frame: the frame at the playhead is decoded (the ERA5 readout alone can come from the summary).
+      await page.locator('[data-testid="storm-replay"][data-frame-ready="true"]').waitFor({ timeout: 60000 });
       await page.getByTestId("era5-wind").filter({ hasText: /m\/s/ }).waitFor({ timeout: 60000 });
       frames.push(Date.now() - t0);
     }

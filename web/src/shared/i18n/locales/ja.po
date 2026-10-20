@@ -356,6 +356,10 @@ msgstr "無料枠のサーバーは15分間アクセスがないと休止し、�
 msgid "From the API."
 msgstr "API から取得。"
 
+#: src/features/replay/IntensityPanel.tsx
+msgid "From the lossless 3-hourly grid (0.5°)."
+msgstr "3時間ごとの可逆圧縮グリッド（0.5°）から。"
+
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "From the static dataset."
 msgstr "静的データセットから取得。"
@@ -574,6 +578,10 @@ msgstr "比較するベストトラック風速がありません"
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
 msgstr "{radius} km 以内に対象地点はありません。"
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only."
+msgstr "この時刻の ERA5 の数値はありません。数値は3時間ごとの可逆圧縮グリッドから読み取り、その間の地図は表示専用です。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No field data at this hour."

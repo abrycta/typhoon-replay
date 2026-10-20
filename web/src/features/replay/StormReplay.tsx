@@ -127,16 +127,26 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const particles = url.particles ?? !reducedMotion;
   const layer = hasFrames ? url.layer : "none";
 
-  // ERA5 near the best-track centre (within 2°, as in the pipeline's cross-check).
-  const near = (i: number) => {
-    const raw = store?.frame(i);
+  // ERA5 near the best-track centre (within 2°, as in the pipeline's cross-check). Numbers never come from
+  // lossy WebP pixels: the pipeline's per-frame `series` (from the unquantised fields) when the summary has
+  // it, else the lossless .tyf frame, else the lossless 3-hourly exact grid (no reading between its hours).
+  const series = detail.frames?.series;
+  const exactOnly = !series?.era5MaxWindMs && header?.format === "webp";
+  const near = (i: number): { wind?: number; mslp?: number } | undefined => {
     const tt = times[i];
-    if (!raw || !header || tt === undefined) return undefined;
+    if (tt === undefined) return undefined;
+    if (series?.era5MaxWindMs) {
+      const wind = series.era5MaxWindMs[i] ?? undefined;
+      return wind === undefined ? undefined : { wind, mslp: series.era5MinMslpHpa?.[i] ?? undefined };
+    }
     const h = hourAt(hours, tt);
-    return h ? { wind: maxNear(raw, header, i, "wind", h.lon, h.lat, 2), mslp: maxNear(raw, header, i, "mslp", h.lon, h.lat, 2, "min") } : undefined;
+    if (!h || !header) return undefined;
+    const at = header.format === "TYF1" ? { raw: store?.frame(i), header, k: i } : store?.exactAt(i);
+    if (!at?.raw) return undefined;
+    return { wind: maxNear(at.raw, at.header, at.k, "wind", h.lon, h.lat, 2), mslp: maxNear(at.raw, at.header, at.k, "mslp", h.lon, h.lat, 2, "min") };
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const cur = useMemo(() => near(state.index), [state.index, snap.loadedFrames, header, hours]);
+  const cur = useMemo(() => near(state.index), [state.index, snap.loadedFrames, snap.exactFrames, header, hours, series]);
 
   const timeLabel = time !== undefined ? formatDateTime(time, lang, tzChoice) : "";
   const bw = exactHour ? bestWind(exactHour) : undefined;
@@ -154,7 +164,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const mapLabel = t`Map of ${detail.name}'s track with the ERA5 field (${layerName}) at ${timeLabel}`;
 
   return (
-    <div className="grid gap-4" data-testid="storm-replay">
+    <div className="grid gap-4" data-testid="storm-replay" data-frame-ready={hasFrames ? String(!!store?.has(state.index)) : undefined}>
       <div className={compact ? "grid gap-3" : "grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]"}>
         <div className="grid gap-3">
           <div className={mapClassName ?? "relative aspect-[4/3] w-full overflow-hidden rounded-sm border border-border sm:aspect-[16/10]"}>
@@ -225,6 +235,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
               era5WindMs={cur?.wind}
               era5MinMslp={cur?.mslp}
               radiusDeg={2}
+              threeHourly={exactOnly}
               check={detail.reanalysisCheck}
               units={url.units}
               lang={lang}

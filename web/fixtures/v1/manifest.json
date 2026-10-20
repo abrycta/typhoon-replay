@@ -3,9 +3,9 @@
  "dataAsOf": "2026-10-20",
  "generatedAt": "2026-10-21T00:00:00Z",
  "fixture": true,
- "note": "Fixture: 16 storms with real IBTrACS tracks; ERA5 frames only for Haiyan (72 h around landfall).",
+ "note": "Fixture: 16 storms with real IBTrACS tracks; ERA5 frames for Haiyan (72 h around landfall, .tyf and WebP) and Goni (48 h around landfall, WebP only, as published for backfilled storms).",
  "storms": 16,
- "stormsWithFrames": 1,
+ "stormsWithFrames": 2,
  "sources": [
   {
    "id": "ibtracs",

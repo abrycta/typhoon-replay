@@ -8,8 +8,10 @@
 // `.tyf.gz` is always streamed through DecompressionStream.
 
 import { frameBytes, parseHeader, type TyfHeader, windToUv } from "./tyf";
+import type { ExactFrames } from "./webp";
 
-export type Strategy = "range" | "stream";
+/** range / stream: a .tyf file (see above); webp: the WebP sheet sets (./webp.ts). */
+export type Strategy = "range" | "stream" | "webp";
 
 export interface DecodedFrames {
   /** Index of the first frame in this batch. */
@@ -25,6 +27,8 @@ export interface FrameSink {
   header(header: TyfHeader, strategy: Strategy, totalBytes?: number): void;
   frames(batch: DecodedFrames): void;
   progress?(loadedBytes: number, totalBytes?: number): void;
+  /** WebP storms without per-frame `series`: the lossless 3-hourly codes for readouts. */
+  exact?(batch: ExactFrames): void;
 }
 
 export interface LoadOptions {

@@ -6,9 +6,12 @@
 //   <base>/v1/index.json                  {"storms": [StormSummary...]}  (a bare array is accepted)
 //   <base>/v1/storms/<sid>/summary.json   StormDetail + frames manifest
 //   <base>/v1/storms/<sid>/track.json     {"fixes": [...]} (+ optional "hours")
-//   <base>/v1/storms/<sid>/frames.tyf     TYF1 frames (or frames.tyf.gz)
+//   <base>/frames/<sid>/<hash>.field.<var>.webp, .exact.<var>.webp, <hash>.tyf
+//                                         frame files named by summary.frames (paths relative to the storm
+//                                         directory, e.g. ../../../frames/<sid>/...); see frames/source.ts
 import type { DatasetManifest, StormDetail, StormSummary, StormTrack, TrackFix, TrackHour } from "@/shared/model/types";
 
+import { tyfSource } from "./frames/source";
 import { interpolateHourly } from "./track";
 
 export interface DataSourceConfig {
@@ -125,9 +128,9 @@ export async function loadTrack(ds: ResolvedDataset, sid: string, f: Fetch = fet
   return { sid, fixes, hours };
 }
 
+/** URL of the storm's .tyf, if it has one (frames/source.ts picks between it and the WebP sets). */
 export function framesUrl(ds: ResolvedDataset, d: StormDetail): string | undefined {
-  if (!d.frames) return undefined;
-  return /^https?:|^\//.test(d.frames.path) ? d.frames.path : stormRoot(ds, d.sid) + d.frames.path;
+  return d.frames ? tyfSource(d.frames, stormRoot(ds, d.sid))?.url : undefined;
 }
 
 export function ogImageUrl(ds: ResolvedDataset, d: Pick<StormDetail, "sid" | "ogImage">): string | undefined {

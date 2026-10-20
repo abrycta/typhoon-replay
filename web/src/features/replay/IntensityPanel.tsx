@@ -12,6 +12,8 @@ export interface IntensityPanelProps {
   era5WindMs?: number;
   era5MinMslp?: number;
   radiusDeg: number;
+  /** ERA5 numbers come from the lossless 3-hourly grid: there is no reading between its hours. */
+  threeHourly?: boolean;
   check?: ReanalysisCheck;
   units: SpeedUnit;
   lang: Lang;
@@ -20,7 +22,7 @@ export interface IntensityPanelProps {
 
 const fmt = (v: number, d = 0) => v.toFixed(d);
 
-export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, check, units, lang, tz }: IntensityPanelProps) {
+export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, threeHourly, check, units, lang, tz }: IntensityPanelProps) {
   const { t } = useLingui();
   const sp = (kt: number) => (units === "kt" ? `${fmt(kt)} kt` : `${fmt(ktToMs(kt), 1)} m/s`);
   const spMs = (ms: number) => (units === "kt" ? `${fmt(msToKt(ms))} kt` : `${fmt(ms, 1)} m/s`);
@@ -95,8 +97,13 @@ export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, check
             </dd>
           </dl>
         ) : (
-          <p className="text-sm text-muted-foreground">{t`No field data at this hour.`}</p>
+          <p className="text-sm text-muted-foreground" data-testid="era5-none">
+            {threeHourly ? t`No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only.` : t`No field data at this hour.`}
+          </p>
         )}
+        {threeHourly && era5WindMs !== undefined ? (
+          <p className="text-xs text-muted-foreground">{t`From the lossless 3-hourly grid (0.5°).`}</p>
+        ) : null}
         {check ? (
           <p className="text-xs text-muted-foreground" data-testid="peak-check">
             {t`At this storm's peak the field's strongest wind was ${check.atPeak.era5WindMs.toFixed(1)} m/s against ${check.atPeak.jtwcMs?.toFixed(1) ?? "?"} m/s (JTWC) and ${check.atPeak.jmaMs?.toFixed(1) ?? "?"} m/s (JMA): ${check.atPeak.ratioToJtwc?.toFixed(2) ?? "?"}× and ${check.atPeak.ratioToJma?.toFixed(2) ?? "?"}×.`}

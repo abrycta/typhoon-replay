@@ -82,15 +82,68 @@ export interface StormHit {
   hoursWithinRadius: number;
 }
 
+/** How a quantised frame variable decodes (pipeline/typhoon/frames.py). */
+export interface FrameVarMeta {
+  name: string;
+  units: string;
+  encoding: "linear" | "sqrt" | "angle";
+  scale: number;
+  offset: number;
+  description?: string;
+}
+
+/** One WebP sprite-sheet set: frame k is the tile at column k % cols, row k / cols, top-left (col, row) * tileStride. */
+export interface WebpSheetSet {
+  kind: "webp-lossy" | "webp-lossless";
+  stepHours: number;
+  frames: number;
+  cols: number;
+  rows: number;
+  tileWidth: number;
+  tileHeight: number;
+  tileStride: number;
+  resDeg: number;
+  /** exact only: the hourly frame index of each tile. */
+  frameIndex?: number[];
+  /** exact only: every n-th cell of the hourly grid (same north-west corner). */
+  cellStride?: number;
+  vars: (FrameVarMeta & { path: string; bytes?: number; sha256?: string; maxCodeError?: number })[];
+}
+
+/** Per-frame values near the best-track centre, computed by the pipeline from the unquantised fields. */
+export interface FrameSeries {
+  note?: string;
+  era5MaxWindMs?: (number | null)[];
+  era5MaxGustMs?: (number | null)[];
+  era5MinMslpHpa?: (number | null)[];
+  era5MaxRainMmh?: (number | null)[];
+}
+
+/**
+ * summary.frames. `format` names the .tyf when there is one (`path`, `bytes`, `sha256` describe it); storms
+ * published WebP-only say "webp". `field` (lossy, hourly, drawing only) and `exact` (lossless, 3-hourly)
+ * are the WebP sets, with the per-frame geometry in `time`, `nwLat`, `nwLon`.
+ */
 export interface FramesManifest {
-  format: "tyf" | "tyf.gz";
-  path: string;
+  format: "tyf" | "tyf.gz" | "webp";
+  path?: string;
   bytes?: number;
   frames: number;
   start?: string;
   end?: string;
-  vars?: string[];
+  vars?: (string | FrameVarMeta)[];
   sha256?: string;
+  nx?: number;
+  ny?: number;
+  resDeg?: number;
+  nodata?: number;
+  /** Unix seconds (UTC) per frame. */
+  time?: number[];
+  nwLat?: number[];
+  nwLon?: number[];
+  series?: FrameSeries;
+  field?: WebpSheetSet;
+  exact?: WebpSheetSet;
 }
 
 /** ERA5 vs best track at the storm's peak (from the pipeline's cross-check). */

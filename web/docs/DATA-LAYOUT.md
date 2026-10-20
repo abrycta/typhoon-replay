@@ -23,7 +23,8 @@ If the primary host fails (HTTP error, CORS, or an HTML page), the next base URL
 | `v<N>/index.json` | `{"storms": [StormSummary…]}` or a bare array | yes |
 | `v<N>/storms/<sid>/summary.json` | StormDetail (below) | yes per storm |
 | `v<N>/storms/<sid>/track.json` | `{"fixes": [TrackFix…]}` plus optional `"hours"` | yes per storm |
-| `v<N>/storms/<sid>/frames.tyf` or `.tyf.gz` | TYF1 frame file (`pipeline/typhoon/frames.py`) | only when `summary.frames` is present |
+| `frames/<sid>/<hash>.field.<var>.webp`, `.exact.<var>.webp` | WebP frame sheets, content-addressed outside the versions (`pipeline/typhoon/frames.py`) | when `summary.frames` is present |
+| `frames/<sid>/<hash>.tyf` (or a storm-relative `frames.tyf`, `.tyf.gz`) | TYF1 frame file | optional: only some storms have one |
 | `v<N>/storms/<sid>/og.png` | 1200×630 share image | no (`summary.ogImage` names it) |
 
 `<sid>` is the IBTrACS SID (`^[0-9]{7}[NS][0-9]{5}$`).
@@ -34,7 +35,7 @@ Field names follow the API contract (`contracts/openapi`) wherever the concept e
 
 - **StormSummary** (index rows) = contract `StormSummary` (`sid, name, localNames{ph,ja}, season, basin, startedAt, endedAt, peakWindKt, peakWindAgency, minPressureHpa, landfallCountries`) plus `replayAvailable` and `frameCount`.
 - **StormDetail** (`summary.json`) = contract `StormDetail` (`peak, intensity[], landfalls[], sources[], replayAvailable, …`) plus:
-  - `frames`: `{format: "tyf" | "tyf.gz", path, bytes, frames, start, end, vars[], sha256}`; `path` is relative to the storm directory (absolute URLs also work).
+  - `frames`: `{format: "tyf" | "tyf.gz" | "webp", frames, start, end, nx, ny, resDeg, nodata, time[], nwLat[], nwLon[], series, field, exact}` plus, when `format` names a .tyf, `{path, bytes, sha256, headerBytes, frameBytes, vars[]}`. `field` (lossy WebP q80, hourly: wind, gust, mslp, tp, u, v) and `exact` (lossless WebP, 3-hourly, 0.5°) list their sheets with `path`s. All paths are relative to the storm directory (e.g. `../../../frames/<sid>/…`; absolute URLs also work). `series` holds the pipeline's per-frame maxima near the centre, computed from the unquantised fields.
   - `reanalysisCheck`: the pipeline's ERA5-vs-best-track cross-check at the JTWC peak: `{radiusDeg, peakTime, atPeak: {jtwcMs, jmaMs, era5WindMs, era5GustMs, ratioToJtwc, ratioToJma, era5MslpMinHpa, jmaPressureHpa}, typhoonHoursMedianRatioToJtwc, typhoonHoursMedianRatioToJma}`.
   - `affectedPlaces`: contract `PlaceHit[]` within `affectedRadiusKm` (closest first). When absent, the storm page asks the selected API backend (`GET /v1/storms/{sid}/places`).
   - `ogImage`: file name of the share image.
@@ -43,7 +44,8 @@ Field names follow the API contract (`contracts/openapi`) wherever the concept e
 ## Assumptions for the pipeline to confirm
 
 1. **Hourly track interpolation happens in the browser** (`src/data/track.ts`: position and each agency's values linear between the fixes that report them, with "interpolated between X and Y" provenance). If the pipeline emits `track.json.hours` (`{t: unix seconds, lon, lat, jtwcKt?, jmaKt?, jmaHpa?, observed, between?: [t0, t1]}`), the app uses it as is.
-2. **Frames are one TYF1 file per storm**, frame-major, with the header fields of `frames.py` (`nx, ny, res_deg, frames, nodata, vars[{name, units, encoding, scale, offset}], time[], nw_lat[], nw_lon[]`). Variable names used: `wind`, `gust`, `mslp`, `tp`, `wdir`. On a host that answers HTTP 206 (Hugging Face) the app fetches windows of 24 frames around the playhead; elsewhere it streams the whole file. WebP sprites are not read yet.
+2. **Frame format per storm** (`src/data/frames/source.ts`): WebP when `summary.frames.field` is complete (with `time`, `nwLat`, `nwLon`), else the .tyf; a storm with both plays WebP and falls back to its .tyf if WebP fails. The decode worker fetches the six field sheets in parallel, decodes them with WebCodecs `ImageDecoder` (on the CPU, from the lossy sheet's luma plane) or, where that is missing, `createImageBitmap` + `OffscreenCanvas`, and repacks the tiles into the .tyf frame layout plus the u/v particle texture, so the map draws both formats alike. TYF1 files are frame-major with the header fields of `frames.py`; on a host that answers HTTP 206 the app fetches windows of 24 frames around the playhead, elsewhere it streams the whole file.
+   **Numbers never come from lossy pixels.** The ERA5 readouts (strongest wind and lowest pressure within 2° of the centre, and the ratios built on them) use `series` when present, else the lossless .tyf frame, else the lossless `exact` grid, which gives a reading only every 3 hours (the panel says so; nothing is interpolated).
 3. **Files are immutable per version directory**: a re-processed storm lands in a new `v<N+1>/` and `latest.json` moves. The app caches by root URL.
 4. **CORS**: every file needs `Access-Control-Allow-Origin` (HF `resolve` URLs send it); Range requests must be allowed without credentials.
 5. **Local names**: `localNames.ph` from the PAGASA crosswalk and `localNames.ja` as the JMA designation (台風第N号, or the named-storm title). The fixture fills `ja` by hand for 16 storms.

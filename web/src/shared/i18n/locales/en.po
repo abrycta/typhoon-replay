@@ -356,6 +356,10 @@ msgstr "Free-tier servers sleep after 15 minutes idle; the first request can tak
 msgid "From the API."
 msgstr "From the API."
 
+#: src/features/replay/IntensityPanel.tsx
+msgid "From the lossless 3-hourly grid (0.5°)."
+msgstr "From the lossless 3-hourly grid (0.5°)."
+
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "From the static dataset."
 msgstr "From the static dataset."
@@ -574,6 +578,10 @@ msgstr "no best-track wind to compare"
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
 msgstr "No covered place was within {radius} km."
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only."
+msgstr "No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only."
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No field data at this hour."

@@ -74,7 +74,8 @@
    "peakWindKt": 170.0,
    "peakWindAgency": "jtwc",
    "minPressureHpa": 905.0,
-   "replayAvailable": false
+   "replayAvailable": true,
+   "frameCount": 48
   },
   {
    "sid": "2019242N14180",

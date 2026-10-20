@@ -5,6 +5,7 @@ import * as Comlink from "comlink";
 import type { DecodeWorkerApi } from "./decode.worker";
 import type { DecodedFrames, FrameSink, Strategy } from "./loader";
 import { frameBytes, type TyfHeader } from "./tyf";
+import type { ExactFrames, FrameSource } from "./webp";
 
 export interface FrameStoreSnapshot {
   header?: TyfHeader;
@@ -14,11 +15,21 @@ export interface FrameStoreSnapshot {
   totalBytes?: number;
   error?: string;
   done: boolean;
+  /** Hours with lossless readout codes (WebP storms without per-frame `series` only). */
+  exactFrames?: number;
+}
+
+/** Lossless codes for one hour of the 3-hourly exact grid; `k` indexes `header`'s frames. */
+export interface ExactAt {
+  raw: Uint8Array;
+  header: TyfHeader;
+  k: number;
 }
 
 export class FrameStore {
   private raw: (Uint8Array | undefined)[] = [];
   private uvs: (Uint8Array | undefined)[] = [];
+  private exact?: { header: TyfHeader; byHour: Map<number, number>; raw: Uint8Array };
   private listeners = new Set<() => void>();
   private worker?: Worker;
   private api?: Comlink.Remote<DecodeWorkerApi>;
@@ -26,22 +37,29 @@ export class FrameStore {
   /** Bumped on every change; lets the map layer know when to re-upload. */
   version = 0;
 
-  static open(url: string, format: "tyf" | "tyf.gz", focus = 0): FrameStore {
+  static open(source: FrameSource, focus = 0): FrameStore {
     const store = new FrameStore();
-    store.start(url, format, focus);
+    store.start(source, focus);
     return store;
   }
 
-  private start(url: string, format: "tyf" | "tyf.gz", focus: number) {
-    this.worker = new Worker(new URL("./decode.worker.ts", import.meta.url), { type: "module", name: "tyf-decode" });
+  private start(source: FrameSource, focus: number) {
+    // WebP geometry comes with the summary: publish it now, so the timeline does not wait for the worker.
+    if (source.kind === "webp") this.update({ header: source.header, strategy: "webp" });
+    this.worker = new Worker(new URL("./decode.worker.ts", import.meta.url), { type: "module", name: "frame-decode" });
     this.api = Comlink.wrap<DecodeWorkerApi>(this.worker);
     const sink: FrameSink = {
-      header: (header, strategy, totalBytes) => this.update({ header, strategy, totalBytes }),
+      header: (header, strategy, totalBytes) => {
+        // A WebP storm that fell back to its .tyf: another frame layout, so drop anything stored.
+        if (this.snap.header && this.snap.header.format !== header.format) this.reset();
+        this.update({ header, strategy, totalBytes });
+      },
       frames: (b) => this.add(b),
       progress: (loadedBytes, totalBytes) => this.update({ loadedBytes, totalBytes: totalBytes ?? this.snap.totalBytes }),
+      exact: (b) => this.addExact(b),
     };
     this.api
-      .open(url, Comlink.proxy(sink), { format, focus })
+      .open(source, Comlink.proxy(sink), { focus })
       .then(() => this.update({ done: true }))
       .catch((e: unknown) => this.update({ error: e instanceof Error ? e.message : String(e), done: true }));
   }
@@ -69,6 +87,18 @@ export class FrameStore {
     this.update({ loadedFrames: this.snap.loadedFrames + added });
   }
 
+  private addExact(b: ExactFrames) {
+    this.exact = { header: b.header, raw: b.raw, byHour: new Map(b.frameIndex.map((hour, k) => [hour, k])) };
+    this.update({ exactFrames: b.frameIndex.length });
+  }
+
+  private reset() {
+    this.raw = [];
+    this.uvs = [];
+    this.exact = undefined;
+    this.snap = { loadedFrames: 0, loadedBytes: 0, done: false };
+  }
+
   private update(patch: Partial<FrameStoreSnapshot>) {
     this.snap = { ...this.snap, ...patch };
     this.version++;
@@ -83,6 +113,14 @@ export class FrameStore {
   }
   has(i: number): boolean {
     return this.raw[i] !== undefined;
+  }
+  /** Lossless readout codes at hour i, when i is one of the exact grid's (3-hourly) hours. */
+  exactAt(i: number): ExactAt | undefined {
+    const e = this.exact;
+    const k = e?.byHour.get(i);
+    if (!e || k === undefined) return undefined;
+    const fb = frameBytes(e.header);
+    return { raw: e.raw.subarray(k * fb, (k + 1) * fb), header: e.header, k };
   }
   /** Fraction of frames loaded contiguously from frame `from` (for the buffered bar). */
   bufferedFrom(from: number): number {

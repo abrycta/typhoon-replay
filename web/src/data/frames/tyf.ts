@@ -11,8 +11,9 @@ export interface TyfVar {
   offset: number;
 }
 
+/** Frame geometry and variables. The .tyf file carries it; for WebP frames it is built from summary.frames. */
 export interface TyfHeader {
-  format: "TYF1";
+  format: "TYF1" | "webp";
   sid: string;
   name?: string;
   season?: number;

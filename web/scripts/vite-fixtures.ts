@@ -10,6 +10,7 @@ import type { Plugin } from "vite";
 const TYPES: Record<string, string> = {
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
+  ".webp": "image/webp",
   ".tyf": "application/octet-stream",
   ".gz": "application/gzip",
 };

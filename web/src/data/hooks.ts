@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { useAppConfig } from "@/shared/config/context";
 import type { StormDetail } from "@/shared/model/types";
 
-import { framesUrl, loadIndex, loadManifest, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset } from "./dataset";
+import { loadIndex, loadManifest, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset, stormRoot } from "./dataset";
+import { frameSource, sourceKey } from "./frames/source";
 import { FrameStore } from "./frames/store";
 
 const STATIC = { staleTime: Infinity, gcTime: 30 * 60_000, retry: 1 } as const;
@@ -52,14 +53,14 @@ export function useStormTrack(sid: string | undefined) {
   });
 }
 
-/** Opens the storm's frames in a worker for as long as the component is mounted. */
+/** Opens the storm's frames (WebP preferred, else .tyf) in a worker for as long as the component is mounted. */
 export function useFrameStore(dataset: ResolvedDataset | undefined, detail: StormDetail | undefined, focus = 0) {
-  const url = dataset && detail ? framesUrl(dataset, detail) : undefined;
-  const format = detail?.frames?.format ?? "tyf";
+  const source = useMemo(() => (dataset && detail ? frameSource(detail.sid, detail.frames, stormRoot(dataset, detail.sid)) : undefined), [dataset, detail]);
+  const key = sourceKey(source);
   const [store, setStore] = useState<FrameStore | undefined>();
   useEffect(() => {
-    if (!url) return;
-    const s = FrameStore.open(url, format, focus);
+    if (!source) return;
+    const s = FrameStore.open(source, focus);
     // The store wraps an external system (a worker); publishing it to render is the point of this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStore(s);
@@ -67,9 +68,10 @@ export function useFrameStore(dataset: ResolvedDataset | undefined, detail: Stor
       s.dispose();
       setStore(undefined);
     };
-    // focus only seeds the first window; later moves go through store.prioritise()
+    // Reopen only when the files change (key); focus only seeds the first window, later moves go through
+    // store.prioritise().
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, format]);
+  }, [key]);
   const snap = useSyncExternalStore(store?.subscribe ?? noopSubscribe, store?.getSnapshot ?? emptySnapshot);
   return { store, snap };
 }
