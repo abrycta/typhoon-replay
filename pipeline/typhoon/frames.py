@@ -1,62 +1,122 @@
-"""Quantise storm-centred ERA5 windows to uint8 and pack a per-storm frame file (+ sprite sheets,
-track JSON, coastline JSON for the spike viewer) and cross-check ERA5 vs IBTrACS intensity.
+"""Quantised ERA5 replay frames per storm: `.tyf` segments and lossless WebP sprite sheets.
 
-Usage: uv run python -m typhoon.frames --npz data/processed/era5/2013306N07162_direct_223h.npz
+Usage: uv run python -m typhoon.frames --sid 2013306N07162 [--sid ...] [--formats tyf,webp]
 
-Frame file layout (.tyf, little-endian):
+Both formats carry the same uint8 values (the WebP sheets are byte-exact copies of the .tyf planes):
+
+.tyf (little-endian), one file per segment of at most SEGMENT_HOURS frames
   bytes 0-3   magic b"TYF1"
-  bytes 4-7   uint32 header length H (UTF-8 JSON)
-  bytes 8..   JSON header, space-padded so the data starts on an 8-byte boundary
+  bytes 4-7   uint32 header length H (UTF-8 JSON, space-padded so the data starts on an 8-byte boundary)
+  bytes 8..   JSON header (vars, encodings, per-frame time and NW corner, credit, ...)
   data        uint8[frames][vars][ny][nx], row 0 = north edge, col 0 = west edge
-Decoding per variable (see header.vars[*]):
-  linear: value = offset + q * scale        (q == nodata -> missing)
-  sqrt:   value = (q * scale) ** 2          (precipitation: more precision for light rain)
+  Frame i of variable v starts at 8 + H + (i * nvars + v) * ny * nx: one hour is one contiguous range,
+  so a client can fetch any hour with a single HTTP range request and decode it on its own.
+
+WebP sprite sheets, one per variable per segment: greyscale (L) lossless, tiles of nx x ny laid out
+row-major in a `cols` x `rows` grid (frame i at column i % cols, row i // cols); the same uint8 values.
+
+Decoding (header.vars[*]):
+  linear: value = offset + q * scale        (q == 255 -> nodata)
+  sqrt:   value = (q * scale) ** 2          (precipitation: finer steps for light rain)
   angle:  degrees = q * 360 / 256           (direction the wind blows towards, clockwise from north)
 """
 from __future__ import annotations
 
 import argparse
-import gzip
+import hashlib
 import io
 import json
+import logging
 import math
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
-import shapely
 from PIL import Image
-from shapely.geometry import shape
 
-ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "data/processed/frames"
-KT = 0.514444  # m/s per knot
+from . import era5, sources
+from .config import ERA5_CREDIT, KT, PROCESSED, ensure_dir
+from .track import lon180
 
-ENC = [  # name, units, kind, scale, offset
-    ("wind", "m/s", "linear", 0.3, 0.0),     # 0 .. 76.2
-    ("gust", "m/s", "linear", 0.4, 0.0),     # 0 .. 101.6
-    ("mslp", "hPa", "linear", 0.65, 870.0),  # 870 .. 1035.1
-    ("tp", "mm/h", "sqrt", 0.04, 0.0),       # 0 .. 103.2
-    ("wdir", "deg", "angle", 360 / 256, 0.0),
-]
+log = logging.getLogger("typhoon.frames")
+OUT = PROCESSED / "frames"
+SEGMENT_HOURS = 168          # 7 days: 5.5 MB per .tyf segment, a 13 x 13 sprite grid (1053 px)
+MAX_FILE_BYTES = 25 * 2**20  # hosting cap per file (Cloudflare Pages); HF has none, we keep it anyway
 NODATA = 255
 
 
-def quantise(x: np.ndarray, kind: str, scale: float, offset: float) -> np.ndarray:
-    if kind == "angle":
-        return (np.round(x / scale) % 256).astype(np.uint8)
-    y = np.sqrt(np.maximum(x, 0)) if kind == "sqrt" else x - offset
-    q = np.clip(np.round(y / scale), 0, 254)
+@dataclass(frozen=True)
+class Enc:
+    name: str
+    units: str
+    kind: str
+    scale: float
+    offset: float
+    description: str
+
+
+ENC = (
+    Enc("wind", "m/s", "linear", 0.3, 0.0, "10 m wind speed from u/v (analysis, instantaneous); 0-76.2"),
+    Enc("gust", "m/s", "linear", 0.4, 0.0, "maximum 10 m gust in the hour ending at the frame time (ERA5 10fg); 0-101.6"),
+    Enc("mslp", "hPa", "linear", 0.65, 870.0, "mean sea-level pressure (analysis); 870-1035.1"),
+    Enc("rain", "mm/h", "sqrt", 0.04, 0.0, "mean precipitation rate in the hour ending at the frame time (ERA5 mtpr); 0-103.2"),
+    Enc("wdir", "deg", "angle", 360 / 256, 0.0, "direction the 10 m wind blows towards, clockwise from north"),
+)
+
+
+def quantise(x: np.ndarray, e: Enc) -> np.ndarray:
+    if e.kind == "angle":
+        q = (np.round(np.nan_to_num(x) / e.scale) % 256).astype(np.uint8)
+        q[~np.isfinite(x)] = 0
+        return q
+    y = np.sqrt(np.maximum(x, 0)) if e.kind == "sqrt" else x - e.offset
+    with np.errstate(invalid="ignore"):
+        q = np.clip(np.round(y / e.scale), 0, 254)
     q[~np.isfinite(x)] = NODATA
     return q.astype(np.uint8)
 
 
-def dequantise(q: np.ndarray, kind: str, scale: float, offset: float) -> np.ndarray:
-    v = q.astype(np.float32) * scale
-    return v**2 if kind == "sqrt" else v + offset
+def dequantise(q: np.ndarray, e: Enc) -> np.ndarray:
+    v = q.astype(np.float32) * np.float32(e.scale)
+    out = v**2 if e.kind == "sqrt" else v + np.float32(e.offset)
+    if e.kind != "angle":
+        out[q == NODATA] = np.nan
+    return out
 
 
-def sprite(q: np.ndarray, path: Path) -> dict:
+def physical_fields(w: era5.Windows) -> dict[str, np.ndarray]:
+    u, v = w.fields["u10"], w.fields["v10"]
+    return {
+        "wind": np.hypot(u, v),
+        "gust": w.fields["fg10"],
+        "mslp": w.fields["msl"] / 100.0,
+        "rain": w.fields["mtpr"] * 3600.0,
+        "wdir": (np.degrees(np.arctan2(u, v)) + 360) % 360,
+    }
+
+
+def sha256(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def tyf_bytes(q: np.ndarray, header: dict[str, Any]) -> tuple[bytes, int]:
+    hb = json.dumps(header, separators=(",", ":"), ensure_ascii=False).encode()
+    hb += b" " * ((-(8 + len(hb))) % 8)
+    return b"TYF1" + len(hb).to_bytes(4, "little") + hb + q.tobytes(), 8 + len(hb)
+
+
+def parse_tyf(blob: bytes) -> tuple[dict[str, Any], np.ndarray]:
+    assert blob[:4] == b"TYF1"
+    hl = int.from_bytes(blob[4:8], "little")
+    h = json.loads(blob[8:8 + hl])
+    q = np.frombuffer(blob[8 + hl:], np.uint8).reshape(h["frames"], len(h["vars"]), h["ny"], h["nx"])
+    return h, q
+
+
+def sprite(q: np.ndarray) -> tuple[bytes, int, int]:
+    """Lossless greyscale WebP sheet of frames q[t, ny, nx]."""
     t, h, w = q.shape
     cols = math.ceil(math.sqrt(t))
     rows = math.ceil(t / cols)
@@ -64,156 +124,160 @@ def sprite(q: np.ndarray, path: Path) -> dict:
     for i in range(t):
         r, c = divmod(i, cols)
         sheet[r * h:(r + 1) * h, c * w:(c + 1) * w] = q[i]
-    im = Image.fromarray(sheet, "L")
-    im.save(path.with_suffix(".png"), optimize=True)
-    im.save(path.with_suffix(".webp"), lossless=True, quality=100, method=6)
-    return {"cols": cols, "rows": rows, "png": path.with_suffix(".png").stat().st_size,
-            "webp": path.with_suffix(".webp").stat().st_size}
+    buf = io.BytesIO()
+    Image.fromarray(sheet, "L").save(buf, format="WEBP", lossless=True, quality=100, method=4, exact=True)
+    return buf.getvalue(), cols, rows
 
 
-def coastline(path: Path, bbox=(90, -15, 190, 65)):
-    gj = json.loads((ROOT / "data/raw/naturalearth/ne_50m_coastline.geojson").read_text())
-    box = shapely.box(-180, bbox[1], 180, bbox[3])
-    lines = []
-    for f in gj["features"]:
-        g = shapely.intersection(shape(f["geometry"]), box)
-        for part in getattr(g, "geoms", [g]):
-            if part.is_empty or part.geom_type != "LineString":
-                continue
-            cs = [[round(x % 360, 2), round(y, 2)] for x, y in part.simplify(0.05).coords]
-            if any(bbox[0] <= x <= bbox[2] for x, _ in cs):
-                lines.append(cs)
-    path.write_text(json.dumps(lines, separators=(",", ":")))
+def unsprite(data: bytes, frames: int, ny: int, nx: int, cols: int) -> np.ndarray:
+    im = np.asarray(Image.open(io.BytesIO(data)).convert("L"))
+    out = np.empty((frames, ny, nx), np.uint8)
+    for i in range(frames):
+        r, c = divmod(i, cols)
+        out[i] = im[r * ny:(r + 1) * ny, c * nx:(c + 1) * nx]
+    return out
 
 
-def cross_check(fields: dict, tr: pd.DataFrame, lat_nw, lon_nw, radius_deg=2.0) -> dict:
-    n = fields["wind"].shape[1]
+# ----------------------------------------------------------------------------- honesty cross-check
+
+def honesty(fields: dict[str, np.ndarray], w: era5.Windows, hourly: pd.DataFrame, radius_deg: float = 2.0) -> dict[str, Any]:
+    """ERA5 maximum 10 m wind within `radius_deg` of the best-track centre vs the best-track winds."""
+    n = era5.N
     off = (np.arange(n) - n // 2) * 0.25
-    dy, dx = np.meshgrid(off, off, indexing="ij")
     rows = []
-    for i in range(len(tr)):
-        clat = lat_nw[i] - (n // 2) * 0.25
-        clon = lon_nw[i] + (n // 2) * 0.25
-        # distance of each cell from the IBTrACS centre (not the snapped grid centre)
-        ddy = dy * -1 + (clat - tr.lat[i])
-        ddx = (dx + (clon - tr.lon[i])) * math.cos(math.radians(tr.lat[i]))
-        m = np.hypot(ddy, ddx) <= radius_deg
-        rows.append({
-            "time": tr.time[i], "era5_wind_max": float(np.nanmax(fields["wind"][i][m])),
-            "era5_gust_max": float(np.nanmax(fields["gust"][i][m])),
-            "era5_mslp_min": float(np.nanmin(fields["mslp"][i][m])),
-            "usa_wind": tr.usa_wind_kt[i] * KT, "jma_wind": tr.tokyo_wind_kt[i] * KT,
-            "usa_pres": tr.usa_pres_hpa[i], "jma_pres": tr.tokyo_pres_hpa[i],
-        })
+    for i in range(len(hourly)):
+        clat = w.nw_lat[i] - (n // 2) * 0.25
+        clon = w.nw_lon[i] + (n // 2) * 0.25
+        dy = -off[:, None] + (clat - hourly.lat.iloc[i])
+        dlon = ((off[None, :] + clon - hourly.lon.iloc[i] + 180) % 360) - 180
+        dx = dlon * math.cos(math.radians(hourly.lat.iloc[i]))
+        m = np.hypot(dy, dx) <= radius_deg
+        wind, gust, p = fields["wind"][i][m], fields["gust"][i][m], fields["mslp"][i][m]
+        rows.append({"time": hourly.time.iloc[i],
+                     "era5_wind": float(np.nanmax(wind)) if np.isfinite(wind).any() else np.nan,
+                     "era5_gust": float(np.nanmax(gust)) if np.isfinite(gust).any() else np.nan,
+                     "era5_mslp": float(np.nanmin(p)) if np.isfinite(p).any() else np.nan,
+                     "jtwc": hourly.jtwc_wind_kt.iloc[i] * KT, "jma": hourly.jma_wind_kt.iloc[i] * KT,
+                     "jma_p": hourly.jma_pressure_hpa.iloc[i], "jtwc_p": hourly.jtwc_pressure_hpa.iloc[i]})
     df = pd.DataFrame(rows)
-    pk = df.usa_wind.idxmax()
-    strong = df[df.usa_wind >= 64 * KT]
-    return {
-        "radius_deg": radius_deg,
-        "peak_time": str(df.time[pk]),
-        "at_usa_peak": {
-            "usa_1min_ms": round(df.usa_wind[pk], 1), "jma_10min_ms": round(df.jma_wind[pk], 1),
-            "era5_wind_ms": round(df.era5_wind_max[pk], 1), "era5_gust_ms": round(df.era5_gust_max[pk], 1),
-            "ratio_era5_to_usa": round(df.era5_wind_max[pk] / df.usa_wind[pk], 3),
-            "ratio_era5_to_jma": round(df.era5_wind_max[pk] / df.jma_wind[pk], 3),
-            "era5_mslp_min": round(df.era5_mslp_min[pk], 1), "jma_pres": df.jma_pres[pk],
-        },
-        "lifetime_max": {
-            "usa_1min_ms": round(df.usa_wind.max(), 1), "jma_10min_ms": round(df.jma_wind.max(), 1),
-            "era5_wind_ms": round(df.era5_wind_max.max(), 1), "era5_gust_ms": round(df.era5_gust_max.max(), 1),
-            "era5_mslp_min": round(df.era5_mslp_min.min(), 1), "jma_pres_min": df.jma_pres.min(),
-            "ratio_era5_to_usa": round(df.era5_wind_max.max() / df.usa_wind.max(), 3),
-            "ratio_era5_to_jma": round(df.era5_wind_max.max() / df.jma_wind.max(), 3),
-        },
-        "typhoon_hours_median_ratio_to_usa": round(float((strong.era5_wind_max / strong.usa_wind).median()), 3),
-        "typhoon_hours_median_ratio_to_jma": round(float((strong.era5_wind_max / strong.jma_wind).median()), 3),
-        "typhoon_hours": int(len(strong)),
-        "_series": df,
-    }
+
+    def r(x: float, d: int = 3) -> float | None:
+        return None if x is None or not np.isfinite(x) else round(float(x), d)
+
+    out: dict[str, Any] = {"radiusDeg": radius_deg, "method": (
+        "ERA5 max 10 m wind within 2 deg of the hourly best-track centre, compared with the best-track "
+        "sustained wind (JTWC 1-min, JMA 10-min) at the same hour")}
+    for ag, col in (("jtwc", "jtwc"), ("jma", "jma")):
+        s = df[col]
+        if s.notna().any() and s.max() > 0:
+            k = int(s.idxmax())
+            strong = df[s >= 64 * KT]
+            out[ag] = {
+                "peakAt": pd.Timestamp(df.time[k]).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "bestTrackPeakMs": r(s[k], 1), "era5AtPeakMs": r(df.era5_wind[k], 1),
+                "ratioAtPeak": r(df.era5_wind[k] / s[k]),
+                "ratioLifetimeMax": r(df.era5_wind.max() / s.max()),
+                "medianRatioTyphoonHours": r((strong.era5_wind / strong[col]).median()) if len(strong) else None,
+                "typhoonHours": int(len(strong)),
+            }
+    out["era5MaxWindMs"] = r(df.era5_wind.max(), 1)
+    out["era5MaxGustMs"] = r(df.era5_gust.max(), 1)
+    out["era5MinMslpHpa"] = r(df.era5_mslp.min(), 1)
+    bp = df.jma_p.min() if df.jma_p.notna().any() else df.jtwc_p.min()
+    out["bestTrackMinPressureHpa"] = r(bp, 0)
+    out["pressureBiasHpa"] = r(df.era5_mslp.min() - bp, 1) if np.isfinite(bp) else None
+    ref = out.get("jtwc") or out.get("jma")
+    out["headlineRatio"] = ref["ratioAtPeak"] if ref else None
+    out["headlineAgency"] = "jtwc" if out.get("jtwc") else ("jma" if out.get("jma") else None)
+    return out
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--npz", type=Path, default=ROOT / "data/processed/era5/2013306N07162_direct_223h.npz")
-    ap.add_argument("--sid", default="2013306N07162")
-    a = ap.parse_args(argv)
-    z = np.load(a.npz)
-    tr = pd.read_parquet(ROOT / f"data/processed/era5/{a.sid}_track_hourly.parquet")
-    st = pd.read_parquet(ROOT / "data/processed/ibtracs/storms.parquet").set_index("sid").loc[a.sid]
-    fields = {
-        "wind": np.hypot(z["u10"], z["v10"]),
-        "gust": z["gust"],
-        "mslp": z["mslp"] / 100.0,
-        "tp": z["tp"] * 1000.0,
-        "wdir": (np.degrees(np.arctan2(z["u10"], z["v10"])) + 360) % 360,
-    }
-    T, ny, nx = fields["wind"].shape
-    OUT.mkdir(parents=True, exist_ok=True)
-    q = np.stack([quantise(fields[n], k, s, o) for n, _, k, s, o in ENC], axis=1)  # T,V,ny,nx
-    qerr = {}
-    for vi, (n, _, k, s, o) in enumerate(ENC):
-        if k == "angle":
+# ----------------------------------------------------------------------------- per storm
+
+def build_storm(sid: str, hourly: pd.DataFrame, storm: dict[str, Any], *, formats: tuple[str, ...] = ("tyf", "webp"),
+                manifest: sources.RunManifest | None = None, out_root: Path = OUT) -> dict[str, Any]:
+    """Read ERA5 windows along the hourly track, write the frame files, return the frames manifest."""
+    hourly = hourly.sort_values("time").reset_index(drop=True)
+    hours = hourly.time.dt.tz_convert("UTC").dt.tz_localize(None).to_numpy().astype("datetime64[h]")
+    w = era5.read_windows(hours, hourly.lat.to_numpy(), hourly.lon.to_numpy(), manifest=manifest)
+    fields = physical_fields(w)
+    q = np.stack([quantise(fields[e.name], e) for e in ENC], axis=1)       # T, V, ny, nx
+    out = ensure_dir(out_root / sid)
+    for old in out.glob("*"):
+        old.unlink()
+    years = sorted({int(str(h)[:4]) for h in hours})
+    credit = ERA5_CREDIT.format(years=f"{years[0]}" if years[0] == years[-1] else f"{years[0]}-{years[-1]}")
+    nw_lat, nw_lon = w.nw_lat, w.nw_lon
+    unix = (hours.astype("datetime64[s]").astype("int64")).tolist()
+    served = {k: {lk: v.count(lk) for lk in dict.fromkeys(v)} for k, v in w.served.items()}
+    qerr: dict[str, Any] = {}
+    for vi, e in enumerate(ENC):
+        if e.kind == "angle":
             continue
-        d = dequantise(q[:, vi], k, s, o) - fields[n]
-        qerr[n] = {"max_abs": round(float(np.abs(d).max()), 4), "rmse": round(float(np.sqrt((d**2).mean())), 4),
-                   "data_min": round(float(fields[n].min()), 2), "data_max": round(float(fields[n].max()), 2),
-                   "clipped_cells": int(((q[:, vi] == 254)).sum())}
-    header = {
-        "format": "TYF1", "sid": a.sid, "name": st["name"], "season": int(st.season),
-        "source": "ERA5 hourly via ARCO-ERA5 (gs://gcp-public-data-arco-era5), 0.25 deg",
-        "credit": "Contains modified Copernicus Climate Change Service information (ERA5, CC BY 4.0)",
-        "nx": nx, "ny": ny, "res_deg": 0.25, "frames": T, "nodata": NODATA,
-        "layout": "uint8[frames][vars][ny][nx], row 0 north",
-        "vars": [{"name": n, "units": u, "encoding": k, "scale": s, "offset": o} for n, u, k, s, o in ENC],
-        "time": [int(t) for t in z["time"]],  # unix seconds UTC
-        "nw_lat": [float(x) for x in z["nw_lat"]], "nw_lon": [float(x) for x in z["nw_lon"]],
+        d = dequantise(q[:, vi], e) - fields[e.name]
+        ok = np.isfinite(d)
+        qerr[e.name] = {"maxAbs": round(float(np.abs(d[ok]).max()), 4) if ok.any() else None,
+                        "clipped": int((q[:, vi] == 254).sum()), "nodata": int((q[:, vi] == NODATA).sum())}
+    segs = []
+    nseg = math.ceil(len(hours) / SEGMENT_HOURS)
+    for s in range(nseg):
+        a, b = s * SEGMENT_HOURS, min((s + 1) * SEGMENT_HOURS, len(hours))
+        seg: dict[str, Any] = {"index": s, "frames": b - a, "start": pd.Timestamp(hours[a]).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                               "end": pd.Timestamp(hours[b - 1]).strftime("%Y-%m-%dT%H:%M:%SZ"), "firstFrame": a}
+        header = {
+            "format": "TYF1", "version": 1, "sid": sid, "name": storm.get("name"), "season": storm.get("season"),
+            "segment": s, "segments": nseg, "firstFrame": a, "frames": b - a, "nx": era5.N, "ny": era5.N,
+            "resDeg": 0.25, "nodata": NODATA, "layout": "uint8[frames][vars][ny][nx], row 0 north, col 0 west",
+            "vars": [{"name": e.name, "units": e.units, "encoding": e.kind, "scale": e.scale, "offset": e.offset,
+                      "description": e.description} for e in ENC],
+            "time": unix[a:b], "nwLat": [round(float(x), 2) for x in nw_lat[a:b]],
+            "nwLon": [round(float(lon180(x)), 2) for x in nw_lon[a:b]],
+            "source": "ERA5 hourly single levels, 0.25 deg (NSF NCAR ds633.0 / ARCO-ERA5)", "servedBy": served,
+            "credit": credit, "licence": "CC BY 4.0",
+        }
+        if "tyf" in formats:
+            blob, hlen = tyf_bytes(q[a:b], header)
+            assert len(blob) < MAX_FILE_BYTES
+            name = f"{sid}.s{s}.tyf"
+            (out / name).write_bytes(blob)
+            seg["tyf"] = {"file": name, "bytes": len(blob), "sha256": sha256(blob), "headerBytes": hlen,
+                          "frameBytes": len(ENC) * era5.N * era5.N}
+        if "webp" in formats:
+            seg["webp"] = {}
+            for vi, e in enumerate(ENC):
+                data, cols, rows = sprite(q[a:b, vi])
+                assert np.array_equal(unsprite(data, b - a, era5.N, era5.N, cols), q[a:b, vi]), "webp not lossless"
+                name = f"{sid}.s{s}.{e.name}.webp"
+                (out / name).write_bytes(data)
+                seg["webp"][e.name] = {"file": name, "bytes": len(data), "sha256": sha256(data), "cols": cols,
+                                       "rows": rows}
+        segs.append(seg)
+    meta = {
+        "sid": sid, "frames": len(hours), "start": segs[0]["start"], "end": segs[-1]["end"], "nx": era5.N,
+        "ny": era5.N, "resDeg": 0.25, "segmentHours": SEGMENT_HOURS, "formats": list(formats),
+        "vars": [{"name": e.name, "units": e.units, "encoding": e.kind, "scale": e.scale, "offset": e.offset,
+                  "description": e.description} for e in ENC],
+        "nodata": NODATA, "segments": segs, "servedBy": served, "credit": credit,
+        "quantisation": qerr, "era5VsBestTrack": honesty(fields, w, hourly),
     }
-    hb = json.dumps(header, separators=(",", ":")).encode()
-    pad = (-(8 + len(hb))) % 8
-    hb += b" " * pad
-    blob = b"TYF1" + len(hb).to_bytes(4, "little") + hb + q.tobytes()
-    fpath = OUT / f"{a.sid}.tyf"
-    fpath.write_bytes(blob)
-    gz = len(gzip.compress(blob, 9))
-    sprites = {n: sprite(q[:, vi], OUT / f"{a.sid}_{n}") for vi, (n, *_) in enumerate(ENC)}
-    # Track for the viewer: hourly interpolated + original best-track fixes
-    fx = pd.read_parquet(ROOT / "data/processed/ibtracs/fixes.parquet", filters=[("sid", "==", a.sid)])
-    track = {
-        "sid": a.sid, "name": st["name"], "season": int(st.season),
-        "fixes": [{"t": int(r.iso_time.timestamp()), "lat": r.lat, "lon": r.lon,
-                   "usa_kt": None if pd.isna(r.usa_wind_kt) else r.usa_wind_kt,
-                   "jma_kt": None if pd.isna(r.tokyo_wind_kt) else r.tokyo_wind_kt,
-                   "jma_hpa": None if pd.isna(r.tokyo_pres_hpa) else r.tokyo_pres_hpa}
-                  for r in fx.itertuples()],
-    }
-    (OUT / f"{a.sid}_track.json").write_text(json.dumps(track, separators=(",", ":")))
-    coastline(OUT / "coast.json")
-    cc = cross_check(fields, tr, z["nw_lat"], z["nw_lon"])
-    cc.pop("_series").to_csv(OUT / f"{a.sid}_crosscheck.csv", index=False)
-    per_hour_raw = len(blob) / T
-    per_hour_gz = gz / T
-    s = json.loads((ROOT / "data/processed/ibtracs/summary.json").read_text())
-    storms = pd.read_parquet(ROOT / "data/processed/ibtracs/storms.parquet")
-    s40 = storms[storms.season >= 1940]
-    longest = float(s40.duration_h.max()) + 1
-    report = {
-        "frames": T, "window": f"{ny}x{nx}", "vars": len(ENC),
-        "tyf_bytes": len(blob), "tyf_gzip9_bytes": gz, "header_bytes": len(hb) + 8,
-        "sprites": sprites, "quantisation_error": qerr,
-        "extrapolation": {
-            "bytes_per_storm_hour_raw": round(per_hour_raw), "bytes_per_storm_hour_gzip": round(per_hour_gz),
-            "all_since_1940_storm_hours": s["storm_hours_since_1940"],
-            "all_since_1940_raw_GB": round(per_hour_raw * s["storm_hours_since_1940"] / 1e9, 2),
-            "all_since_1940_gzip_GB": round(per_hour_gz * s["storm_hours_since_1940"] / 1e9, 2),
-            "ph_jp_affecting_raw_GB": round(per_hour_raw * s["storm_hours_since_1940_ph_or_jp_affecting"] / 1e9, 2),
-            "longest_storm_h": longest, "longest_storm_raw_MiB": round(per_hour_raw * longest / 2**20, 2),
-            "mean_storm_raw_MiB": round(per_hour_raw * (s40.duration_h.mean() + 1) / 2**20, 2),
-            "files": int(len(s40)),
-        },
-        "cross_check": cc,
-    }
-    (OUT / f"{a.sid}_report.json").write_text(json.dumps(report, indent=2, default=str))
-    print(json.dumps(report, indent=2, default=str))
+    (out / "frames.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    return meta
+
+
+def main(argv: list[str] | None = None) -> None:
+    from . import catalog
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sid", action="append", required=True)
+    ap.add_argument("--formats", default="tyf,webp")
+    a = ap.parse_args(argv)
+    st = catalog.load("storms").set_index("sid")
+    hr = catalog.load("hourly")
+    for sid in a.sid:
+        m = build_storm(sid, hr[hr.sid == sid], {"name": st.loc[sid, "name"], "season": int(st.loc[sid, "season"])},
+                        formats=tuple(a.formats.split(",")))
+        print(json.dumps({k: m[k] for k in ("sid", "frames", "servedBy", "quantisation", "era5VsBestTrack")}, indent=1))
 
 
 if __name__ == "__main__":
