@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "dev.krtmtthw"
-version = "0.1.0"
+version = "0.2.0"
 
 java {
     toolchain { languageVersion = JavaLanguageVersion.of(25) }
@@ -30,8 +30,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
@@ -43,7 +41,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
     testImplementation("org.springframework.modulith:spring-modulith-docs")
@@ -55,12 +52,11 @@ dependencies {
 
 // ---------------------------------------------------------------------------------------------------------------
 // Contract-first: interfaces and models generated from the 3.1 bundle, never committed (build/generated/openapi).
-// Three operations are not served by an MVC handler with a generated signature, so the codegen view of the
-// spec marks them x-internal (openapi-generator skips those):
-//   streamLiveEvents       SseEmitter, hand-written in live/web/LiveStreamController
-//   startLogin/completeLogin  handled by Spring Security's oauth2Login filters (accounts/internal/security)
+// One operation is not served by an MVC handler with a generated signature, so the codegen view of the spec marks
+// it x-internal (openapi-generator skips those):
+//   streamLiveEvents       SseEmitter, hand-written in live/web/LiveController
 // ---------------------------------------------------------------------------------------------------------------
-val handWrittenOperations = setOf("streamLiveEvents", "startLogin", "completeLogin")
+val handWrittenOperations = setOf("streamLiveEvents")
 val codegenSpec = layout.buildDirectory.file("contract/openapi.codegen.json")
 
 val codegenView = tasks.register("codegenView") {

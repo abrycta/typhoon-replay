@@ -9,7 +9,7 @@ import org.springframework.modulith.Modulithic;
  * Typhoon Replay API, Java implementation (CONTRACT-GUIDE §0: one contract, four interchangeable backends).
  *
  * <p>Application modules (Spring Modulith): {@code shared} (open: web plumbing), {@code meta}, {@code storms},
- * {@code exposure}, {@code live}, {@code accounts}, {@code alerts}, plus the generated {@code contract} interfaces.
+ * {@code exposure}, {@code live}, plus the generated {@code contract} interfaces. Contract 2.0.0: no accounts.
  */
 @Modulithic(systemName = "Typhoon Replay API", sharedModules = "shared")
 @SpringBootApplication

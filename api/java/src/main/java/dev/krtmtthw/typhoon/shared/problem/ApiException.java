@@ -40,10 +40,6 @@ public class ApiException extends RuntimeException {
         return new ApiException(ProblemType.INVALID_CURSOR, detail, List.of(new FieldProblem("#/query/cursor", detail)));
     }
 
-    public static ApiException unprocessable(String detail) {
-        return new ApiException(ProblemType.UNPROCESSABLE, detail);
-    }
-
     public ProblemType type() {
         return type;
     }

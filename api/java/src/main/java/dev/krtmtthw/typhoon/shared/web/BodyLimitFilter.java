@@ -21,8 +21,9 @@ import dev.krtmtthw.typhoon.shared.problem.ProblemType;
 import dev.krtmtthw.typhoon.shared.problem.ProblemWriter;
 
 /**
- * Request bodies over 64 KB get 413 {@code payload-too-large} (CONTRACT-GUIDE §11), before CSRF, authentication or
- * parsing. A declared {@code Content-Length} is checked directly; a chunked body is buffered up to the limit.
+ * Request bodies over 64 KB get 413 {@code payload-too-large} (CONTRACT-GUIDE §11), before parsing (only the test
+ * hooks take a body). A declared {@code Content-Length} is checked directly; a chunked body is buffered up to the
+ * limit.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)

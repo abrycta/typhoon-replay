@@ -36,7 +36,7 @@ public class ContractDatabase {
         return DB;
     }
 
-    /** Reloads the deterministic fixture (wipes catalogue, live, auth and app data). */
+    /** Reloads the deterministic fixture (wipes catalogue and live data). */
     public static void reseed() {
         psql(DB, "-q", "-1", "-f", "/db/seed/seed.sql");
     }
@@ -51,19 +51,21 @@ public class ContractDatabase {
                 // Reused across runs when ~/.testcontainers.properties has testcontainers.reuse.enable=true.
                 .withReuse(true);
         db.start();
-        if (migrated(db)) {
-            return db;
-        }
         try {
-            psql(db, "-q", "-c", "CREATE TABLE public.schema_migrations (version varchar(128) PRIMARY KEY)");
+            // A reused container may predate newer migrations: apply only the ones it has not seen (like dbmate up).
+            psql(db, "-q", "-c", "CREATE TABLE IF NOT EXISTS public.schema_migrations (version varchar(128) PRIMARY KEY)");
+            java.util.Set<String> applied = applied(db);
             List<Path> files;
             try (Stream<Path> s = Files.list(contracts.resolve("migrations"))) {
                 files = s.filter(p -> p.toString().endsWith(".sql")).sorted().toList();
             }
             for (Path f : files) {
+                String version = f.getFileName().toString().split("_")[0];
+                if (applied.contains(version)) {
+                    continue;
+                }
                 String sql = Files.readString(f);
                 String up = sql.substring(sql.indexOf("-- migrate:up"), sql.indexOf("-- migrate:down"));
-                String version = f.getFileName().toString().split("_")[0];
                 String target = "/tmp/" + f.getFileName();
                 db.copyFileToContainer(Transferable.of(up + "\nINSERT INTO public.schema_migrations VALUES ('" + version + "');\n"),
                         target);
@@ -76,10 +78,11 @@ public class ContractDatabase {
         return db;
     }
 
-    private static boolean migrated(PostgreSQLContainer db) {
+    private static java.util.Set<String> applied(PostgreSQLContainer db) {
         try {
-            return db.execInContainer("psql", "-U", "tr", "-d", "typhoon", "-Atc",
-                    "SELECT to_regclass('public.schema_migrations') IS NOT NULL").getStdout().trim().equals("t");
+            return java.util.Set.copyOf(db.execInContainer("psql", "-U", "tr", "-d", "typhoon", "-Atc",
+                    "SELECT version FROM public.schema_migrations").getStdout().lines().map(String::trim)
+                    .filter(v -> !v.isEmpty()).toList());
         } catch (IOException | InterruptedException e) {
             throw new IllegalStateException(e);
         }

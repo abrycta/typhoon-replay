@@ -69,11 +69,6 @@ public class PlaceQueries {
                 }).optional();
     }
 
-    public Optional<PlaceSummary> summary(String placeId) {
-        return jdbc.sql("SELECT " + CatalogRows.PLACE_COLUMNS + " FROM catalog.place p WHERE p.place_id = :id")
-                .param("id", placeId).query((rs, n) -> CatalogRows.placeSummary(rs)).optional();
-    }
-
     public boolean exists(String placeId) {
         return jdbc.sql("SELECT EXISTS (SELECT 1 FROM catalog.place WHERE place_id = :id)").param("id", placeId)
                 .query(Boolean.class).single();

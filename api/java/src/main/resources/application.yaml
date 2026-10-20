@@ -1,29 +1,16 @@
 # Configuration comes only from the environment, with the names every backend shares (CONTRACT-GUIDE §11):
-# DATABASE_URL (see DatabaseUrlEnvironment), TR_SITE_ORIGIN, TR_TEST_HOOKS, TR_OAUTH_*, TR_LOG_LEVEL, PORT.
+# DATABASE_URL (see DatabaseUrlEnvironment), TR_SITE_ORIGIN, TR_TEST_HOOKS, TR_LOG_LEVEL, PORT.
 tr:
   impl: java
-  # The browser-visible origin: OAuth redirect URIs, Link and Location headers, CSRF Origin check.
+  # The browser-visible origin: absolute Link headers (with X-Forwarded-Prefix).
   site-origin: ${TR_SITE_ORIGIN:https://typhoon.krtmtthw.dev}
-  # Extra origins accepted by the CSRF Origin check (comma-separated), e.g. a preview deployment.
-  allowed-origins: ${TR_ALLOWED_ORIGINS:}
   test-hooks: ${TR_TEST_HOOKS:0}
+  # Contract 2.0.0 reads only catalog/live/ops, which 000500 already has, so this build also runs before or after
+  # 20261021000600_drop_accounts is applied (deploy first, then migrate).
   min-schema-version: "20261021000500"
   commit: ${TR_COMMIT:${RENDER_GIT_COMMIT:unknown}}
   rate-limit-per-minute: ${TR_RATE_LIMIT_PER_MINUTE:600}
   max-streams: ${TR_MAX_STREAMS:200}
-  oauth:
-    github:
-      client-id: ${TR_OAUTH_GITHUB_CLIENT_ID:unset}
-      client-secret: ${TR_OAUTH_GITHUB_CLIENT_SECRET:unset}
-      auth-url: ${TR_OAUTH_GITHUB_AUTH_URL:https://github.com/login/oauth/authorize}
-      token-url: ${TR_OAUTH_GITHUB_TOKEN_URL:https://github.com/login/oauth/access_token}
-      userinfo-url: ${TR_OAUTH_GITHUB_USERINFO_URL:https://api.github.com/user}
-    google:
-      client-id: ${TR_OAUTH_GOOGLE_CLIENT_ID:unset}
-      client-secret: ${TR_OAUTH_GOOGLE_CLIENT_SECRET:unset}
-      auth-url: ${TR_OAUTH_GOOGLE_AUTH_URL:https://accounts.google.com/o/oauth2/v2/auth}
-      token-url: ${TR_OAUTH_GOOGLE_TOKEN_URL:https://oauth2.googleapis.com/token}
-      userinfo-url: ${TR_OAUTH_GOOGLE_USERINFO_URL:https://openidconnect.googleapis.com/v1/userinfo}
 
 server:
   port: ${PORT:8080}
