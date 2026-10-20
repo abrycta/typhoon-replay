@@ -1,0 +1,3 @@
+# Local dev behind `wrangler pages dev` (just dev): the browser sees http://localhost:8788/api/java.
+tr:
+  site-origin: ${TR_SITE_ORIGIN:http://localhost:8788}

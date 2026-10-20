@@ -3,6 +3,7 @@
 #   just mail         Mailpit SMTP sink + UI on :8025                  (profile: mail)
 #   just mock         Prism mock of contracts/dist/openapi.json on :4010 (profile: mock)
 #   just idp          Mock OAuth2 provider (Google + GitHub) on :9090  (profile: idp)
+#   just java-run     Java backend on :8081 (+ db, seed, mock IdP)      (profile: java)
 # Backend services (profiles java|node|rust|go|all) are added as each backend lands.
 name: typhoon-replay
 
@@ -91,28 +92,31 @@ services:
     volumes:
       - ./contracts/conformance/mock-idp:/idp:ro
 
+  api-java:
+    profiles: [java, all]
+    build:
+      context: .
+      dockerfile: api/java/Dockerfile
+    environment: &api-env
+      DATABASE_URL: postgres://tr:tr@db:5432/typhoon?sslmode=disable
+      TR_SITE_ORIGIN: http://localhost:8788
+      TR_TEST_HOOKS: "1"
+      TR_LOG_LEVEL: info
+      TR_RATE_LIMIT_PER_MINUTE: "100000" # conformance traffic comes from one address
+      PORT: "8080"
+      TR_OAUTH_GITHUB_CLIENT_ID: test-client
+      TR_OAUTH_GITHUB_CLIENT_SECRET: test-secret
+      TR_OAUTH_GITHUB_AUTH_URL: http://localhost:9090/github/login/oauth/authorize
+      TR_OAUTH_GITHUB_TOKEN_URL: http://oauth-mock:9090/github/login/oauth/access_token
+      TR_OAUTH_GITHUB_USERINFO_URL: http://oauth-mock:9090/github/api/user
+      TR_OAUTH_GOOGLE_CLIENT_ID: test-client
+      TR_OAUTH_GOOGLE_CLIENT_SECRET: test-secret
+      TR_OAUTH_GOOGLE_AUTH_URL: http://localhost:9090/google/authorize
+      TR_OAUTH_GOOGLE_TOKEN_URL: http://oauth-mock:9090/google/token
+      TR_OAUTH_GOOGLE_USERINFO_URL: http://oauth-mock:9090/google/userinfo
+    ports: ["8081:8080"]
+    depends_on: { seed: { condition: service_completed_successfully } }
   # Backends: uncomment as each one lands. Every backend gets the same env (CONTRACT-GUIDE §11).
-  # api-java:
-  #   profiles: [java, all]
-  #   build: ./api/java
-  #   environment: &api-env
-  #     DATABASE_URL: postgres://tr:tr@db:5432/typhoon?sslmode=disable
-  #     TR_SITE_ORIGIN: http://localhost:8788
-  #     TR_TEST_HOOKS: "1"
-  #     TR_LOG_LEVEL: info
-  #     PORT: "8080"
-  #     TR_OAUTH_GITHUB_CLIENT_ID: test-client
-  #     TR_OAUTH_GITHUB_CLIENT_SECRET: test-secret
-  #     TR_OAUTH_GITHUB_AUTH_URL: http://localhost:9090/github/login/oauth/authorize
-  #     TR_OAUTH_GITHUB_TOKEN_URL: http://oauth-mock:9090/github/login/oauth/access_token
-  #     TR_OAUTH_GITHUB_USERINFO_URL: http://oauth-mock:9090/github/api/user
-  #     TR_OAUTH_GOOGLE_CLIENT_ID: test-client
-  #     TR_OAUTH_GOOGLE_CLIENT_SECRET: test-secret
-  #     TR_OAUTH_GOOGLE_AUTH_URL: http://localhost:9090/google/authorize
-  #     TR_OAUTH_GOOGLE_TOKEN_URL: http://oauth-mock:9090/google/token
-  #     TR_OAUTH_GOOGLE_USERINFO_URL: http://oauth-mock:9090/google/userinfo
-  #   ports: ["8081:8080"]
-  #   depends_on: { seed: { condition: service_completed_successfully } }
   # api-node:
   #   profiles: [node, all]
   #   build: ./api/node

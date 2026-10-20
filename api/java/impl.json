@@ -1,0 +1,8 @@
+{
+  "impl": "java",
+  "implVersion": "0.1.0",
+  "contract": ">=1.0.0 <2.0.0",
+  "claimedContract": "1.0.0",
+  "minSchemaVersion": "20261021000500",
+  "stack": "Spring Boot 4.1.1, Java 25, Spring MVC + virtual threads, Spring Modulith 2.1.1, JdbcClient + PostGIS, Spring Security 7.1"
+}

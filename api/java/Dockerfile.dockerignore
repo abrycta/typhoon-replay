@@ -1,0 +1,14 @@
+# Context is the repository root; only the contract and this backend are needed.
+*
+!contracts/package.json
+!contracts/package-lock.json
+!contracts/openapi
+!contracts/redocly.yaml
+!contracts/redocly
+!contracts/scripts
+!api/java/gradlew
+!api/java/gradle
+!api/java/settings.gradle.kts
+!api/java/build.gradle.kts
+!api/java/src
+api/java/src/test

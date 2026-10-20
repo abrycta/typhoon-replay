@@ -1,0 +1,103 @@
+# Configuration comes only from the environment, with the names every backend shares (CONTRACT-GUIDE §11):
+# DATABASE_URL (see DatabaseUrlEnvironment), TR_SITE_ORIGIN, TR_TEST_HOOKS, TR_OAUTH_*, TR_LOG_LEVEL, PORT.
+tr:
+  impl: java
+  # The browser-visible origin: OAuth redirect URIs, Link and Location headers, CSRF Origin check.
+  site-origin: ${TR_SITE_ORIGIN:https://typhoon.krtmtthw.dev}
+  # Extra origins accepted by the CSRF Origin check (comma-separated), e.g. a preview deployment.
+  allowed-origins: ${TR_ALLOWED_ORIGINS:}
+  test-hooks: ${TR_TEST_HOOKS:0}
+  min-schema-version: "20261021000500"
+  commit: ${TR_COMMIT:${RENDER_GIT_COMMIT:unknown}}
+  rate-limit-per-minute: ${TR_RATE_LIMIT_PER_MINUTE:600}
+  max-streams: ${TR_MAX_STREAMS:200}
+  oauth:
+    github:
+      client-id: ${TR_OAUTH_GITHUB_CLIENT_ID:unset}
+      client-secret: ${TR_OAUTH_GITHUB_CLIENT_SECRET:unset}
+      auth-url: ${TR_OAUTH_GITHUB_AUTH_URL:https://github.com/login/oauth/authorize}
+      token-url: ${TR_OAUTH_GITHUB_TOKEN_URL:https://github.com/login/oauth/access_token}
+      userinfo-url: ${TR_OAUTH_GITHUB_USERINFO_URL:https://api.github.com/user}
+    google:
+      client-id: ${TR_OAUTH_GOOGLE_CLIENT_ID:unset}
+      client-secret: ${TR_OAUTH_GOOGLE_CLIENT_SECRET:unset}
+      auth-url: ${TR_OAUTH_GOOGLE_AUTH_URL:https://accounts.google.com/o/oauth2/v2/auth}
+      token-url: ${TR_OAUTH_GOOGLE_TOKEN_URL:https://oauth2.googleapis.com/token}
+      userinfo-url: ${TR_OAUTH_GOOGLE_USERINFO_URL:https://openidconnect.googleapis.com/v1/userinfo}
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  # gzip for JSON over 1 KB (CONTRACT-GUIDE §4); text/event-stream is deliberately absent: the stream is never compressed.
+  compression:
+    enabled: true
+    min-response-size: 1KB
+    mime-types: application/json,application/problem+json,application/geo+json,text/html
+  tomcat:
+    max-swallow-size: 128KB
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: typhoon-replay-java
+  main:
+    banner-mode: "off"
+  servlet:
+    multipart:
+      enabled: false
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    hikari:
+      # Neon free tier: at most 5 pooled connections per backend, none held while idle (scale to zero).
+      maximum-pool-size: 5
+      minimum-idle: 0
+      idle-timeout: 30000
+      max-lifetime: 300000
+      keepalive-time: 0
+      connection-timeout: 5000
+      initialization-fail-timeout: -1
+      pool-name: tr
+  jdbc:
+    template:
+      query-timeout: 5s
+  sql:
+    init:
+      mode: never
+  mvc:
+    dispatch-trace-request: true
+    async:
+      request-timeout: 30m
+    problemdetails:
+      enabled: false
+  web:
+    resources:
+      add-mappings: false
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,contractSchema
+  health:
+    db:
+      enabled: false
+
+logging:
+  structured:
+    format:
+      console: dev.krtmtthw.typhoon.shared.logging.JsonLineFormatter
+  level:
+    root: ${TR_LOG_LEVEL:info}
