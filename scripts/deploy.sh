@@ -95,7 +95,7 @@ url="$(grep -Eo 'https://[A-Za-z0-9.-]+\.pages\.dev' "$log" | head -n 1 || true)
 echo
 if [[ "$target" == production ]]; then
   ok "production: https://$project.pages.dev"
-  [[ -n "$url" ]] && echo "     this deployment: $url"
+  if [[ -n "$url" ]]; then echo "     this deployment: $url"; fi
 else
   alias_host="$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+|-+$//g' | cut -c1-28)"
   ok "preview: ${url:-<see wrangler output above>}"
