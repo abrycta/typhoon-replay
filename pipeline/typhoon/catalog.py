@@ -41,6 +41,23 @@ def display_name(name_ibtracs: str) -> str:
     return "/".join(p.title() for p in name_ibtracs.split(":"))
 
 
+ATCF_SUFFIX = {"WP": "W", "CP": "C", "EP": "E"}   # JTWC/NHC/CPHC number suffix by ATCF basin
+
+
+def designation(atcf_id: object) -> str | None:
+    """Tropical cyclone number from IBTrACS USA_ATCF_ID: "WP032019" -> "03W", "CP021997" -> "02C".
+
+    The only designation most unnamed storms carry (JTWC numbered western Pacific depressions from 1945).
+    North Indian Ocean ("IO") ids are skipped: the A/B suffix (Arabian Sea / Bay of Bengal) is not in the id.
+    """
+    if not isinstance(atcf_id, str):
+        return None
+    a = atcf_id.strip().upper()
+    if len(a) != 8 or not a[2:].isdigit() or a[:2] not in ATCF_SUFFIX or a[2:4] == "00":
+        return None
+    return f"{a[2:4]}{ATCF_SUFFIX[a[:2]]}"
+
+
 class Land:
     """PH/JP place polygons as the land mask; answers 'which place is this point/segment on'."""
 

@@ -197,6 +197,36 @@ def test_antimeridian_track_does_not_cross_the_philippines() -> None:
     assert land.entries(np.array([179.6, 180.1, 180.6]), np.array([11.0, 11.0, 11.0]), t) == []
 
 
+def test_designation_from_the_atcf_id() -> None:
+    assert catalog.designation("WP032019") == "03W" and catalog.designation("wp262021 ") == "26W"
+    assert catalog.designation("CP021997") == "02C" and catalog.designation("EP151994") == "15E"
+    # North Indian Ocean ids lack the A/B sub-basin; missing, malformed and number-00 ids give nothing
+    for bad in ("IO111951", None, float("nan"), "", "WP0319", "WPXX2019", "WP002019"):
+        assert catalog.designation(bad) is None
+
+
+def storm_row(**kw: object) -> pd.Series:
+    t0 = pd.Timestamp("2021-05-12T00:00Z")
+    row: dict[str, object] = {
+        "sid": "2021132N06132", "name": "Unnamed", "name_ibtracs": "NOT_NAMED", "name_pagasa": "Crising",
+        "name_ja": None, "jma_number": np.nan, "season": 2021, "basin": "WP", "number": 30, "atcf_id": "WP032021",
+        "track_type": "main", "started_at": t0, "ended_at": t0 + pd.Timedelta(hours=48), "duration_h": 48.0,
+        "fix_count": 17, "hours": 49, "landfall_countries": ["PH"], "entered_par": True, "bbox": [125.0, 6.0, 127.0, 8.0],
+        "peak_wind_kt": 35.0, "peak_wind_agency": "jtwc", "peak_at": t0, "peak_lon": 126.0, "peak_lat": 7.0,
+        "min_pressure_hpa": 1000.0,
+        **{f"{a}_{k}": np.nan for a in track.AGENCY_COLUMNS for k in ("max_wind_kt", "min_pressure_hpa")},
+    }
+    row.update(kw)
+    return pd.Series(row)
+
+
+def test_summary_carries_the_designation_only_when_known() -> None:
+    empty = pd.DataFrame(columns=["seq", "country", "at", "lon", "lat", "place_id"])
+    doc = dataset.summary_doc(storm_row(), empty, {}, None, "v1/storms/2021132N06132/")
+    assert doc["designation"] == "03W" and doc["atcfId"] == "WP032021" and doc["localNames"] == {"ph": "Crising"}
+    assert "designation" not in dataset.summary_doc(storm_row(atcf_id=None), empty, {}, None, "v1/storms/x/")
+
+
 # ----------------------------------------------------------------------------- stats
 
 def test_intensity_classes() -> None:
