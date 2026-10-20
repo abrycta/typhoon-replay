@@ -1,0 +1,7 @@
+name: from
+in: query
+description: Earliest season (inclusive).
+schema:
+  type: integer
+  minimum: 1840
+  maximum: 2100

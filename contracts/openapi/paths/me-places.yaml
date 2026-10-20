@@ -1,0 +1,103 @@
+get:
+  operationId: listSavedPlaces
+  tags: [me]
+  summary: Saved places
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: All saved places (at most 20), oldest first.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/SavedPlaceList.yaml
+          examples:
+            ana:
+              $ref: ../components/examples/SavedPlaceList.yaml
+    '401':
+      $ref: ../components/responses/Problem401.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml
+post:
+  operationId: createSavedPlace
+  tags: [me]
+  summary: Save a place
+  description: |
+    Exactly one of `placeId` or `position` (422 `unprocessable` otherwise, or for an unknown `placeId`, or past 20 saved places).
+    409 `conflict` if the same place or point is already saved.
+  security:
+    - sessionCookie: []
+      csrfHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/SavedPlaceCreate.yaml
+        examples:
+          catalogue:
+            value:
+              placeId: PH-0831600000
+              label: Home
+          point:
+            value:
+              position: [124.995, 11.21]
+              label: Lola's
+  responses:
+    '201':
+      description: Saved.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+        Location:
+          $ref: ../components/headers/Location.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/SavedPlace.yaml
+          examples:
+            tacloban:
+              $ref: ../components/examples/SavedPlaceTacloban.yaml
+    '400':
+      $ref: ../components/responses/Problem400.yaml
+    '401':
+      $ref: ../components/responses/Problem401.yaml
+    '403':
+      $ref: ../components/responses/Problem403.yaml
+    '409':
+      $ref: ../components/responses/Problem409.yaml
+    '413':
+      $ref: ../components/responses/Problem413.yaml
+    '415':
+      $ref: ../components/responses/Problem415.yaml
+    '422':
+      $ref: ../components/responses/Problem422.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

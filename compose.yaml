@@ -1,0 +1,136 @@
+# Local dev and CI services. Use the justfile rather than calling this directly:
+#   just db-up        PostGIS + dbmate migrations + fixture seed       (profile: db)
+#   just mail         Mailpit SMTP sink + UI on :8025                  (profile: mail)
+#   just mock         Prism mock of contracts/dist/openapi.json on :4010 (profile: mock)
+#   just idp          Mock OAuth2 provider (Google + GitHub) on :9090  (profile: idp)
+# Backend services (profiles java|node|rust|go|all) are added as each backend lands.
+name: typhoon-replay
+
+x-db-env: &db-env
+  DATABASE_URL: postgres://tr:tr@db:5432/typhoon?sslmode=disable
+
+services:
+  db:
+    profiles: [db, all]
+    # PostgreSQL 17 + PostGIS 3.5, matching Neon's default major version (OPEN-QUESTIONS B.8: confirm the PostGIS minor).
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64 # the official image is amd64-only; Apple silicon runs it under emulation
+    environment:
+      POSTGRES_USER: tr
+      POSTGRES_PASSWORD: tr
+      POSTGRES_DB: typhoon
+    ports:
+      - "${TR_DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Hide the image's init script that pre-creates postgis/tiger/topology: like Neon, the database starts
+    # without extensions and the first migration creates them (so up/down/up is exact).
+    tmpfs:
+      - /docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tr -d typhoon"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    profiles: [db, all]
+    image: ghcr.io/amacneil/dbmate:2.37
+    environment:
+      <<: *db-env
+      DBMATE_MIGRATIONS_DIR: /db/migrations
+      DBMATE_NO_DUMP_SCHEMA: "true"
+      DBMATE_WAIT: "true"
+    command: ["up"]
+    volumes:
+      - ./contracts/db:/db:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    profiles: [db, all]
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64
+    environment:
+      <<: *db-env
+    entrypoint: ["psql", "postgres://tr:tr@db:5432/typhoon?sslmode=disable", "-v", "ON_ERROR_STOP=1", "-q", "-1", "-f", "/db/seed/seed.sql"]
+    volumes:
+      - ./contracts/db:/db:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  mailpit:
+    profiles: [mail, all]
+    image: axllent/mailpit:v1.31
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
+
+  prism:
+    profiles: [mock, all]
+    # Serves the bundled contract with its named examples. Run `just bundle` first. SSE is mocked by MSW in web/, not here.
+    image: stoplight/prism:5
+    platform: linux/amd64 # amd64-only image
+    command: ["mock", "--multiprocess", "false", "-h", "0.0.0.0", "-p", "4010", "/spec/openapi.json"]
+    ports:
+      - "4010:4010"
+    volumes:
+      - ./contracts/dist:/spec:ro
+
+  oauth-mock:
+    profiles: [idp, all]
+    # Tiny Google + GitHub OAuth2 stand-in for the auth conformance scenarios (contracts/conformance/mock-idp).
+    image: node:24-alpine
+    command: ["node", "/idp/server.mjs"]
+    environment:
+      PORT: "9090"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./contracts/conformance/mock-idp:/idp:ro
+
+  # Backends: uncomment as each one lands. Every backend gets the same env (CONTRACT-GUIDE §11).
+  # api-java:
+  #   profiles: [java, all]
+  #   build: ./api/java
+  #   environment: &api-env
+  #     DATABASE_URL: postgres://tr:tr@db:5432/typhoon?sslmode=disable
+  #     TR_SITE_ORIGIN: http://localhost:8788
+  #     TR_TEST_HOOKS: "1"
+  #     TR_LOG_LEVEL: info
+  #     PORT: "8080"
+  #     TR_OAUTH_GITHUB_CLIENT_ID: test-client
+  #     TR_OAUTH_GITHUB_CLIENT_SECRET: test-secret
+  #     TR_OAUTH_GITHUB_AUTH_URL: http://localhost:9090/github/login/oauth/authorize
+  #     TR_OAUTH_GITHUB_TOKEN_URL: http://oauth-mock:9090/github/login/oauth/access_token
+  #     TR_OAUTH_GITHUB_USERINFO_URL: http://oauth-mock:9090/github/api/user
+  #     TR_OAUTH_GOOGLE_CLIENT_ID: test-client
+  #     TR_OAUTH_GOOGLE_CLIENT_SECRET: test-secret
+  #     TR_OAUTH_GOOGLE_AUTH_URL: http://localhost:9090/google/authorize
+  #     TR_OAUTH_GOOGLE_TOKEN_URL: http://oauth-mock:9090/google/token
+  #     TR_OAUTH_GOOGLE_USERINFO_URL: http://oauth-mock:9090/google/userinfo
+  #   ports: ["8081:8080"]
+  #   depends_on: { seed: { condition: service_completed_successfully } }
+  # api-node:
+  #   profiles: [node, all]
+  #   build: ./api/node
+  #   environment: *api-env
+  #   ports: ["8082:8080"]
+  #   depends_on: { seed: { condition: service_completed_successfully } }
+  # api-rust:
+  #   profiles: [rust, all]
+  #   build: ./api/rust
+  #   environment: *api-env
+  #   ports: ["8083:8080"]
+  #   depends_on: { seed: { condition: service_completed_successfully } }
+  # api-go:
+  #   profiles: [go, all]
+  #   build: ./api/go
+  #   environment: *api-env
+  #   ports: ["8084:8080"]
+  #   depends_on: { seed: { condition: service_completed_successfully } }
+
+volumes:
+  db-data:

@@ -1,0 +1,4 @@
+name: country
+in: query
+schema:
+  $ref: ../schemas/CountryCode.yaml

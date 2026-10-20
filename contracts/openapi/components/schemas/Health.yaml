@@ -1,0 +1,9 @@
+title: Health
+type: object
+required: [status, impl]
+properties:
+  status:
+    type: string
+    enum: [ok]
+  impl:
+    $ref: ./Impl.yaml

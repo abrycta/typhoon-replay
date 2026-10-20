@@ -1,0 +1,10 @@
+title: StormRemoved
+type: object
+required: [liveId, reason]
+properties:
+  liveId:
+    type: string
+    pattern: '^[a-z]+-[a-z0-9-]+$'
+  reason:
+    type: string
+    enum: [dissipated, left-area, merged]

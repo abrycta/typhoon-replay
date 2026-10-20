@@ -1,0 +1,29 @@
+description: 'Unknown resource or route (`not-found`). Catalogue 404s carry `Cache-Control: public, max-age=60`; others `no-store`.'
+headers:
+  X-Backend-Impl:
+    $ref: ../headers/X-Backend-Impl.yaml
+  X-Backend-Version:
+    $ref: ../headers/X-Backend-Version.yaml
+  X-Contract-Version:
+    $ref: ../headers/X-Contract-Version.yaml
+  X-Request-Id:
+    $ref: ../headers/X-Request-Id.yaml
+  Cache-Control:
+    $ref: ../headers/Cache-Control.yaml
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml
+    examples:
+      not-found:
+        value:
+          type: https://typhoon-replay.pages.dev/problems/not-found
+          title: Not found
+          status: 404
+          detail: Example detail text; free-form.
+          instance: '/v1/storms/1999001N00000'
+          code: not-found
+          requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P
+          errors:
+                - pointer: "#/query/limit"
+                  detail: must be <= 100

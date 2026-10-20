@@ -1,0 +1,69 @@
+get:
+  operationId: getMe
+  tags: [me]
+  summary: The signed-in user
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: 'The user. `Cache-Control: private, no-store`, `Vary: Accept-Encoding, Cookie`.'
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/User.yaml
+          examples:
+            ana:
+              $ref: ../components/examples/User.yaml
+    '401':
+      $ref: ../components/responses/Problem401.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml
+delete:
+  operationId: deleteMe
+  tags: [me]
+  summary: Delete the account
+  description: Deletes the user, identities, sessions, saved places and alert subscription, and clears the cookie.
+  security:
+    - sessionCookie: []
+      csrfHeader: []
+  responses:
+    '204':
+      description: Deleted.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+        Set-Cookie:
+          $ref: ../components/headers/Set-Cookie-Session.yaml
+    '401':
+      $ref: ../components/responses/Problem401.yaml
+    '403':
+      $ref: ../components/responses/Problem403.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

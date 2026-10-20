@@ -1,0 +1,7 @@
+name: minWindKt
+in: query
+description: Only storms whose relevant wind (lifetime peak for storm lists, wind within the radius for hits) is at least this.
+schema:
+  type: integer
+  minimum: 0
+  maximum: 200

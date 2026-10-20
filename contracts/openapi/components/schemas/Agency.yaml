@@ -1,0 +1,6 @@
+title: Agency
+description: |
+  Source agency of an intensity value. `jtwc` winds are 1-minute sustained; `jma`, `pagasa` and `wmo` (in the WP basin, JMA)
+  are 10-minute sustained, so values from different agencies are not directly comparable.
+type: string
+enum: [jma, jtwc, pagasa, wmo, cma, hko, kma]

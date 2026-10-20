@@ -1,0 +1,11 @@
+summary: Japanese query (`q=那覇`)
+value:
+  items:
+    - id: JP-47201
+      country: JP
+      kind: city
+      name: Naha
+      nameJa: 那覇市
+      admin1: Okinawa
+      admin1Ja: 沖縄県
+      centroid: [127.6809, 26.2124]

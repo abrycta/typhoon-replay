@@ -1,0 +1,7 @@
+name: Last-Event-ID
+in: header
+description: Resume after this `seq`. Sent automatically by `EventSource` on reconnect.
+schema:
+  type: string
+  pattern: '^[0-9]{1,19}$'
+example: '1042'

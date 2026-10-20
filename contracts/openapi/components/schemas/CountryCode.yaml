@@ -1,0 +1,5 @@
+title: CountryCode
+description: ISO 3166-1 alpha-2 code of a covered country (external code list, kept in its published uppercase form).
+type: string
+enum: [PH, JP]
+x-external-enum: true

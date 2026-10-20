@@ -1,0 +1,8 @@
+name: limit
+in: query
+description: Page size. The maximum keeps every page under the 64 KB response cap.
+schema:
+  type: integer
+  minimum: 1
+  maximum: 100
+  default: 50

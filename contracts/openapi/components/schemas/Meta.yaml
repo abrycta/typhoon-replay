@@ -1,0 +1,24 @@
+title: Meta
+type: object
+required: [impl, implVersion, contractVersion, schemaVersion, datasetVersion, commit, startedAt]
+properties:
+  impl:
+    $ref: ./Impl.yaml
+  implVersion:
+    type: string
+  contractVersion:
+    type: string
+    pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+  schemaVersion:
+    type: string
+    description: Newest applied dbmate migration version.
+    pattern: '^[0-9]{14}$'
+  datasetVersion:
+    type: integer
+    description: Newest `catalog.dataset_version.version`; part of every catalogue ETag.
+  commit:
+    type: string
+    description: Git commit of the backend build.
+  startedAt:
+    type: string
+    format: date-time

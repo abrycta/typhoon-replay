@@ -1,0 +1,14 @@
+title: StormPeak
+type: object
+properties:
+  windKt:
+    type: number
+  agency:
+    $ref: ./Agency.yaml
+  pressureHpa:
+    type: number
+  at:
+    type: string
+    format: date-time
+  position:
+    $ref: ./LonLat.yaml

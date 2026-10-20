@@ -1,0 +1,12 @@
+title: NearestPlace
+type: object
+required: [place, contains, distanceKm]
+properties:
+  place:
+    $ref: ./PlaceSummary.yaml
+  contains:
+    type: boolean
+    description: True when the point lies inside the place's boundary.
+  distanceKm:
+    type: number
+    description: Geodesic distance from the point to the boundary; 0 when `contains` is true.

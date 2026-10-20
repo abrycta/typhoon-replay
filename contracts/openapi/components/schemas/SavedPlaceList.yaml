@@ -1,0 +1,10 @@
+title: SavedPlaceList
+description: Oldest first. A user has at most 20 saved places.
+type: object
+required: [items]
+properties:
+  items:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./SavedPlace.yaml

@@ -1,0 +1,62 @@
+title: StormDetail
+description: Storm summary page. Hour-by-hour replay data comes from the static stores, not from the API.
+type: object
+required: [sid, name, season, basin, startedAt, endedAt, durationHours, fixCount, landfallCountries, peak, intensity, landfalls, sources, replayAvailable]
+properties:
+  sid:
+    type: string
+    pattern: '^[0-9]{7}[NS][0-9]{5}$'
+  name:
+    type: string
+  localNames:
+    $ref: ./LocalNames.yaml
+  season:
+    type: integer
+    minimum: 1840
+    maximum: 2100
+  basin:
+    $ref: ./Basin.yaml
+  number:
+    type: integer
+    description: IBTrACS storm number within the season.
+  atcfId:
+    type: string
+    description: JTWC ATCF id when assigned.
+    example: WP312013
+  startedAt:
+    type: string
+    format: date-time
+  endedAt:
+    type: string
+    format: date-time
+  durationHours:
+    type: number
+  fixCount:
+    type: integer
+    description: Number of best-track fixes (the size of `GET /v1/storms/{sid}/track`).
+  landfallCountries:
+    type: array
+    maxItems: 2
+    items:
+      $ref: ./CountryCode.yaml
+  peak:
+    $ref: ./StormPeak.yaml
+  intensity:
+    type: array
+    description: Lifetime extremes per agency.
+    maxItems: 8
+    items:
+      $ref: ./AgencyIntensity.yaml
+  landfalls:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./Landfall.yaml
+  sources:
+    type: array
+    maxItems: 10
+    items:
+      $ref: ./DataSource.yaml
+  replayAvailable:
+    type: boolean
+    description: Whether hour-by-hour replay frames exist in the static store for this storm.

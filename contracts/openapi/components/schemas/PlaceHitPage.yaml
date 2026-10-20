@@ -1,0 +1,13 @@
+title: PlaceHitPage
+type: object
+required: [items, radiusKm]
+properties:
+  items:
+    type: array
+    maxItems: 100
+    items:
+      $ref: ./PlaceHit.yaml
+  radiusKm:
+    $ref: ./RadiusKm.yaml
+  nextCursor:
+    type: string

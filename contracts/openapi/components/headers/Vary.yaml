@@ -1,0 +1,5 @@
+description: '`Accept-Encoding` on every response; `Accept-Encoding, Cookie` on responses that depend on the session.'
+required: true
+schema:
+  type: string
+example: Accept-Encoding

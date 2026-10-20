@@ -1,0 +1,46 @@
+# Redocly CLI config: `npm run lint` (source, incl. x-internal test hooks) and `npm run bundle` (public bundle).
+plugins:
+  - ./redocly/portable-subset.js
+extends:
+  - recommended
+apis:
+  source:
+    root: openapi/openapi.yaml
+  public:
+    root: openapi/openapi.yaml
+    decorators:
+      remove-x-internal: on
+rules:
+  info-license: off
+  info-license-strict: off
+  operation-4xx-problem-details-rfc7807: error
+  operation-4xx-response: error
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-summary: error
+  operation-tag-defined: error
+  tags-alphabetical: error
+  no-ambiguous-paths: error
+  no-invalid-media-type-examples: error
+  no-invalid-parameter-examples: error
+  no-invalid-schema-examples: error
+  no-server-example.com: off # the localhost servers (edge proxy, Prism) are intentional
+  operation-2xx-response: off # startLogin and completeLogin only redirect (302)
+  no-unused-components: off # every schema is listed under components.schemas on purpose, so generators emit all models
+  security-defined: error
+  # Portable subset and naming (redocly/portable-subset.js)
+  portable/no-type-arrays: error
+  portable/no-null: error
+  portable/banned-keywords: error
+  portable/oneof-needs-discriminator: error
+  portable/no-webhooks: error
+  portable/no-closed-objects: error
+  portable/array-max-items: error
+  portable/property-camel-case: error
+  portable/enum-kebab-case: error
+  portable/path-segment-case: error
+  portable/operation-id-verb-noun: error
+  portable/success-has-example: error
+  portable/errors-are-problem-json: error
+  portable/required-response-headers: error
+  portable/sse-events-declared: error

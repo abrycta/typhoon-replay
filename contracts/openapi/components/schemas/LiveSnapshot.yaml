@@ -1,0 +1,18 @@
+title: LiveSnapshot
+type: object
+required: [asOf, seq, storms]
+properties:
+  asOf:
+    type: string
+    format: date-time
+    description: Time of the newest live event included (or of the snapshot read when there are none).
+  seq:
+    type: integer
+    format: int64
+    minimum: 0
+    description: '`live.revision.seq`: the newest `live_event.seq` reflected in `storms`. Also the stream `id:` of a snapshot frame and the ETag `W/"s{seq}"`.'
+  storms:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./ActiveStorm.yaml

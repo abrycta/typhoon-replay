@@ -1,0 +1,11 @@
+title: Movement
+type: object
+required: [directionDeg, speedKt]
+properties:
+  directionDeg:
+    type: number
+    minimum: 0
+    maximum: 360
+    description: Direction the storm is moving towards, degrees clockwise from north.
+  speedKt:
+    type: number

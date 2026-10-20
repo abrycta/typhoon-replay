@@ -1,0 +1,30 @@
+title: Problem
+description: RFC 9457 problem details with the extension members `code`, `requestId` and `errors`. Tests MUST NOT assert on `detail`.
+type: object
+required: [type, title, status, code, requestId]
+properties:
+  type:
+    type: string
+    format: uri
+    example: https://typhoon-replay.pages.dev/problems/validation
+  title:
+    type: string
+  status:
+    type: integer
+    minimum: 400
+    maximum: 599
+  detail:
+    type: string
+  instance:
+    type: string
+    description: Request path and query as received by the backend.
+  code:
+    $ref: ./ProblemCode.yaml
+  requestId:
+    type: string
+    pattern: '^[A-Za-z0-9._-]{1,64}$'
+  errors:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./ProblemFieldError.yaml

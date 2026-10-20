@@ -1,0 +1,6 @@
+name: lastEventId
+in: query
+description: Same as the `Last-Event-ID` header, for clients that cannot set headers. The header wins when both are present.
+schema:
+  type: string
+  pattern: '^[0-9]{1,19}$'

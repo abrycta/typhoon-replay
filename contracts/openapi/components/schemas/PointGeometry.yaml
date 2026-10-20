@@ -1,0 +1,11 @@
+title: PointGeometry
+description: RFC 7946 Point.
+type: object
+required: [type, coordinates]
+properties:
+  type:
+    type: string
+    enum: [Point]
+    x-external-enum: true
+  coordinates:
+    $ref: ./LonLat.yaml

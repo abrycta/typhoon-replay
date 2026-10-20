@@ -1,0 +1,8 @@
+name: placeId
+in: path
+required: true
+description: '`PH-` + 10-digit PSGC, or `JP-` + 5-digit JIS municipality code.'
+schema:
+  type: string
+  pattern: '^(PH-[0-9]{10}|JP-[0-9]{5})$'
+example: PH-0831600000

@@ -1,0 +1,9 @@
+summary: Alerts on for one saved place
+value:
+  enabled: true
+  radiusKm: 200
+  minWindKt: 64
+  savedPlaceIds: [0192f5a0-0000-7000-8000-000000000101]
+  language: en
+  email: ana@example.com
+  updatedAt: '2026-10-01T00:00:00Z'

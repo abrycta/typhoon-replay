@@ -1,0 +1,34 @@
+get:
+  operationId: listAuthProviders
+  tags: [auth]
+  summary: Sign-in providers
+  responses:
+    '200':
+      description: Configured providers.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AuthProviderList.yaml
+          example:
+            items:
+              - id: google
+                name: Google
+              - id: github
+                name: GitHub
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

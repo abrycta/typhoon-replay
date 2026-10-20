@@ -1,0 +1,251 @@
+openapi: 3.1.0
+info:
+  title: Typhoon Replay API
+  version: 1.0.0
+  summary: One contract, four interchangeable backends (Java, Node, Rust, Go).
+  description: |
+    Public API behind [Typhoon Replay](https://typhoon-replay.pages.dev): "typhoons that hit my town" over PH cities and
+    municipalities and JP municipalities, a live tracker of active storms over Server-Sent Events, and accounts with
+    saved places and email alerts. The hour-by-hour replay itself is static and is not served by this API.
+
+    Rules this document cannot express are in `contracts/docs/CONTRACT-GUIDE.md`. The essentials:
+
+    - **Portable subset of OpenAPI 3.1.** Optional fields are omitted, never `null`. Clients MUST ignore unknown fields
+      and unknown SSE event types; additive changes are minor versions.
+    - **Headers on every response:** `X-Backend-Impl`, `X-Backend-Version`, `X-Contract-Version`, `X-Request-Id`,
+      `Cache-Control`, `Vary`.
+    - **Errors** are RFC 9457 `application/problem+json` with a stable `code` (see `ProblemCode`).
+    - **Caching:** catalogue reads are `public, max-age=300, stale-while-revalidate=86400` with weak ETags derived from
+      the dataset version, identical across backends; `If-None-Match` returns 304.
+    - **Pagination:** `limit` (1–100) and an opaque `cursor`; `nextCursor` plus `Link: rel="next"` until the last page.
+      Cursors are interchangeable between backends.
+    - **Size cap:** every JSON response stays at or under 64 KB uncompressed at the maximum `limit`; request bodies over
+      64 KB return 413. Responses over 1 KB are gzip-compressed when accepted (br optional); the stream never is.
+    - **Rate limits:** enforced per IP by the edge proxy; 429 `rate-limited` with `Retry-After`. `RateLimit` and
+      `RateLimit-Policy` headers (IETF draft) may accompany any response.
+    - **Auth:** cookie session `__Host-tr_session` shared by all four backends. Unsafe methods also need
+      `X-Requested-With: typhoon-replay` and an `Origin` equal to the site origin (403 `csrf`).
+  contact:
+    name: Typhoon Replay
+    url: https://github.com/abrycta/typhoon-replay
+servers:
+  - url: https://typhoon-replay.pages.dev/api/{impl}
+    description: Production, through the same-origin edge proxy (which strips `/api/{impl}`).
+    variables:
+      impl:
+        default: java
+        enum: [java, node, rust, go]
+  - url: http://localhost:8788/api/{impl}
+    description: Local edge proxy (wrangler pages dev).
+    variables:
+      impl:
+        default: java
+        enum: [java, node, rust, go]
+  - url: http://localhost:4010
+    description: Prism mock of this document (`just mock`).
+tags:
+  - name: alerts
+    description: Email alert preferences.
+  - name: auth
+    description: OAuth2 sign-in (Google, GitHub) with PKCE; shared cookie sessions.
+  - name: live
+    description: Active storms and the live event stream.
+  - name: me
+    description: The signed-in user and saved places.
+  - name: meta
+    description: Probes, metadata and this document.
+  - name: places
+    description: PH ADM3 and JP municipalities; "typhoons that hit my town".
+  - name: storms
+    description: The historical storm catalogue (IBTrACS best tracks).
+  - name: test-hooks
+    description: Conformance-only hooks, enabled by TR_TEST_HOOKS=1 and absent (404) otherwise. Removed from the public bundle.
+    x-internal: true
+security: []
+paths:
+  /healthz:
+    $ref: paths/healthz.yaml
+  /readyz:
+    $ref: paths/readyz.yaml
+  /v1/meta:
+    $ref: paths/meta.yaml
+  /v1/openapi.json:
+    $ref: paths/openapi-json.yaml
+  /v1/storms:
+    $ref: paths/storms.yaml
+  /v1/storms/{sid}:
+    $ref: paths/storm.yaml
+  /v1/storms/{sid}/track:
+    $ref: paths/storm-track.yaml
+  /v1/storms/{sid}/places:
+    $ref: paths/storm-places.yaml
+  /v1/places/search:
+    $ref: paths/places-search.yaml
+  /v1/places/nearest:
+    $ref: paths/places-nearest.yaml
+  /v1/places/{placeId}:
+    $ref: paths/place.yaml
+  /v1/places/{placeId}/storms:
+    $ref: paths/place-storms.yaml
+  /v1/hits:
+    $ref: paths/hits.yaml
+  /v1/live/storms:
+    $ref: paths/live-storms.yaml
+  /v1/live/stream:
+    $ref: paths/live-stream.yaml
+  /v1/auth/providers:
+    $ref: paths/auth-providers.yaml
+  /v1/auth/{provider}/login:
+    $ref: paths/auth-login.yaml
+  /v1/auth/{provider}/callback:
+    $ref: paths/auth-callback.yaml
+  /v1/auth/logout:
+    $ref: paths/auth-logout.yaml
+  /v1/me:
+    $ref: paths/me.yaml
+  /v1/me/places:
+    $ref: paths/me-places.yaml
+  /v1/me/places/{savedPlaceId}:
+    $ref: paths/me-place.yaml
+  /v1/me/alerts:
+    $ref: paths/me-alerts.yaml
+  /v1/alerts/unsubscribe:
+    $ref: paths/alerts-unsubscribe.yaml
+  /v1/_test/sessions:
+    $ref: paths/test-sessions.yaml
+  /v1/_test/live-events:
+    $ref: paths/test-live-events.yaml
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-tr_session
+      description: |
+        Opaque session token (32 random bytes, base64url) set by the OAuth callback. Stored server-side only as
+        SHA-256 in the shared `auth.session` table, so a session minted by one backend works on all four.
+        Missing or invalid on a protected operation: 401 `unauthenticated`.
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-Requested-With
+      description: |
+        Required on POST, PUT, PATCH and DELETE with the exact value `typhoon-replay`, together with an `Origin` header
+        equal to the site origin (`TR_SITE_ORIGIN`). Otherwise 403 `csrf`.
+  schemas:
+    ActiveStorm:
+      $ref: components/schemas/ActiveStorm.yaml
+    Agency:
+      $ref: components/schemas/Agency.yaml
+    AgencyIntensity:
+      $ref: components/schemas/AgencyIntensity.yaml
+    AlertPreferences:
+      $ref: components/schemas/AlertPreferences.yaml
+    AlertPreferencesUpdate:
+      $ref: components/schemas/AlertPreferencesUpdate.yaml
+    AuthProvider:
+      $ref: components/schemas/AuthProvider.yaml
+    AuthProviderList:
+      $ref: components/schemas/AuthProviderList.yaml
+    Basin:
+      $ref: components/schemas/Basin.yaml
+    CountryCode:
+      $ref: components/schemas/CountryCode.yaml
+    DataSource:
+      $ref: components/schemas/DataSource.yaml
+    ForecastPoint:
+      $ref: components/schemas/ForecastPoint.yaml
+    Health:
+      $ref: components/schemas/Health.yaml
+    Impl:
+      $ref: components/schemas/Impl.yaml
+    Landfall:
+      $ref: components/schemas/Landfall.yaml
+    LiveSnapshot:
+      $ref: components/schemas/LiveSnapshot.yaml
+    LiveSnapshotEvent:
+      $ref: components/schemas/LiveSnapshotEvent.yaml
+    LiveStreamEvent:
+      $ref: components/schemas/LiveStreamEvent.yaml
+    LocalNames:
+      $ref: components/schemas/LocalNames.yaml
+    LonLat:
+      $ref: components/schemas/LonLat.yaml
+    Meta:
+      $ref: components/schemas/Meta.yaml
+    Movement:
+      $ref: components/schemas/Movement.yaml
+    MultiPolygonGeometry:
+      $ref: components/schemas/MultiPolygonGeometry.yaml
+    NearestPlace:
+      $ref: components/schemas/NearestPlace.yaml
+    OpenApiDocument:
+      $ref: components/schemas/OpenApiDocument.yaml
+    PlaceDetail:
+      $ref: components/schemas/PlaceDetail.yaml
+    PlaceHit:
+      $ref: components/schemas/PlaceHit.yaml
+    PlaceHitPage:
+      $ref: components/schemas/PlaceHitPage.yaml
+    PlaceKind:
+      $ref: components/schemas/PlaceKind.yaml
+    PlaceSearchResults:
+      $ref: components/schemas/PlaceSearchResults.yaml
+    PlaceSummary:
+      $ref: components/schemas/PlaceSummary.yaml
+    PointGeometry:
+      $ref: components/schemas/PointGeometry.yaml
+    Problem:
+      $ref: components/schemas/Problem.yaml
+    ProblemCode:
+      $ref: components/schemas/ProblemCode.yaml
+    ProblemFieldError:
+      $ref: components/schemas/ProblemFieldError.yaml
+    Provider:
+      $ref: components/schemas/Provider.yaml
+    RadiusKm:
+      $ref: components/schemas/RadiusKm.yaml
+    Readiness:
+      $ref: components/schemas/Readiness.yaml
+    SavedPlace:
+      $ref: components/schemas/SavedPlace.yaml
+    SavedPlaceCreate:
+      $ref: components/schemas/SavedPlaceCreate.yaml
+    SavedPlaceList:
+      $ref: components/schemas/SavedPlaceList.yaml
+    SavedPlaceUpdate:
+      $ref: components/schemas/SavedPlaceUpdate.yaml
+    StormDetail:
+      $ref: components/schemas/StormDetail.yaml
+    StormHit:
+      $ref: components/schemas/StormHit.yaml
+    StormHitPage:
+      $ref: components/schemas/StormHitPage.yaml
+    StormPage:
+      $ref: components/schemas/StormPage.yaml
+    StormPeak:
+      $ref: components/schemas/StormPeak.yaml
+    StormRemoved:
+      $ref: components/schemas/StormRemoved.yaml
+    StormRemovedEvent:
+      $ref: components/schemas/StormRemovedEvent.yaml
+    StormSummary:
+      $ref: components/schemas/StormSummary.yaml
+    StormTrack:
+      $ref: components/schemas/StormTrack.yaml
+    StormUpsertedEvent:
+      $ref: components/schemas/StormUpsertedEvent.yaml
+    TestLiveEventCreate:
+      $ref: components/schemas/TestLiveEventCreate.yaml
+    TestLiveEventCreated:
+      $ref: components/schemas/TestLiveEventCreated.yaml
+    TestSessionCreate:
+      $ref: components/schemas/TestSessionCreate.yaml
+    TestSessionCreated:
+      $ref: components/schemas/TestSessionCreated.yaml
+    TrackFeature:
+      $ref: components/schemas/TrackFeature.yaml
+    TrackPointProperties:
+      $ref: components/schemas/TrackPointProperties.yaml
+    User:
+      $ref: components/schemas/User.yaml

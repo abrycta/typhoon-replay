@@ -1,0 +1,4 @@
+title: Provider
+description: OAuth2 identity provider.
+type: string
+enum: [google, github]

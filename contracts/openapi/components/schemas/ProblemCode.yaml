@@ -1,0 +1,28 @@
+title: ProblemCode
+description: |
+  Stable machine-readable error code. `type` is `https://typhoon-replay.pages.dev/problems/{code}` and `title` is fixed per code:
+  validation "Request validation failed"; invalid-cursor "Invalid cursor"; unauthenticated "Authentication required";
+  forbidden "Forbidden"; csrf "Cross-site request rejected"; not-found "Not found"; method-not-allowed "Method not allowed";
+  not-acceptable "Not acceptable"; conflict "Conflict"; precondition-failed "Precondition failed";
+  payload-too-large "Payload too large"; unsupported-media-type "Unsupported media type"; unprocessable "Unprocessable request";
+  rate-limited "Too many requests"; internal "Internal server error"; not-ready "Service not ready";
+  stream-capacity "Too many live streams".
+type: string
+enum:
+  - validation
+  - invalid-cursor
+  - unauthenticated
+  - forbidden
+  - csrf
+  - not-found
+  - method-not-allowed
+  - not-acceptable
+  - conflict
+  - precondition-failed
+  - payload-too-large
+  - unsupported-media-type
+  - unprocessable
+  - rate-limited
+  - internal
+  - not-ready
+  - stream-capacity

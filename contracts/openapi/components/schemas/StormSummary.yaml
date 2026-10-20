@@ -1,0 +1,47 @@
+title: StormSummary
+description: Compact storm record used in lists. Optional fields are omitted when unknown, never `null`.
+type: object
+required: [sid, name, season, basin, startedAt, endedAt, landfallCountries]
+properties:
+  sid:
+    type: string
+    description: IBTrACS storm id.
+    pattern: '^[0-9]{7}[NS][0-9]{5}$'
+    example: 2013306N07162
+  name:
+    type: string
+    description: International name in title case; `Unnamed` when the storm had none.
+    example: Haiyan
+  localNames:
+    $ref: ./LocalNames.yaml
+  season:
+    type: integer
+    minimum: 1840
+    maximum: 2100
+    example: 2013
+  basin:
+    $ref: ./Basin.yaml
+  startedAt:
+    type: string
+    format: date-time
+    description: First best-track fix (RFC 3339, UTC, `Z`, whole seconds).
+  endedAt:
+    type: string
+    format: date-time
+    description: Last best-track fix.
+  peakWindKt:
+    type: number
+    description: Lifetime maximum sustained wind from `peakWindAgency` (JTWC preferred, else JMA, else WMO).
+    example: 170
+  peakWindAgency:
+    $ref: ./Agency.yaml
+  minPressureHpa:
+    type: number
+    description: Lifetime minimum central pressure from the same agency as `peakWindKt` when available.
+    example: 895
+  landfallCountries:
+    type: array
+    description: Covered countries where the best track crossed land, in order of first landfall.
+    maxItems: 2
+    items:
+      $ref: ./CountryCode.yaml

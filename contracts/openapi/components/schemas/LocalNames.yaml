@@ -1,0 +1,10 @@
+title: LocalNames
+description: Local names when known. `ph` is the PAGASA name, `ja` the JMA designation (or Japanese place name).
+type: object
+properties:
+  ph:
+    type: string
+    example: Yolanda
+  ja:
+    type: string
+    example: 台風第30号

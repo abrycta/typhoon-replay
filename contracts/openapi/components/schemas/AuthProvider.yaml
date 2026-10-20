@@ -1,0 +1,9 @@
+title: AuthProvider
+type: object
+required: [id, name]
+properties:
+  id:
+    $ref: ./Provider.yaml
+  name:
+    type: string
+    example: GitHub

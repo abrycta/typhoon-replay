@@ -1,0 +1,36 @@
+get:
+  operationId: getReadiness
+  tags: [meta]
+  summary: Readiness probe
+  description: Database reachable and schema version at least the backend's `minSchemaVersion`; otherwise 503 `not-ready`.
+  responses:
+    '200':
+      description: Ready.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Readiness.yaml
+          example:
+            status: ready
+            impl: java
+            schemaVersion: '20261021000500'
+            minSchemaVersion: '20261021000500'
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml
+    '503':
+      $ref: ../components/responses/Problem503.yaml

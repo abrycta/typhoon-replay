@@ -1,0 +1,4 @@
+description: Optional. The quota policy in the IETF `RateLimit-Policy` header format.
+schema:
+  type: string
+example: '"per-ip";q=120;w=60'

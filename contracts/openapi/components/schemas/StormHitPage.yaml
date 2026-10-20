@@ -1,0 +1,13 @@
+title: StormHitPage
+type: object
+required: [items, radiusKm]
+properties:
+  items:
+    type: array
+    maxItems: 100
+    items:
+      $ref: ./StormHit.yaml
+  radiusKm:
+    $ref: ./RadiusKm.yaml
+  nextCursor:
+    type: string

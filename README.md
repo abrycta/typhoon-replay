@@ -12,10 +12,16 @@ each pull request gets its own preview URL.
 | Path | What it is |
 |---|---|
 | `web/` | The frontend. Currently a provisional placeholder (see `web/README.md`) |
+| `contracts/` | The shared API contract (OpenAPI 3.1), database migrations and seed, conformance suite and mocks (see `contracts/README.md`) |
+| `api/{java,node,rust,go}/` | The four interchangeable backends (research docs so far) |
+| `pipeline/` | Python data pipeline (IBTrACS, ERA5, crosswalks) |
+| `docs/architecture/` | System architecture research and the decisions log |
+| `compose.yaml` | Local services by profile: `db` (PostGIS + migrations + seed), `mail`, `mock` (Prism), `idp` (mock OAuth) |
+| `justfile` | Entry point for the contract and backend workflow (`just` lists recipes) |
 | `deploy.config` | App directory and the install, check, build, dev and preview commands |
 | `wrangler.jsonc` | Pages project name (`typhoon-replay`) and build output directory |
 | `scripts/` | `dev.sh`, `preview.sh`, `deploy.sh`, `ci.sh`, `check-size.sh`, `link-akari.sh` |
-| `.github/workflows/` | `ci.yml` (checks) and `deploy.yml` (Pages deploys) |
+| `.github/workflows/` | `ci.yml` (checks), `deploy.yml` (Pages deploys) and `contracts.yml` (contract lint, breaking changes, migrations, smoke tests) |
 
 Switching the frontend framework means editing `deploy.config` and
 `pages_build_output_dir` in `wrangler.jsonc`. The scripts and workflows read
@@ -25,6 +31,7 @@ both files, so they stay as they are.
 
 - Node 24 (`.nvmrc`; run `nvm use` or `fnm use`) and npm
 - [uv](https://docs.astral.sh/uv/), only for the data pipeline
+- [just](https://just.systems) and Docker (with compose v2), for the contract, database and backends
 - No global wrangler is needed. It is a dev dependency in the root
   `package.json` and is installed on the first run.
 

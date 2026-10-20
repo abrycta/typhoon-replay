@@ -1,6 +1,6 @@
 # Typhoon Replay API: contract guide (v1)
 
-> **DRAFT, awaiting the user's approval.** Written 2026-10-21. Nothing here is final until approved. After approval, `contracts/openapi/` becomes the single source of truth, and this guide only explains the rules the spec can't express.
+> **Status: v1 accepted 2026-10-21** (contract `1.0.0`). `contracts/openapi/` is the single source of truth; this guide only explains the rules the spec can't express. Refinements made while writing the v1 spec are listed in §13.
 > Background and the reasons for each rule: [`docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md`](../../docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md). Open decisions: [`docs/architecture/OPEN-QUESTIONS.md`](../../docs/architecture/OPEN-QUESTIONS.md).
 
 The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
@@ -18,11 +18,15 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 - OpenAPI **3.1.0**, portable subset:
   - no `type` arrays and no `null`;
   - no `$dynamicRef`, `if/then/else`, `patternProperties`, `unevaluatedProperties` or webhooks;
-  - `oneOf` only with a `discriminator`.
+  - `oneOf` only with a `discriminator` that has an explicit `mapping`; no `anyOf`, `not`, `const` (use a one-value `enum`), `prefixItems` or `nullable`;
+  - every array declares `maxItems` (this is how the 64 KB response cap is kept, §11);
+  - no `additionalProperties: false`: objects stay open for the tolerant reader (typify would otherwise reject unknown fields).
 - **Optional fields are omitted, never `null`.** Backends MUST NOT emit `null`.
-- JSON property names are `camelCase`; enum values are `kebab-case`; path segments are `kebab-case` plurals.
-- Every operation has an `operationId` (`verbNoun`, e.g. `listStorms`), a tag, at least one example, and documented `4xx` responses using the shared problem responses.
-- Bundles: `dist/openapi.json` (3.1, canonical, served at `GET /v1/openapi.json`) and `dist/openapi.3.0.json` (down-converted for generators only).
+- JSON property names are `camelCase`; enum values are `kebab-case`; path segments are `kebab-case` plurals. External code lists keep their published form and are marked `x-external-enum: true` (ISO 3166 `PH`/`JP`, IBTrACS basins `WP`, GeoJSON `Point`/`Feature`/...).
+- Every operation has an `operationId` (`verbNoun`, e.g. `listStorms`), a tag, at least one example, and documented `4xx` responses using the shared problem responses. Every response declares the §4 headers as `required`.
+- The rules above are enforced by `contracts/redocly/portable-subset.js` (`npm run lint` in `contracts/`).
+- Bundles: `dist/openapi.json` (3.1, canonical, served at `GET /v1/openapi.json`) and `dist/openapi.3.0.json` (down-converted for generators only). Operations and schemas marked `x-internal: true` (the test hooks) are removed from both.
+- Redocly inlines `$ref`s inside vendor extensions; the bundle script rewrites `x-sse-events` values back to `#/components/schemas/{Name}`.
 
 ## 2. Base path, routing and versioning
 
@@ -48,7 +52,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 | Header | Value |
 |---|---|
-| `X-Backend-Impl` | `java` / `node` / `rust` / `go` |
+| `X-Backend-Impl` | `java` / `node` / `rust` / `go` (`mock` only from Prism/MSW) |
 | `X-Backend-Version` | the backend's semver |
 | `X-Contract-Version` | the contract version it implements, e.g. `1.0.0` |
 | `X-Request-Id` | echo the inbound `X-Request-Id` if it is 1–64 chars of `[A-Za-z0-9._-]`; otherwise a new UUIDv7 |
@@ -61,10 +65,11 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 ## 5. Pagination
 
-- Query parameters `limit` (1–200, default 50) and `cursor` (opaque).
+- Query parameters `limit` (1–100, default 50; `GET /places/search` 1–50, default 10) and `cursor` (opaque). The cap keeps every page under 64 KB.
 - Response: `{ "items": [...], "nextCursor": "..." }`; `nextCursor` is omitted on the last page. A `Link: <absolute-url>; rel="next"` header MUST accompany `nextCursor`, built from the **browser-visible** base, which is taken from `X-Forwarded-Prefix` set by the proxy.
 - **Interchangeable cursors.** The cursor is `base64url(no padding)` of the UTF-8 JSON array `[1, "<sortKey>", <keysetValue...>, "<lastId>"]`. Example: `[1,"closest",12.4,"2013306N07162"]`.
-  - Every backend MUST accept cursors produced by any other backend.
+  - Every backend MUST accept cursors produced by any other backend. Keyset values are compared as JSON values (so `27` and `27.0` are the same cursor); encoders SHOULD write the shortest number form.
+  - The keyset per sort is listed in each operation's description. Distances use the stored 0.1 km value (`numeric(5,1)`), never a recomputed float.
   - An invalid or foreign-sort cursor returns 400 `invalid-cursor`.
 - Sort orders are fixed per endpoint and listed in the spec. Ties break by id ascending.
 
@@ -79,7 +84,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 | Errors | `no-store`, except 404 on catalogue (`public, max-age=60`) | none |
 | `/healthz`, `/readyz` | `no-store` | none |
 
-- `datasetVersion` is the integer in the newest `catalog.dataset_version` row. `resourceKey` is a canonical string of the path plus the sorted query parameters that affect the result. **ETags are derived from data, never from response bytes**, so all four backends emit the same ETag for the same resource.
+- `datasetVersion` is the integer in the newest `catalog.dataset_version` row. `resourceKey` is the first 16 lowercase hex digits of SHA-256 over the canonical request string: the path as served under `/v1` (e.g. `/v1/storms`), then, if any recognised query parameters were sent, `?` and `name=value` pairs sorted by name then value, each percent-encoded as UTF-8 per RFC 3986 (unreserved characters literal, uppercase hex), joined by `&`. Defaults are not filled in, and unknown parameters are dropped. Example: `/v1/storms?limit=5&season=2013`. **ETags are derived from data, never from response bytes**, so all four backends emit the same ETag for the same resource.
 - `If-None-Match` matching a weak ETag (weak comparison) MUST return `304` with the same `ETag` and `Cache-Control` and no body.
 - Unsafe methods on user resources MAY use `If-Match`; a mismatch returns 412 `precondition-failed`.
 
@@ -88,15 +93,16 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 `GET /v1/live/stream`, `Accept: text/event-stream`. Anonymous. Response headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`, plus §4. No compression.
 
 - **Framing:** standard SSE (`event:`, `id:`, `data:` as a single line of JSON, blank line).
-- **First frame:** `retry: 10000`, then an `event: snapshot` whose `id` is the latest `live_event.seq`.
-- **Resume:** if `Last-Event-ID` (header or `?lastEventId=`) is within the retained window (7 days), send the missed events in `seq` order and *no* snapshot. Otherwise send a snapshot. `seq` comes from the shared `live.live_event` table, so resume works across backends.
+- **First frame:** `retry: 10000`, then an `event: snapshot` whose `id` is `live.revision.seq` (the newest applied `live_event.seq`; it survives pruning). `LiveSnapshot.seq` carries the same value.
+- **Resume:** if `Last-Event-ID` (header or `?lastEventId=`; the header wins) is within the retained window, i.e. `oldest retained seq - 1 <= id <= live.revision.seq`, send the events with `seq > id` in order and *no* snapshot. Otherwise send a snapshot. `seq` comes from the shared `live.live_event` table, so resume works across backends.
+- **Writes:** live data changes only through `live.apply_event(type, payload)`, which appends the event, updates `live.active_storm` and bumps `live.revision` in one transaction (and serialises writers, so `seq` order is commit order).
 - **Heartbeat:** a comment line `:\n\n` at least every 20 s (the client treats 45 s of silence as a dead stream).
 - **Delivery:** a new `live_event` row MUST reach connected clients within 5 s (polling `seq > last` every ≤ 3 s while ≥ 1 client is connected is acceptable). Backends MUST NOT hold an idle DB connection when no client is connected.
 - **Limits:** a backend MAY cap concurrent streams (≥ 50). When over the cap it returns 503 `stream-capacity` with `Retry-After`.
 
 | `event:` | `data` schema | Meaning |
 |---|---|---|
-| `snapshot` | `LiveSnapshot { asOf, storms: ActiveStorm[] }` | Full current state |
+| `snapshot` | `LiveSnapshot { asOf, seq, storms: ActiveStorm[] }` | Full current state |
 | `storm-upserted` | `ActiveStorm { sid?, liveId, name, localNames?, agency, observedAt, position:[lon,lat], windKt?, pressureHpa?, movement?, forecast?: ForecastPoint[], advisoryUrl? }` | A new advisory |
 | `storm-removed` | `{ liveId, reason: "dissipated" \| "left-area" \| "merged" }` | Remove from map |
 
@@ -119,7 +125,7 @@ Every 4xx/5xx response (except 304) MUST be `application/problem+json`:
 }
 ```
 
-- `code` is stable and machine-readable. `type` = the base URL + `code`. `title` is fixed per `code`. `detail` is free text: tests MUST NOT assert on it.
+- `code` is stable and machine-readable. `type` = the base URL + `code`. `title` is fixed per `code` (the table is in the `ProblemCode` schema description). `detail` is free text: tests MUST NOT assert on it. `requestId` equals the `X-Request-Id` response header.
 - **Codes:**
 
   | Status | Codes |
@@ -134,7 +140,7 @@ Every 4xx/5xx response (except 304) MUST be `application/problem+json`:
   | 412 | `precondition-failed` |
   | 413 | `payload-too-large` |
   | 415 | `unsupported-media-type` |
-  | 422 | `unprocessable` |
+  | 422 | `unprocessable` (e.g. both or neither of `placeId`/`position`, a 21st saved place, a foreign `savedPlaceId`) |
   | 429 | `rate-limited` (with `Retry-After`) |
   | 500 | `internal` (no stack traces, no SQL) |
   | 503 | `not-ready`, `stream-capacity` |
@@ -151,8 +157,10 @@ Every 4xx/5xx response (except 304) MUST be `application/problem+json`:
   - stored only as `sha256` in `auth.session`;
   - cookie `__Host-tr_session=<token>; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=2592000`;
   - sliding 30-day expiry; `last_seen_at` is updated at most every 5 min.
+- **Accounts:** `auth.app_user` (one row per account) and `auth.oauth_account` (`provider`, `subject` → user), upserted on every callback. Accounts are not linked by email.
 - **Storage:** sessions live in the contract-owned table `auth.session` (`token_hash bytea PK, user_id, data jsonb, created_at, last_seen_at, expires_at, revoked_at, created_by_impl, user_agent`). Backends MUST use a custom store against this table. Framework session serialisation (Spring Session JDBC, gob, etc.) MUST NOT be used. `data` holds only neutral JSON attributes. Provider access/refresh tokens are never stored.
 - **Callback URIs:** one GitHub OAuth app and one Google client, each registering exact-match URIs `https://typhoon-replay.pages.dev/api/{impl}/v1/auth/{provider}/callback` (wildcard matching off). Backends build `redirect_uri` from `TR_SITE_ORIGIN` + `X-Forwarded-Prefix`, never from the Render host.
+- **Callback failures** redirect to `/signin?error={code}` with `code` ∈ `access-denied`, `invalid-state`, `provider-error`, and set no cookie. Providers are called through their userinfo endpoints (`TR_OAUTH_*_USERINFO_URL`), not by verifying ID tokens, so the mock IdP can stand in for both.
 - **Lookup:** valid when `revoked_at IS NULL AND expires_at > now()`. An invalid or missing session on a protected endpoint returns 401 `unauthenticated`. The cookie is cleared only by logout.
 - **CSRF**, for `POST`/`PUT`/`PATCH`/`DELETE`: the `Origin` header MUST equal the configured site origin (`TR_SITE_ORIGIN`), and the request MUST carry `X-Requested-With: typhoon-replay`. Otherwise 403 `csrf`.
 - **Logout:** sets `revoked_at` and clears the cookie (same attributes, `Max-Age=0`). It is effective on all backends immediately.
@@ -168,16 +176,16 @@ Anonymous unless marked 🔒 (needs a session). All are paths under `/v1`.
 - `GET /healthz` (process only) and `GET /readyz` (DB reachable, schema ≥ `minSchemaVersion`): both at the backend root, outside `/v1`
 
 **Storms (catalogue)**
-- `GET /storms?season=&seasonFrom=&seasonTo=&q=&country=PH|JP&minWindKt=&sort=season-desc|peak-wind-desc|name&cursor=&limit=`
+- `GET /storms?q=&season=&from=&to=&basin=&country=PH|JP&minWindKt=&sort=season-desc|peak-wind-desc|name&cursor=&limit=`: `q` matches international, IBTrACS, PAGASA and JMA names; `country` is the landfall country
 - `GET /storms/{sid}`: summary, peak intensity, landfalls, local names, data sources
-- `GET /storms/{sid}/track`: GeoJSON FeatureCollection of hourly (interpolated) and 3/6-hourly (observed) points; `?resolution=observed|hourly`
-- `GET /storms/{sid}/places?country=&maxDistanceKm=&sort=closest|peak-wind&cursor=&limit=`: places affected by this storm
+- `GET /storms/{sid}/track`: GeoJSON FeatureCollection of best-track (observed) fixes only. Hourly tracks come from the static stores (§11)
+- `GET /storms/{sid}/places?radiusKm=&country=&cursor=&limit=`: places this storm passed within `radiusKm` of, closest first
 
 **Places and "typhoons that hit my town"**
 - `GET /places/search?q=&country=&limit=`: name search (Latin, Filipino, Japanese)
 - `GET /places/nearest?lat=&lon=`: the place containing or nearest to a point
 - `GET /places/{placeId}`: properties + simplified geometry
-- `GET /places/{placeId}/storms?radiusKm=50..500&minWindKt=&from=&to=&sort=closest|peak-wind-desc|date-desc&cursor=&limit=`: the headline query. Each item: `{storm summary, closestApproachKm, closestApproachAt, maxWindKtWithinRadius, hoursWithinRadius}`
+- `GET /places/{placeId}/storms?radiusKm=50|100|200|300|500&minWindKt=&from=&to=&sort=closest|peak-wind-desc|peak-gust-desc|date-desc&cursor=&limit=`: the headline query, served from the precomputed `catalog.place_storm_exposure` bands. Each item: `{storm, closestApproachKm, closestApproachAt, maxWindKtWithinRadius?, maxGustKtWithinRadius?, hoursWithinRadius}`
 - `GET /hits?lat=&lon=&radiusKm=&...`: the same for an arbitrary point (geodesic distance on `geography`)
 
 **Live**
@@ -193,14 +201,14 @@ Anonymous unless marked 🔒 (needs a session). All are paths under `/v1`.
 **Me**
 - `GET /me` 🔒: `{id, displayName, email, avatarUrl?, providers[], createdAt}`
 - `DELETE /me` 🔒: 204
-- `GET /me/places` 🔒 and `POST /me/places` 🔒 `{placeId | {lat,lon,label}, label?}`: max 20 per user, 409 `conflict` on a duplicate
+- `GET /me/places` 🔒 and `POST /me/places` 🔒 `{placeId?, position?: [lon,lat], label?}` with exactly one of `placeId`/`position`: max 20 per user (enforced by a trigger, 422), 409 `conflict` on a duplicate
 - `PATCH /me/places/{id}` 🔒 and `DELETE /me/places/{id}` 🔒
-- `GET /me/alerts` 🔒 and `PUT /me/alerts` 🔒 `{enabled, radiusKm, minWindKt, placeIds[]}`
+- `GET /me/alerts` 🔒 and `PUT /me/alerts` 🔒 `{enabled, radiusKm, minWindKt, savedPlaceIds[], language?}` (saved-place ids, since saved points have no `placeId`)
 - `GET /alerts/unsubscribe?token=`: anonymous; the token is a random value stored in `app.alert_subscription`; returns a small HTML confirmation page (the only non-JSON success response)
 
-**Test hooks** (only when `TR_TEST_HOOKS=1`; otherwise MUST return 404)
-- `POST /_test/sessions {email, provider}` → sets the session cookie
-- `POST /_test/live-events {type, payload}` → inserts a `live_event` row
+**Test hooks** (only when `TR_TEST_HOOKS=1`; otherwise MUST return 404 `not-found`). Documented in the source spec with `x-internal: true`, so they are absent from the public bundle; not CSRF-checked.
+- `POST /_test/sessions {email, provider}` → 201, upserts the user and identity and sets the session cookie (`created_by_impl = 'test'` is reserved for the seed)
+- `POST /_test/live-events {type, payload}` → 201 `{seq}`, runs `SELECT live.apply_event(type, payload)`
 
 ## 11. Operational rules
 
@@ -215,7 +223,7 @@ Anonymous unless marked 🔒 (needs a session). All are paths under `/v1`.
 
 ## 12. Conformance expectations
 
-A backend is "v1-conformant at contract X.Y" when, against the fixture database (`contracts/db/fixtures`), all of these pass in CI:
+A backend is "v1-conformant at contract X.Y" when, against the fixture database (`contracts/db/seed`, loaded by `just db-up`), all of these pass in CI (how to run them: `contracts/conformance/README.md`):
 
 1. **Schemathesis** with the contract bundle: no 5xx, and every response matches its documented status, content type, headers and schema; invalid input is rejected with 4xx problem+json.
 2. **Scenario suite** (Vitest): golden results for the fixture places and storms; pagination walks; cross-backend cursor reuse; ETag/304; required headers; error `code`s; CSRF and `returnTo` rules.
@@ -224,3 +232,24 @@ A backend is "v1-conformant at contract X.Y" when, against the fixture database 
 5. **Differential check:** canonicalised responses equal across all four backends for the read-only scenario set.
 
 Results are published per backend and contract version on the compatibility table (`/compat`). Tests tagged with a contract version newer than the backend's claim are reported as "not claimed", not as failed.
+
+## 13. Changes made while writing the v1 spec (2026-10-21)
+
+The spec needed these refinements to the draft; none changes a decision in `DECISIONS.md`.
+
+| Area | Draft | v1 |
+|---|---|---|
+| Page size | `limit` 1–200 | 1–100, so a full page of storm hits stays under 64 KB |
+| Track | `?resolution=observed\|hourly` | best-track fixes only (§11 already forbade hourly data from the API) |
+| Radius | `radiusKm=50..500` | one of 50/100/200/300/500: the bands precomputed in `catalog.place_storm_exposure` |
+| Storm filters | `seasonFrom`/`seasonTo` | `from`/`to` (same as the place query), plus `basin`; `season` with `from`/`to` is a 400 |
+| Storm → places | `maxDistanceKm`, `sort=closest\|peak-wind` | `radiusKm` bands, closest first |
+| Hit sorts | `closest\|peak-wind-desc\|date-desc` | adds `peak-gust-desc` |
+| Saved place body | `{placeId \| {lat,lon,label}}` | `{placeId?, position?: [lon,lat], label?}`, exactly one of the two (no `oneOf` needed) |
+| Alerts body | `placeIds[]` | `savedPlaceIds[]` plus `language` |
+| Live snapshot | `{asOf, storms}`, id = latest `live_event.seq` | adds `seq`; ids come from `live.revision` so they survive pruning |
+| ETag `resourceKey` | "canonical string" | defined exactly (§6), hashed to 16 hex digits |
+| Tables | `auth.user`, `auth.identity` | `auth.app_user` (avoids the reserved word), `auth.oauth_account` |
+| Fixtures | `contracts/db/fixtures` | `contracts/db/seed` (SQL, generated from the pipeline's Parquet) |
+| Lint | portable subset | also bans `anyOf`/`const`/`not`, requires `maxItems` on arrays, forbids closed objects; `x-external-enum` exempts external code lists from kebab-case |
+

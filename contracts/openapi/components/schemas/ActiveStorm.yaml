@@ -1,0 +1,43 @@
+title: ActiveStorm
+description: Current state of an active storm from the latest advisory.
+type: object
+required: [liveId, name, agency, observedAt, position]
+properties:
+  liveId:
+    type: string
+    description: Stable id for the live storm, `{agency}-{agency storm id}`.
+    pattern: '^[a-z]+-[a-z0-9-]+$'
+    example: jma-2622
+  sid:
+    type: string
+    description: IBTrACS id once assigned (usually only after the season).
+    pattern: '^[0-9]{7}[NS][0-9]{5}$'
+  name:
+    type: string
+  localNames:
+    $ref: ./LocalNames.yaml
+  agency:
+    $ref: ./Agency.yaml
+  advisoryNumber:
+    type: integer
+  observedAt:
+    type: string
+    format: date-time
+  position:
+    $ref: ./LonLat.yaml
+  windKt:
+    type: number
+  gustKt:
+    type: number
+  pressureHpa:
+    type: number
+  movement:
+    $ref: ./Movement.yaml
+  forecast:
+    type: array
+    maxItems: 40
+    items:
+      $ref: ./ForecastPoint.yaml
+  advisoryUrl:
+    type: string
+    format: uri

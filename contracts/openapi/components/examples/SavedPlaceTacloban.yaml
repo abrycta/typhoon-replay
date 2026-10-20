@@ -1,0 +1,16 @@
+summary: A saved catalogue place
+value:
+  id: 0192f5a0-0000-7000-8000-000000000101
+  label: Home
+  placeId: PH-0831600000
+  place:
+    id: PH-0831600000
+    country: PH
+    kind: city
+    name: Tacloban City
+    admin1: Eastern Visayas
+    admin2: Leyte
+    centroid: [125.0039, 11.2433]
+  position: [125.0039, 11.2433]
+  createdAt: '2026-10-01T00:00:00Z'
+  updatedAt: '2026-10-01T00:00:00Z'

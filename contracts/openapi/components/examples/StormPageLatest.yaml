@@ -1,0 +1,41 @@
+summary: Newest seasons first, 3 per page
+value:
+  items:
+    - sid: 2023207N09141
+      name: Khanun
+      localNames:
+        ja: 台風第6号
+      season: 2023
+      basin: WP
+      startedAt: '2023-07-26T06:00:00Z'
+      endedAt: '2023-08-11T18:00:00Z'
+      peakWindKt: 125
+      peakWindAgency: jtwc
+      minPressureHpa: 924
+      landfallCountries: [JP]
+    - sid: 2022254N24143
+      name: Nanmadol
+      localNames:
+        ja: 台風第14号
+      season: 2022
+      basin: WP
+      startedAt: '2022-09-11T06:00:00Z'
+      endedAt: '2022-09-20T06:00:00Z'
+      peakWindKt: 135
+      peakWindAgency: jtwc
+      minPressureHpa: 916
+      landfallCountries: [JP]
+    - sid: 2021346N05145
+      name: Rai
+      localNames:
+        ph: Odette
+        ja: 台風第22号
+      season: 2021
+      basin: WP
+      startedAt: '2021-12-11T12:00:00Z'
+      endedAt: '2021-12-21T12:00:00Z'
+      peakWindKt: 150
+      peakWindAgency: jtwc
+      minPressureHpa: 908
+      landfallCountries: [PH]
+  nextCursor: WzEsInNlYXNvbi1kZXNjIiwyMDIxLCIyMDIxMzQ2TjA1MTQ1Il0

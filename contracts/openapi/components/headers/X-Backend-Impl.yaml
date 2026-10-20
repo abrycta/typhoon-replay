@@ -1,0 +1,5 @@
+description: Which backend served the response (`mock` only from the Prism/MSW mock). The UI shows a badge from this header, not from its own toggle.
+required: true
+schema:
+  $ref: ../schemas/Impl.yaml
+example: mock

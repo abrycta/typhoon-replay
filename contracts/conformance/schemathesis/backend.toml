@@ -1,0 +1,49 @@
+# Full property-based run against one backend seeded with contracts/db/seed (CONTRACT-GUIDE §12.1):
+#   BASE_URL=http://localhost:8081 TR_SITE_ORIGIN=http://localhost:8788 \
+#   st --config-file contracts/conformance/schemathesis/backend.toml run contracts/dist/openapi.json
+# Never point this at production (Render egress budget, CONTRACT-GUIDE §11).
+base-url = "${BASE_URL}"
+seed = 20261021
+workers = 4
+max-redirects = 0
+request-timeout = 10
+
+[headers]
+Origin = "${TR_SITE_ORIGIN}"
+X-Requested-With = "typhoon-replay"
+
+[generation]
+mode = "all"
+max-examples = 50
+
+[phases.stateful]
+enabled = false
+
+[checks]
+not_a_server_error.enabled = true
+status_code_conformance.enabled = true
+content_type_conformance.enabled = true
+response_schema_conformance.enabled = true
+response_headers_conformance.enabled = true
+negative_data_rejection.enabled = true
+unsupported_method.enabled = true
+
+[auth.openapi.sessionCookie]
+api_key = "fixture-session-token-ana-0000000000000"
+
+[auth.openapi.csrfHeader]
+api_key = "typhoon-replay"
+
+[[operations]]
+# Infinite stream: covered by the Vitest SSE scenarios.
+include-operation-id = "streamLiveEvents"
+enabled = false
+
+[[operations]]
+# Would revoke or delete the fixture user's session mid-run: covered by the Vitest auth scenarios.
+include-operation-id = "logout"
+enabled = false
+
+[[operations]]
+include-operation-id = "deleteMe"
+enabled = false

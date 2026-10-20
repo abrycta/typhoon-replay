@@ -1,0 +1,36 @@
+description: 'Not ready (`not-ready`: database unreachable or schema older than the backend''s `minSchemaVersion`) or over the live-stream cap (`stream-capacity`).'
+headers:
+  X-Backend-Impl:
+    $ref: ../headers/X-Backend-Impl.yaml
+  X-Backend-Version:
+    $ref: ../headers/X-Backend-Version.yaml
+  X-Contract-Version:
+    $ref: ../headers/X-Contract-Version.yaml
+  X-Request-Id:
+    $ref: ../headers/X-Request-Id.yaml
+  Cache-Control:
+    $ref: ../headers/Cache-Control.yaml
+  Retry-After:
+    $ref: ../headers/Retry-After.yaml
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml
+    examples:
+      not-ready:
+        value:
+          type: https://typhoon-replay.pages.dev/problems/not-ready
+          title: Service not ready
+          status: 503
+          detail: Example detail text; free-form.
+          instance: /v1/storms
+          code: not-ready
+          requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P
+      stream-capacity:
+        value:
+          type: https://typhoon-replay.pages.dev/problems/stream-capacity
+          title: Too many live streams
+          status: 503
+          instance: /v1/live/stream
+          code: stream-capacity
+          requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P

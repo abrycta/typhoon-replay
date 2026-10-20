@@ -1,0 +1,8 @@
+name: sid
+in: path
+required: true
+description: IBTrACS storm id.
+schema:
+  type: string
+  pattern: '^[0-9]{7}[NS][0-9]{5}$'
+example: 2013306N07162

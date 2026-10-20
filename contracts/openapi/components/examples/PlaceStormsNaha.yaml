@@ -1,0 +1,21 @@
+summary: Storms within 100 km of Naha
+value:
+  radiusKm: 100
+  items:
+    - storm:
+        sid: 2023207N09141
+        name: Khanun
+        localNames:
+          ja: 台風第6号
+        season: 2023
+        basin: WP
+        startedAt: '2023-07-26T06:00:00Z'
+        endedAt: '2023-08-11T18:00:00Z'
+        peakWindKt: 125
+        peakWindAgency: jtwc
+        minPressureHpa: 924
+        landfallCountries: [JP]
+      closestApproachKm: 76.6
+      closestApproachAt: '2023-08-01T20:00:00Z'
+      maxWindKtWithinRadius: 119
+      hoursWithinRadius: 13

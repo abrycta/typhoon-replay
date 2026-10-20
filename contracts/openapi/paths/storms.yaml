@@ -1,0 +1,86 @@
+get:
+  operationId: listStorms
+  tags: [storms]
+  summary: List and search storms
+  description: |
+    Catalogue of storms (WP basin since 1940 in v1). Filters combine with AND.
+
+    Sorts and cursor keysets (ties by `sid` ascending):
+    - `season-desc` (default): `season` desc; keyset `[season]`.
+    - `peak-wind-desc`: `peakWindKt` desc, unknown last; keyset `[peakWindKtOrMinus1]`.
+    - `name`: upper-cased `name` in binary (C) order; keyset `["<UPPER NAME>"]`.
+  parameters:
+    - name: q
+      in: query
+      description: Case-insensitive substring of the international name, the IBTrACS name, the PAGASA name or the Japanese designation (e.g. `haiyan`, `yolanda`, `台風第30号`).
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 64
+      example: yolanda
+    - name: season
+      in: query
+      description: Exact season. Cannot be combined with `from`/`to` (400 `validation`).
+      schema:
+        type: integer
+        minimum: 1840
+        maximum: 2100
+      example: 2013
+    - $ref: ../components/parameters/SeasonFrom.yaml
+    - $ref: ../components/parameters/SeasonTo.yaml
+    - name: basin
+      in: query
+      schema:
+        $ref: ../components/schemas/Basin.yaml
+    - name: country
+      in: query
+      description: Only storms that made landfall in this country.
+      schema:
+        $ref: ../components/schemas/CountryCode.yaml
+    - $ref: ../components/parameters/MinWindKt.yaml
+    - name: sort
+      in: query
+      schema:
+        type: string
+        enum: [season-desc, peak-wind-desc, name]
+        default: season-desc
+    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/Limit.yaml
+    - $ref: ../components/parameters/IfNoneMatch.yaml
+  responses:
+    '200':
+      description: A page of storms.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+        ETag:
+          $ref: ../components/headers/ETag.yaml
+        Link:
+          $ref: ../components/headers/Link.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/StormPage.yaml
+          examples:
+            latest:
+              $ref: ../components/examples/StormPageLatest.yaml
+            yolanda:
+              $ref: ../components/examples/StormPageYolanda.yaml
+    '304':
+      $ref: ../components/responses/NotModified.yaml
+    '400':
+      $ref: ../components/responses/Problem400.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

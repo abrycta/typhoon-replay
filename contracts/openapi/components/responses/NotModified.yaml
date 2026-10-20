@@ -1,0 +1,16 @@
+description: The `If-None-Match` ETag still matches (weak comparison). No body.
+headers:
+  X-Backend-Impl:
+    $ref: ../headers/X-Backend-Impl.yaml
+  X-Backend-Version:
+    $ref: ../headers/X-Backend-Version.yaml
+  X-Contract-Version:
+    $ref: ../headers/X-Contract-Version.yaml
+  X-Request-Id:
+    $ref: ../headers/X-Request-Id.yaml
+  Cache-Control:
+    $ref: ../headers/Cache-Control.yaml
+  ETag:
+    $ref: ../headers/ETag.yaml
+  Vary:
+    $ref: ../headers/Vary.yaml

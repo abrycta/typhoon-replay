@@ -1,0 +1,51 @@
+summary: Haiyan best track around the Leyte landfall (3 of 38 fixes shown)
+value:
+  type: FeatureCollection
+  sid: 2013306N07162
+  resolution: best-track
+  features:
+    - type: Feature
+      geometry:
+        type: Point
+        coordinates: [126.9, 10.6]
+      properties:
+        at: '2013-11-07T18:00:00Z'
+        windKt: 170
+        windAgency: jtwc
+        pressureHpa: 895
+        nature: tropical
+        sshsCategory: 5
+        jmaGrade: 5
+        distanceToLandKm: 128
+        speedKt: 22
+        directionDeg: 280
+    - type: Feature
+      geometry:
+        type: Point
+        coordinates: [124.8, 11.0]
+      properties:
+        at: '2013-11-08T00:00:00Z'
+        windKt: 165
+        windAgency: jtwc
+        pressureHpa: 899
+        nature: tropical
+        sshsCategory: 5
+        jmaGrade: 5
+        distanceToLandKm: 0
+        speedKt: 22
+        directionDeg: 280
+    - type: Feature
+      geometry:
+        type: Point
+        coordinates: [122.6, 11.4]
+      properties:
+        at: '2013-11-08T06:00:00Z'
+        windKt: 145
+        windAgency: jtwc
+        pressureHpa: 914
+        nature: tropical
+        sshsCategory: 5
+        jmaGrade: 5
+        distanceToLandKm: 0
+        speedKt: 21
+        directionDeg: 280

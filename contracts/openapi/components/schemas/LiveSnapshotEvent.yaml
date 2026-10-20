@@ -1,0 +1,13 @@
+title: LiveSnapshotEvent
+description: 'SSE frame `event: snapshot`. `id` is the snapshot''s `seq`.'
+type: object
+required: [event, id, data]
+properties:
+  event:
+    type: string
+    enum: [snapshot]
+  id:
+    type: string
+    pattern: '^[0-9]{1,19}$'
+  data:
+    $ref: ./LiveSnapshot.yaml

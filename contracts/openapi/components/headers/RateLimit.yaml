@@ -1,0 +1,4 @@
+description: Optional. Remaining quota in the IETF `RateLimit` header format (draft-ietf-httpapi-ratelimit-headers), sent by the edge proxy and by any backend that limits on its own.
+schema:
+  type: string
+example: '"per-ip";r=118;t=42'

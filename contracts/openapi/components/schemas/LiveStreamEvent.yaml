@@ -1,0 +1,15 @@
+title: LiveStreamEvent
+description: |
+  One parsed SSE frame of `GET /v1/live/stream` (`event:` name, `id:` and the JSON `data:` line).
+  The wire format is `text/event-stream`; this union exists so generators produce typed event models.
+  Clients MUST ignore frames whose `event` is not listed here.
+oneOf:
+  - $ref: ./LiveSnapshotEvent.yaml
+  - $ref: ./StormUpsertedEvent.yaml
+  - $ref: ./StormRemovedEvent.yaml
+discriminator:
+  propertyName: event
+  mapping:
+    snapshot: ./LiveSnapshotEvent.yaml
+    storm-upserted: ./StormUpsertedEvent.yaml
+    storm-removed: ./StormRemovedEvent.yaml

@@ -1,0 +1,10 @@
+title: ProblemFieldError
+type: object
+required: [pointer, detail]
+properties:
+  pointer:
+    type: string
+    description: 'Location of the bad input: `#/query/{name}`, `#/path/{name}`, `#/header/{name}`, or a JSON Pointer into the body prefixed with `#/body`.'
+    example: '#/query/limit'
+  detail:
+    type: string

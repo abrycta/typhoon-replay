@@ -1,0 +1,23 @@
+title: StormHit
+description: A storm that passed within the requested radius of a place or point.
+type: object
+required: [storm, closestApproachKm, closestApproachAt, hoursWithinRadius]
+properties:
+  storm:
+    $ref: ./StormSummary.yaml
+  closestApproachKm:
+    type: number
+    description: Geodesic distance from the storm centre to the place boundary (0 when it passed over), 1 decimal place.
+    example: 0
+  closestApproachAt:
+    type: string
+    format: date-time
+  maxWindKtWithinRadius:
+    type: number
+    description: Highest best-track sustained wind while the centre was within the radius.
+  maxGustKtWithinRadius:
+    type: number
+    description: Highest gust while the centre was within the radius (JTWC gust or ERA5), when known.
+  hoursWithinRadius:
+    type: number
+    description: Hours the centre spent within the radius (hourly interpolated track).

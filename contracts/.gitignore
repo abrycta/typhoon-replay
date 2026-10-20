@@ -1,0 +1,5 @@
+# Build output and test results (CI regenerates them)
+dist/
+conformance/results/
+schema-coverage.html
+.hypothesis/

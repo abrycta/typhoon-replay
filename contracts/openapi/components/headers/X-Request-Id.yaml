@@ -1,0 +1,6 @@
+description: The inbound `X-Request-Id` if it is 1–64 chars of `[A-Za-z0-9._-]`, otherwise a new UUIDv7. Also returned as `requestId` in problem bodies.
+required: true
+schema:
+  type: string
+  pattern: '^[A-Za-z0-9._-]{1,64}$'
+example: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P

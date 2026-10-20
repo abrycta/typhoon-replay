@@ -1,0 +1,26 @@
+title: User
+type: object
+required: [id, displayName, providers, createdAt]
+properties:
+  id:
+    type: string
+    format: uuid
+  displayName:
+    type: string
+  email:
+    type: string
+    format: email
+  avatarUrl:
+    type: string
+    format: uri
+  locale:
+    type: string
+    enum: [en, ja]
+  providers:
+    type: array
+    maxItems: 2
+    items:
+      $ref: ./Provider.yaml
+  createdAt:
+    type: string
+    format: date-time

@@ -1,0 +1,7 @@
+name: returnTo
+in: query
+description: Same-origin relative path to land on after sign-in. Must start with `/` and not `//`; anything else is replaced by `/`.
+schema:
+  type: string
+  maxLength: 512
+example: /places/PH-0831600000

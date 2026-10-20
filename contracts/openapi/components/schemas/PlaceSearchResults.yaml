@@ -1,0 +1,10 @@
+title: PlaceSearchResults
+description: Best matches first (exact, then prefix, then substring; ties by population descending, then id).
+type: object
+required: [items]
+properties:
+  items:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./PlaceSummary.yaml

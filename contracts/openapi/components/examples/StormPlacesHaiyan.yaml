@@ -1,0 +1,40 @@
+summary: Places within 100 km of Haiyan's track, closest first
+value:
+  radiusKm: 100
+  items:
+    - place:
+        id: PH-0803738000
+        country: PH
+        kind: city
+        name: Ormoc City
+        admin1: Eastern Visayas
+        admin2: Leyte
+        centroid: [124.6075, 11.0064]
+      closestApproachKm: 6.3
+      closestApproachAt: '2013-11-08T01:00:00Z'
+      maxWindKtWithinRadius: 167
+      hoursWithinRadius: 6
+    - place:
+        id: PH-0802616000
+        country: PH
+        kind: municipality
+        name: Guiuan
+        admin1: Eastern Visayas
+        admin2: Eastern Samar
+        centroid: [125.7247, 11.0333]
+      closestApproachKm: 21.8
+      closestApproachAt: '2013-11-07T21:00:00Z'
+      maxWindKtWithinRadius: 169
+      hoursWithinRadius: 6
+    - place:
+        id: PH-0831600000
+        country: PH
+        kind: city
+        name: Tacloban City
+        admin1: Eastern Visayas
+        admin2: Leyte
+        centroid: [125.0039, 11.2433]
+      closestApproachKm: 27
+      closestApproachAt: '2013-11-08T00:00:00Z'
+      maxWindKtWithinRadius: 168
+      hoursWithinRadius: 6

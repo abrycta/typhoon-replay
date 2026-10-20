@@ -1,0 +1,51 @@
+get:
+  operationId: listPointStorms
+  tags: [places]
+  summary: Storms that passed near an arbitrary point
+  description: Same result shape and sorts as `listPlaceStorms`, computed on the fly from best tracks (geodesic distance on `geography`) to the point.
+  parameters:
+    - $ref: ../components/parameters/Lat.yaml
+    - $ref: ../components/parameters/Lon.yaml
+    - $ref: ../components/parameters/RadiusKm.yaml
+    - $ref: ../components/parameters/MinWindKt.yaml
+    - $ref: ../components/parameters/SeasonFrom.yaml
+    - $ref: ../components/parameters/SeasonTo.yaml
+    - $ref: ../components/parameters/HitSort.yaml
+    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/Limit.yaml
+    - $ref: ../components/parameters/IfNoneMatch.yaml
+  responses:
+    '200':
+      description: A page of storms.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+        ETag:
+          $ref: ../components/headers/ETag.yaml
+        Link:
+          $ref: ../components/headers/Link.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/StormHitPage.yaml
+          examples:
+            tacloban:
+              $ref: ../components/examples/PlaceStormsTacloban.yaml
+    '304':
+      $ref: ../components/responses/NotModified.yaml
+    '400':
+      $ref: ../components/responses/Problem400.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

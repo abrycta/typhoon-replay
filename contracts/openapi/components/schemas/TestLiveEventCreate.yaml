@@ -1,0 +1,13 @@
+title: TestLiveEventCreate
+description: Applied with `SELECT live.apply_event(type, payload)`, exactly as the ingestion job does.
+type: object
+required: [type, payload]
+properties:
+  type:
+    type: string
+    enum: [storm-upserted, storm-removed]
+  payload:
+    type: object
+    description: An `ActiveStorm` for `storm-upserted`, a `StormRemoved` for `storm-removed`.
+    additionalProperties: true
+x-internal: true

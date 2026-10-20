@@ -1,0 +1,16 @@
+title: DataSource
+type: object
+required: [id, name, url]
+properties:
+  id:
+    type: string
+    pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+    example: ibtracs-v04r01
+  name:
+    type: string
+    example: IBTrACS v04r01 (NOAA NCEI)
+  url:
+    type: string
+    format: uri
+  license:
+    type: string

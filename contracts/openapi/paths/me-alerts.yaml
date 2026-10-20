@@ -1,0 +1,94 @@
+get:
+  operationId: getAlertPreferences
+  tags: [alerts]
+  summary: Alert preferences
+  description: 'Defaults (`enabled: false`, 200 km, 64 kt, all saved places, `en`) when never set.'
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: Current preferences.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AlertPreferences.yaml
+          examples:
+            ana:
+              $ref: ../components/examples/AlertPreferences.yaml
+    '401':
+      $ref: ../components/responses/Problem401.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml
+put:
+  operationId: replaceAlertPreferences
+  tags: [alerts]
+  summary: Replace alert preferences
+  security:
+    - sessionCookie: []
+      csrfHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AlertPreferencesUpdate.yaml
+        example:
+          enabled: true
+          radiusKm: 200
+          minWindKt: 64
+          savedPlaceIds: [0192f5a0-0000-7000-8000-000000000101]
+          language: en
+  responses:
+    '200':
+      description: Saved preferences.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AlertPreferences.yaml
+          examples:
+            ana:
+              $ref: ../components/examples/AlertPreferences.yaml
+    '400':
+      $ref: ../components/responses/Problem400.yaml
+    '401':
+      $ref: ../components/responses/Problem401.yaml
+    '403':
+      $ref: ../components/responses/Problem403.yaml
+    '413':
+      $ref: ../components/responses/Problem413.yaml
+    '415':
+      $ref: ../components/responses/Problem415.yaml
+    '422':
+      $ref: ../components/responses/Problem422.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

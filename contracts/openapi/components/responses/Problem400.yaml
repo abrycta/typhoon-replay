@@ -1,0 +1,38 @@
+description: 'Request validation failed (`validation`) or a bad cursor (`invalid-cursor`).'
+headers:
+  X-Backend-Impl:
+    $ref: ../headers/X-Backend-Impl.yaml
+  X-Backend-Version:
+    $ref: ../headers/X-Backend-Version.yaml
+  X-Contract-Version:
+    $ref: ../headers/X-Contract-Version.yaml
+  X-Request-Id:
+    $ref: ../headers/X-Request-Id.yaml
+  Cache-Control:
+    $ref: ../headers/Cache-Control.yaml
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml
+    examples:
+      validation:
+        value:
+          type: https://typhoon-replay.pages.dev/problems/validation
+          title: Request validation failed
+          status: 400
+          detail: Example detail text; free-form.
+          instance: '/v1/storms?limit=500'
+          code: validation
+          requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P
+          errors:
+            - pointer: "#/query/limit"
+              detail: must be <= 100
+      invalid-cursor:
+        value:
+          type: https://typhoon-replay.pages.dev/problems/invalid-cursor
+          title: Invalid cursor
+          status: 400
+          detail: cursor was made for sort "name", not "season-desc"
+          instance: '/v1/storms?cursor=WzEsIm5hbWUiLCJIQUlZQU4iLCIyMDEzMzA2TjA3MTYyIl0'
+          code: invalid-cursor
+          requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P

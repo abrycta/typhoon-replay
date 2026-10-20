@@ -1,0 +1,6 @@
+description: The contract version (this document's `info.version`) the backend implements.
+required: true
+schema:
+  type: string
+  pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+example: 1.0.0

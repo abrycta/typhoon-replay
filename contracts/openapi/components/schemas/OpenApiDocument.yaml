@@ -1,0 +1,11 @@
+title: OpenApiDocument
+description: The contract bundle (`dist/openapi.json`), byte-identical across backends.
+type: object
+required: [openapi, info, paths]
+properties:
+  openapi:
+    type: string
+  info:
+    type: object
+  paths:
+    type: object

@@ -1,0 +1,4 @@
+title: Impl
+description: Backend implementation id. `mock` appears only on responses from the Prism/MSW mock.
+type: string
+enum: [java, node, rust, go, mock]

@@ -1,0 +1,5 @@
+name: radiusKm
+in: query
+description: Radius in km; one of the precomputed bands.
+schema:
+  $ref: ../schemas/RadiusKm.yaml

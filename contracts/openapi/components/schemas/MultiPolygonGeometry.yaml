@@ -1,0 +1,21 @@
+title: MultiPolygonGeometry
+description: RFC 7946 MultiPolygon. API geometries are display-simplified (at most 1,500 vertices) to respect the 64 KB response cap.
+type: object
+required: [type, coordinates]
+properties:
+  type:
+    type: string
+    enum: [MultiPolygon]
+    x-external-enum: true
+  coordinates:
+    type: array
+    maxItems: 200
+    items:
+      type: array
+      maxItems: 50
+      items:
+        type: array
+        minItems: 4
+        maxItems: 1500
+        items:
+          $ref: ./LonLat.yaml

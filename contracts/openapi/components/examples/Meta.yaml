@@ -1,0 +1,9 @@
+summary: Java backend metadata
+value:
+  impl: java
+  implVersion: 0.1.0
+  contractVersion: 1.0.0
+  schemaVersion: '20261021000500'
+  datasetVersion: 1
+  commit: 617f6ce
+  startedAt: '2026-10-21T08:00:00Z'

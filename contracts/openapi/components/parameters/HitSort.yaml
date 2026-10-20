@@ -1,0 +1,11 @@
+name: sort
+in: query
+description: |
+  `closest` (closestApproachKm asc; cursor keyset `[closestApproachKm]`), `peak-wind-desc`
+  (maxWindKtWithinRadius desc, unknown last; keyset `[windOrMinus1]`), `peak-gust-desc` (maxGustKtWithinRadius desc,
+  unknown last; keyset `[gustOrMinus1]`), `date-desc` (closestApproachAt desc; keyset `["<RFC 3339>"]`).
+  Ties break by storm id ascending.
+schema:
+  type: string
+  enum: [closest, peak-wind-desc, peak-gust-desc, date-desc]
+  default: closest

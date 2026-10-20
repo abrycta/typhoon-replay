@@ -1,0 +1,7 @@
+name: savedPlaceId
+in: path
+required: true
+schema:
+  type: string
+  format: uuid
+example: 0192f5a0-0000-7000-8000-000000000101

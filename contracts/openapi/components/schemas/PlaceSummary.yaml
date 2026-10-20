@@ -1,0 +1,35 @@
+title: PlaceSummary
+description: A PH ADM3 unit (city/municipality, PSGC) or a JP municipality (JIS X 0402).
+type: object
+required: [id, country, kind, name, admin1, centroid]
+properties:
+  id:
+    type: string
+    description: '`PH-` + 10-digit PSGC, or `JP-` + 5-digit JIS municipality code.'
+    pattern: '^(PH-[0-9]{10}|JP-[0-9]{5})$'
+    example: PH-0831600000
+  country:
+    $ref: ./CountryCode.yaml
+  kind:
+    $ref: ./PlaceKind.yaml
+  name:
+    type: string
+    description: Latin-script name.
+    example: Tacloban City
+  nameJa:
+    type: string
+    description: Japanese name (JP places).
+    example: 那覇市
+  admin1:
+    type: string
+    description: Region (PH) or prefecture (JP).
+    example: Eastern Visayas
+  admin1Ja:
+    type: string
+    example: 沖縄県
+  admin2:
+    type: string
+    description: Province (PH only).
+    example: Leyte
+  centroid:
+    $ref: ./LonLat.yaml

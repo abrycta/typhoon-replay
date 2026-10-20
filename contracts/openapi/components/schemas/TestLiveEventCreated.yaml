@@ -1,0 +1,8 @@
+title: TestLiveEventCreated
+type: object
+required: [seq]
+properties:
+  seq:
+    type: integer
+    format: int64
+x-internal: true

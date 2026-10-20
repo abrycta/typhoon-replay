@@ -1,0 +1,3 @@
+title: PlaceKind
+type: string
+enum: [city, municipality, special-ward, ward, town, village]

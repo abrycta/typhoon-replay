@@ -1,0 +1,6 @@
+description: Disables proxy buffering of the event stream.
+required: true
+schema:
+  type: string
+  enum: ['no']
+example: 'no'

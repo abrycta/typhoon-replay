@@ -1,0 +1,13 @@
+title: StormUpsertedEvent
+description: 'SSE frame `event: storm-upserted`: a new advisory for an active storm. `id` is the `live_event.seq`.'
+type: object
+required: [event, id, data]
+properties:
+  event:
+    type: string
+    enum: [storm-upserted]
+  id:
+    type: string
+    pattern: '^[0-9]{1,19}$'
+  data:
+    $ref: ./ActiveStorm.yaml

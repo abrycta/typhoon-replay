@@ -1,0 +1,12 @@
+summary: A point inside Tacloban City
+value:
+  place:
+    id: PH-0831600000
+    country: PH
+    kind: city
+    name: Tacloban City
+    admin1: Eastern Visayas
+    admin2: Leyte
+    centroid: [125.0039, 11.2433]
+  contains: true
+  distanceKm: 0

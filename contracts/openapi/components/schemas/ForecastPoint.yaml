@@ -1,0 +1,18 @@
+title: ForecastPoint
+type: object
+required: [at, leadHours, position]
+properties:
+  at:
+    type: string
+    format: date-time
+  leadHours:
+    type: integer
+    minimum: 0
+    maximum: 240
+  position:
+    $ref: ./LonLat.yaml
+  windKt:
+    type: number
+  coneRadiusKm:
+    type: number
+    description: Radius of the probability circle at this lead time, when the agency publishes one.

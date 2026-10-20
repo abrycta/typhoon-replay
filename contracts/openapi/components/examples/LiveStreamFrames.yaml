@@ -1,0 +1,14 @@
+summary: First frames of a fresh connection, then one update
+value: |+
+  retry: 10000
+
+  event: snapshot
+  id: 1
+  data: {"asOf":"2026-10-20T21:30:00Z","seq":1,"storms":[{"liveId":"jma-2622","name":"Fixture","agency":"jma","observedAt":"2026-10-20T21:00:00Z","position":[128.4,15.2],"windKt":95}]}
+
+  :
+
+  event: storm-upserted
+  id: 2
+  data: {"liveId":"jma-2622","name":"Fixture","agency":"jma","advisoryNumber":13,"observedAt":"2026-10-21T00:00:00Z","position":[127.9,15.4],"windKt":100}
+

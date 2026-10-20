@@ -1,0 +1,13 @@
+title: StormRemovedEvent
+description: 'SSE frame `event: storm-removed`. `id` is the `live_event.seq`.'
+type: object
+required: [event, id, data]
+properties:
+  event:
+    type: string
+    enum: [storm-removed]
+  id:
+    type: string
+    pattern: '^[0-9]{1,19}$'
+  data:
+    $ref: ./StormRemoved.yaml

@@ -1,0 +1,5 @@
+title: Basin
+description: IBTrACS basin code (external code list, kept uppercase). v1 data covers `WP` only.
+type: string
+enum: [WP, EP, NA, NI, SI, SP, SA]
+x-external-enum: true

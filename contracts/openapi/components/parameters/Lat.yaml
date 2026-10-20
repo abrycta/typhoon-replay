@@ -1,0 +1,8 @@
+name: lat
+in: query
+required: true
+schema:
+  type: number
+  minimum: -90
+  maximum: 90
+example: 11.2433

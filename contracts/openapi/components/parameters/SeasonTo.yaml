@@ -1,0 +1,7 @@
+name: to
+in: query
+description: Latest season (inclusive).
+schema:
+  type: integer
+  minimum: 1840
+  maximum: 2100

@@ -1,0 +1,18 @@
+title: PlaceHit
+description: A place that a storm passed within the requested radius of.
+type: object
+required: [place, closestApproachKm, closestApproachAt, hoursWithinRadius]
+properties:
+  place:
+    $ref: ./PlaceSummary.yaml
+  closestApproachKm:
+    type: number
+  closestApproachAt:
+    type: string
+    format: date-time
+  maxWindKtWithinRadius:
+    type: number
+  maxGustKtWithinRadius:
+    type: number
+  hoursWithinRadius:
+    type: number

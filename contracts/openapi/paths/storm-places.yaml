@@ -1,0 +1,51 @@
+get:
+  operationId: listStormPlaces
+  tags: [storms]
+  summary: Places a storm passed near
+  description: |
+    Places whose boundary the storm centre passed within `radiusKm` of. Sort `closest` (closestApproachKm asc;
+    keyset `[closestApproachKm]`), ties by place id ascending.
+  parameters:
+    - $ref: ../components/parameters/Sid.yaml
+    - $ref: ../components/parameters/RadiusKm.yaml
+    - $ref: ../components/parameters/Country.yaml
+    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/Limit.yaml
+    - $ref: ../components/parameters/IfNoneMatch.yaml
+  responses:
+    '200':
+      description: A page of places.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+        ETag:
+          $ref: ../components/headers/ETag.yaml
+        Link:
+          $ref: ../components/headers/Link.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PlaceHitPage.yaml
+          examples:
+            haiyan:
+              $ref: ../components/examples/StormPlacesHaiyan.yaml
+    '304':
+      $ref: ../components/responses/NotModified.yaml
+    '400':
+      $ref: ../components/responses/Problem400.yaml
+    '404':
+      $ref: ../components/responses/Problem404.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

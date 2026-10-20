@@ -1,0 +1,22 @@
+title: StormTrack
+description: |
+  GeoJSON FeatureCollection of best-track fixes (agency observations: 6-hourly synoptic plus off-synoptic fixes such as landfalls).
+  IBTrACS 3-hourly interpolations and the hourly replay track are not served by the API; they come from the static stores.
+type: object
+required: [type, sid, resolution, features]
+properties:
+  type:
+    type: string
+    enum: [FeatureCollection]
+    x-external-enum: true
+  sid:
+    type: string
+    pattern: '^[0-9]{7}[NS][0-9]{5}$'
+  resolution:
+    type: string
+    enum: [best-track]
+  features:
+    type: array
+    maxItems: 300
+    items:
+      $ref: ./TrackFeature.yaml

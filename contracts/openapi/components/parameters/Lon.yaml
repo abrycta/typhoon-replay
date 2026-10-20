@@ -1,0 +1,8 @@
+name: lon
+in: query
+required: true
+schema:
+  type: number
+  minimum: -180
+  maximum: 180
+example: 125.0039

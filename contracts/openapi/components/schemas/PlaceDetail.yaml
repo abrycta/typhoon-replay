@@ -1,0 +1,37 @@
+title: PlaceDetail
+type: object
+required: [id, country, kind, name, admin1, centroid, areaKm2, bbox, geometry]
+properties:
+  id:
+    type: string
+    pattern: '^(PH-[0-9]{10}|JP-[0-9]{5})$'
+  country:
+    $ref: ./CountryCode.yaml
+  kind:
+    $ref: ./PlaceKind.yaml
+  name:
+    type: string
+  nameJa:
+    type: string
+  admin1:
+    type: string
+  admin1Ja:
+    type: string
+  admin2:
+    type: string
+  centroid:
+    $ref: ./LonLat.yaml
+  population:
+    type: integer
+    description: Latest census population when known.
+  areaKm2:
+    type: number
+  bbox:
+    type: array
+    description: '`[minLon, minLat, maxLon, maxLat]`.'
+    minItems: 4
+    maxItems: 4
+    items:
+      type: number
+  geometry:
+    $ref: ./MultiPolygonGeometry.yaml

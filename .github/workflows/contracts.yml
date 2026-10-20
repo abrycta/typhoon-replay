@@ -1,0 +1,199 @@
+# Contract checks: runs when the shared contract, schema or their tooling changes.
+#   spec      lint (portable subset), bundle 3.1 + 3.0, oasdiff breaking-change gate, conformance suite type-check
+#   database  dbmate up / down / up against a fresh PostGIS service container, then the fixture seed (twice)
+#   smoke     Schemathesis and the contract-shape scenarios against Prism serving the bundle
+# Backend conformance columns (java|node|rust|go) are added as each backend lands.
+name: Contracts
+
+on:
+  pull_request:
+    paths:
+      - contracts/**
+      - compose.yaml
+      - justfile
+      - .github/workflows/contracts.yml
+  push:
+    branches: [main]
+    paths:
+      - contracts/**
+      - compose.yaml
+      - justfile
+      - .github/workflows/contracts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DBMATE_IMAGE: ghcr.io/amacneil/dbmate:2.37
+  POSTGIS_IMAGE: postgis/postgis:17-3.5
+  SCHEMATHESIS_IMAGE: schemathesis/schemathesis:stable
+
+jobs:
+  spec:
+    name: Lint, bundle, breaking changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # oasdiff bundles the base ref from history
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install
+        working-directory: contracts
+        run: npm ci
+
+      - name: Lint (portable subset)
+        working-directory: contracts
+        run: npm run lint
+
+      - name: Bundle (3.1 + 3.0)
+        working-directory: contracts
+        run: |
+          npm run bundle
+          npm run lint-dist
+
+      - name: Breaking changes (oasdiff)
+        env:
+          # PR: the base branch tip. Push: the previous tip. Manual run: origin/main.
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+        run: contracts/scripts/oasdiff-check.sh "$BASE_REF"
+
+      - name: Type-check the conformance suite
+        working-directory: contracts
+        run: npm run typecheck
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: contract-bundle
+          path: |
+            contracts/dist/openapi.json
+            contracts/dist/openapi.3.0.json
+            contracts/dist/changelog.md
+          if-no-files-found: error
+
+  database:
+    name: Migrations up/down/up + seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgis:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: tr
+          POSTGRES_PASSWORD: tr
+          POSTGRES_DB: typhoon
+        ports:
+          - 5432:5432
+        # An empty init directory: like Neon, the database starts without extensions and migration 1 creates them.
+        volumes:
+          - /tmp/empty-initdb:/docker-entrypoint-initdb.d
+        options: >-
+          --health-cmd "pg_isready -U tr -d typhoon"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://tr:tr@localhost:5432/typhoon?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Helpers
+        run: |
+          cat >> "$GITHUB_ENV" <<'EOF'
+          DBMATE=docker run --rm --network host -e DATABASE_URL -e DBMATE_MIGRATIONS_DIR=/db/migrations -e DBMATE_NO_DUMP_SCHEMA=true -v ${{ github.workspace }}/contracts/db:/db:ro ghcr.io/amacneil/dbmate:2.37
+          PSQL=docker run --rm --network host -v ${{ github.workspace }}/contracts/db:/db:ro postgis/postgis:17-3.5 psql postgres://tr:tr@localhost:5432/typhoon?sslmode=disable -v ON_ERROR_STOP=1
+          EOF
+
+      - name: Up
+        run: $DBMATE --wait up
+
+      - name: Down (every migration)
+        run: |
+          n=$(find contracts/db/migrations -name "*.sql" | wc -l)
+          for _ in $(seq "$n"); do $DBMATE rollback; done
+          left=$($PSQL -Atc "select count(*) from pg_namespace where nspname in ('catalog','live','auth','app','ops')")
+          exts=$($PSQL -Atc "select count(*) from pg_extension where extname <> 'plpgsql'")
+          echo "schemas left: $left, extensions left: $exts"
+          test "$left" = 0 && test "$exts" = 0
+
+      - name: Up again
+        run: $DBMATE up
+
+      - name: Seed (twice, to prove it is idempotent)
+        run: |
+          $PSQL -q -1 -f /db/seed/seed.sql
+          $PSQL -q -1 -f /db/seed/seed.sql
+
+      - name: Golden values
+        run: |
+          got=$($PSQL -Atc "select string_agg(sid || ':' || closest_approach_km, ',' order by closest_approach_km) from catalog.place_storm_exposure where place_id = 'PH-0831600000' and closest_approach_km <= 100")
+          echo "Tacloban within 100 km: $got"
+          test "$got" = "2013306N07162:27.0,1946316N07133:88.0"
+
+  smoke:
+    name: Schemathesis + scenarios vs Prism
+    needs: spec
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install and bundle
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run bundle
+
+      - name: Start Prism
+        run: |
+          docker compose --profile mock up -d prism
+          for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:4010/readyz && exit 0; sleep 1; done
+          docker compose logs prism; exit 1
+
+      - name: Schemathesis (positive, against the examples)
+        run: |
+          mkdir -p contracts/conformance/results
+          docker run --rm --network host -e BASE_URL=http://localhost:4010 \
+            -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
+            --config-file /c/conformance/schemathesis/prism-smoke.toml run /c/dist/openapi.json \
+            --report junit --report-junit-path /c/conformance/results/mock-schemathesis.xml
+
+      - name: Contract-shape scenarios (IMPL=mock)
+        working-directory: contracts
+        env:
+          BASE_URL: http://localhost:4010
+          IMPL: mock
+        run: npm run conformance
+
+      - name: Compatibility table
+        if: always()
+        working-directory: contracts
+        run: npm run compat-table >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: smoke-results
+          path: contracts/conformance/results/
+          if-no-files-found: ignore
+
+      - name: Stop Prism
+        if: always()
+        run: docker compose --profile mock down

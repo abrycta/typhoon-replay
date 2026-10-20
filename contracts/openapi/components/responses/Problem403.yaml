@@ -1,0 +1,29 @@
+description: 'Rejected by the CSRF rules (`csrf`: wrong `Origin` or missing `X-Requested-With: typhoon-replay`) or not allowed (`forbidden`).'
+headers:
+  X-Backend-Impl:
+    $ref: ../headers/X-Backend-Impl.yaml
+  X-Backend-Version:
+    $ref: ../headers/X-Backend-Version.yaml
+  X-Contract-Version:
+    $ref: ../headers/X-Contract-Version.yaml
+  X-Request-Id:
+    $ref: ../headers/X-Request-Id.yaml
+  Cache-Control:
+    $ref: ../headers/Cache-Control.yaml
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml
+    examples:
+      csrf:
+        value:
+          type: https://typhoon-replay.pages.dev/problems/csrf
+          title: Cross-site request rejected
+          status: 403
+          detail: Example detail text; free-form.
+          instance: '/v1/me/places'
+          code: csrf
+          requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P
+          errors:
+                - pointer: "#/query/limit"
+                  detail: must be <= 100

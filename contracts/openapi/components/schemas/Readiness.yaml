@@ -1,0 +1,15 @@
+title: Readiness
+type: object
+required: [status, impl, schemaVersion, minSchemaVersion]
+properties:
+  status:
+    type: string
+    enum: [ready]
+  impl:
+    $ref: ./Impl.yaml
+  schemaVersion:
+    type: string
+    pattern: '^[0-9]{14}$'
+  minSchemaVersion:
+    type: string
+    pattern: '^[0-9]{14}$'

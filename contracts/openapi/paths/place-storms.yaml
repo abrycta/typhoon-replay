@@ -1,0 +1,56 @@
+get:
+  operationId: listPlaceStorms
+  tags: [places]
+  summary: Storms that hit this place
+  description: |
+    The headline query: storms whose centre passed within `radiusKm` of the place boundary, from the precomputed
+    `catalog.place_storm_exposure`. Only the bands 50/100/200/300/500 km are accepted.
+  parameters:
+    - $ref: ../components/parameters/PlaceId.yaml
+    - $ref: ../components/parameters/RadiusKm.yaml
+    - $ref: ../components/parameters/MinWindKt.yaml
+    - $ref: ../components/parameters/SeasonFrom.yaml
+    - $ref: ../components/parameters/SeasonTo.yaml
+    - $ref: ../components/parameters/HitSort.yaml
+    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/Limit.yaml
+    - $ref: ../components/parameters/IfNoneMatch.yaml
+  responses:
+    '200':
+      description: A page of storms, ranked by `sort`.
+      headers:
+        X-Backend-Impl:
+          $ref: ../components/headers/X-Backend-Impl.yaml
+        X-Backend-Version:
+          $ref: ../components/headers/X-Backend-Version.yaml
+        X-Contract-Version:
+          $ref: ../components/headers/X-Contract-Version.yaml
+        X-Request-Id:
+          $ref: ../components/headers/X-Request-Id.yaml
+        Cache-Control:
+          $ref: ../components/headers/Cache-Control.yaml
+        Vary:
+          $ref: ../components/headers/Vary.yaml
+        ETag:
+          $ref: ../components/headers/ETag.yaml
+        Link:
+          $ref: ../components/headers/Link.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/StormHitPage.yaml
+          examples:
+            tacloban:
+              $ref: ../components/examples/PlaceStormsTacloban.yaml
+            naha:
+              $ref: ../components/examples/PlaceStormsNaha.yaml
+    '304':
+      $ref: ../components/responses/NotModified.yaml
+    '400':
+      $ref: ../components/responses/Problem400.yaml
+    '404':
+      $ref: ../components/responses/Problem404.yaml
+    '429':
+      $ref: ../components/responses/Problem429.yaml
+    '500':
+      $ref: ../components/responses/Problem500.yaml

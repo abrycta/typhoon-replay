@@ -1,0 +1,6 @@
+description: Semver of the backend build that served the response.
+required: true
+schema:
+  type: string
+  pattern: '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'
+example: 0.1.0

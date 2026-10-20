@@ -1,0 +1,16 @@
+title: Landfall
+description: A best-track segment that crosses into a covered country's land.
+type: object
+required: [country, at, position]
+properties:
+  country:
+    $ref: ./CountryCode.yaml
+  at:
+    type: string
+    format: date-time
+  position:
+    $ref: ./LonLat.yaml
+  placeId:
+    type: string
+    description: The catalogue place containing `position`, when it is one.
+    pattern: '^(PH-[0-9]{10}|JP-[0-9]{5})$'

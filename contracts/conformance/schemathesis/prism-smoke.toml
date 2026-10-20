@@ -1,0 +1,54 @@
+# Smoke test of the spec itself: Schemathesis against Prism serving dist/openapi.json (CI: contracts.yml).
+# Positive data only: Prism's own validation errors are not shaped like our problem+json, so negative
+# testing belongs to the backend run (backend.toml). Catches examples that contradict their schemas,
+# undeclared headers, and operations Prism cannot serve.
+base-url = "${BASE_URL}"
+seed = 20261021
+workers = 4
+max-redirects = 0
+request-timeout = 10
+
+[headers]
+# Needed by the second security alternative of logout (csrfHeader only), which auth.openapi does not fill in.
+X-Requested-With = "typhoon-replay"
+
+[generation]
+mode = "positive"
+max-examples = 25
+
+[phases.examples]
+enabled = true
+
+[phases.fuzzing.generation]
+# The top-level [generation] mode does not reach the fuzzing phase in 4.32, so repeat it here.
+mode = "positive"
+max-examples = 25
+
+[phases.coverage]
+enabled = false
+
+[phases.stateful]
+enabled = false
+
+[checks]
+not_a_server_error.enabled = true
+status_code_conformance.enabled = true
+content_type_conformance.enabled = true
+response_schema_conformance.enabled = true
+response_headers_conformance.enabled = true
+negative_data_rejection.enabled = false
+positive_data_acceptance.enabled = false
+missing_required_header.enabled = false
+unsupported_method.enabled = false
+ignored_auth.enabled = false
+
+[auth.openapi.sessionCookie]
+api_key = "fixture-session-token-ana-0000000000000"
+
+[auth.openapi.csrfHeader]
+api_key = "typhoon-replay"
+
+[[operations]]
+# The event stream never ends on a real backend; it is covered by the Vitest SSE scenarios.
+include-operation-id = "streamLiveEvents"
+enabled = false

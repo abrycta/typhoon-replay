@@ -1,0 +1,8 @@
+title: LonLat
+description: '`[lon, lat]` in WGS 84 (GeoJSON order), at most 4 decimal places, longitude normalised to (-180, 180].'
+type: array
+items:
+  type: number
+minItems: 2
+maxItems: 2
+example: [125.0039, 11.2433]

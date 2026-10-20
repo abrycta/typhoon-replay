@@ -1,0 +1,12 @@
+title: TrackFeature
+type: object
+required: [type, geometry, properties]
+properties:
+  type:
+    type: string
+    enum: [Feature]
+    x-external-enum: true
+  geometry:
+    $ref: ./PointGeometry.yaml
+  properties:
+    $ref: ./TrackPointProperties.yaml
