@@ -1,0 +1,52 @@
+# Shared setup for the data pipeline jobs: skip cleanly without the private-kit token, install uv,
+# route the private archivekit git dependency through ARCHIVE_READ_TOKEN, sync the locked environment.
+name: Set up the data pipeline
+description: Token gate, uv, archivekit access and `uv sync --locked` in pipeline/.
+inputs:
+  archive-read-token:
+    description: secrets.ARCHIVE_READ_TOKEN (fine-grained; Contents read on data-archive-kit + typhoon-replay-archive)
+    required: true
+  hf-token:
+    description: secrets.HF_TOKEN; only checked when require-hf is true
+    required: false
+    default: ""
+  require-hf:
+    description: also require HF_TOKEN (jobs that publish to Hugging Face)
+    required: false
+    default: "false"
+outputs:
+  ok:
+    description: "'true' when the secrets are present and the environment is ready"
+    value: ${{ steps.gate.outputs.ok }}
+runs:
+  using: composite
+  steps:
+    - id: gate
+      shell: bash
+      env:
+        T: ${{ inputs.archive-read-token }}
+        H: ${{ inputs.hf-token }}
+        NEED_HF: ${{ inputs.require-hf }}
+      run: |
+        if [ -z "$T" ]; then
+          echo "::notice title=pipeline skipped::ARCHIVE_READ_TOKEN is not available (fork PR or not created yet); the private archivekit can't be installed."
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+        elif [ "$NEED_HF" = "true" ] && [ -z "$H" ]; then
+          echo "::notice title=publishing skipped::HF_TOKEN is not available; add it as a repository secret (write access to permission-alluring/typhoon-replay)."
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.gate.outputs.ok == 'true'
+      uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      with:
+        enable-cache: true
+        cache-dependency-glob: pipeline/uv.lock
+    - if: steps.gate.outputs.ok == 'true'
+      shell: bash
+      working-directory: pipeline
+      env:
+        ARCHIVE_READ_TOKEN: ${{ inputs.archive-read-token }}
+      run: |
+        git config --global url."https://x-access-token:${ARCHIVE_READ_TOKEN}@github.com/abrycta/data-archive-kit".insteadOf "https://github.com/abrycta/data-archive-kit"
+        uv sync --locked

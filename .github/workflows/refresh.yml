@@ -1,0 +1,101 @@
+# Weekly refresh: pick up IBTrACS updates incrementally and publish a new data version.
+#
+# Re-fetches IBTrACS WP (and the JMA best track) through archivekit, rebuilds the catalogue and exposure,
+# and stops with a notice when IBTrACS is byte-identical to what the published version used. Otherwise it
+# builds frames only for storms that are new since the published version or whose track IBTrACS revised
+# (usually the current season's provisional storms; recent months come from ARCO-ERA5T because NCAR lags
+# ~3 months), reuses everything else from earlier versions, runs every gate and flips latest.json.
+# Typical run: 10-30 storms, ~30-60 min; budget 4 h.
+name: Refresh
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"   # Mondays 03:17 UTC (IBTrACS updates three times a week)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even if IBTrACS did not change
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-publish   # shared with backfill.yml
+  cancel-in-progress: false
+
+env:
+  HF_ROOT: https://huggingface.co/datasets/permission-alluring/typhoon-replay/resolve/main
+  OMP_NUM_THREADS: "2"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: setup
+        uses: ./.github/actions/setup-pipeline
+        with:
+          archive-read-token: ${{ secrets.ARCHIVE_READ_TOKEN }}
+          hf-token: ${{ secrets.HF_TOKEN }}
+          require-hf: "true"
+      - if: steps.setup.outputs.ok == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            data/raw/boundaries
+            data/raw/naturalearth
+            data/processed/places
+          key: pinned-sources-${{ hashFiles('pipeline/sources.yaml', 'pipeline/typhoon/places.py') }}
+      - if: steps.setup.outputs.ok == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/cache/ncar-index
+          key: ncar-index-refresh-${{ github.run_id }}
+          restore-keys: ncar-index-
+      - name: Prepare the catalogue (re-fetch IBTrACS)
+        if: steps.setup.outputs.ok == 'true'
+        working-directory: pipeline
+        env:
+          ARCHIVE_READ_TOKEN: ${{ secrets.ARCHIVE_READ_TOKEN }}
+        run: uv run python -m typhoon prepare --refresh
+      - id: changed
+        name: Did IBTrACS change since the published version?
+        if: steps.setup.outputs.ok == 'true'
+        working-directory: pipeline
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          uv run python -m typhoon publish changed --source ibtracs-wp | tee ../data/changed.json
+          changed=$(python3 -c 'import json; print(str(json.load(open("../data/changed.json"))["changed"]).lower())')
+          if [ "$changed" != "true" ] && [ "$FORCE" != "true" ]; then
+            echo "::notice title=nothing to publish::IBTrACS is unchanged since the published data version."
+          fi
+          echo "go=$([ "$changed" = "true" ] || [ "$FORCE" = "true" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Data-quality gates
+        if: steps.changed.outputs.go == 'true'
+        working-directory: pipeline
+        run: uv run pytest -q -m data
+      - name: Frames for new and revised storms
+        if: steps.changed.outputs.go == 'true'
+        working-directory: pipeline
+        env:
+          ARCHIVE_READ_TOKEN: ${{ secrets.ARCHIVE_READ_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          version=$(uv run python -m typhoon publish next-version)
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          uv run python -m typhoon plan --batches 1 --mode changed --previous "$HF_ROOT" --out ../data/plan.json
+          uv run python -m typhoon frames --plan ../data/plan.json --batch 0 --upload-version "$version"
+      - name: Assemble, check, upload, verify, flip
+        if: steps.changed.outputs.go == 'true'
+        working-directory: pipeline
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          uv run python -m typhoon dataset build --version "$VERSION" --previous "$HF_ROOT" --frames-uploaded
+          uv run python -m typhoon publish upload --version "$VERSION"
+          uv run python -m typhoon publish flip --version "$VERSION"
+          echo "Published data version $VERSION" >> "$GITHUB_STEP_SUMMARY"

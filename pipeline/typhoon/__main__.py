@@ -10,7 +10,7 @@ Stages, in order (each reads the previous stages' Parquet under data/processed/)
     catalog                    storm catalogue, hourly tracks, landfalls
     exposure                   place x storm exposure bands
     prepare [--refresh]        all of the above, in order (what CI's prepare job runs)
-    plan --batches N [--list FILE] [--only-missing ROOT]   split storms into N balanced batches (JSON)
+    plan --batches N [--list FILE] [--mode all|missing|changed --previous ROOT]   balanced batches
     frames --sid S | --list FILE | --batch I --plan FILE   ERA5 frames per storm
     dataset build|check --version N [--previous ROOT] [--frames-uploaded]
     publish upload|verify|flip|rollback|current|all
@@ -44,23 +44,31 @@ def prepare(refresh: bool) -> None:
     man.write(RUN_MANIFEST)
 
 
-def plan(batches: int, list_file: Path | None, only_missing: str | None) -> dict[str, list[str]]:
-    """Greedy longest-first split of storms into `batches` with balanced storm-hours."""
+def plan(batches: int, list_file: Path | None, previous: str | None, mode: str = "all") -> dict[str, list[str]]:
+    """Greedy longest-first split of storms into `batches` with balanced storm-hours.
+
+    mode "all": every selected storm; "missing" (backfill): storms whose published frames are absent or
+    stale; "changed" (weekly refresh): storms new since the previous version, plus storms whose published
+    frames are stale because IBTrACS revised the track. Stale = the hourly track hash changed.
+    """
     from . import catalog
+    from .dataset import load_previous, track_hash
     from .frames import read_list
 
     st = catalog.load("storms")
     if list_file:
         st = st[st.sid.isin(read_list(list_file))]
-    if only_missing:
-        from .dataset import load_previous
-
-        _, prev_frames = load_previous(only_missing)
-        from .dataset import track_hash
-
+    if mode != "all":
+        prev_index, prev_frames = load_previous(previous)
+        known = set()
+        if prev_index:
+            known = {r[0] for r in prev_index["storms"]["rows"]}
         hr = catalog.load("hourly")
-        keep = [sid for sid, h in hr[hr.sid.isin(st.sid)].groupby("sid")
-                if sid not in prev_frames or prev_frames[sid]["trackHash"] != track_hash(h)]
+        keep = []
+        for sid, h in hr[hr.sid.isin(st.sid)].groupby("sid"):
+            stale = sid in prev_frames and prev_frames[sid]["trackHash"] != track_hash(h)
+            if mode == "missing" and (sid not in prev_frames or stale) or mode == "changed" and (sid not in known or stale):
+                keep.append(sid)
         st = st[st.sid.isin(keep)]
     loads = [0] * batches
     out: dict[str, list[str]] = {str(i): [] for i in range(batches)}
@@ -98,10 +106,11 @@ def main(argv: list[str] | None = None) -> int:
         ap = argparse.ArgumentParser(prog="typhoon plan")
         ap.add_argument("--batches", type=int, required=True)
         ap.add_argument("--list", type=Path)
-        ap.add_argument("--only-missing", help="dataset root: skip storms whose published frames are current")
+        ap.add_argument("--mode", choices=["all", "missing", "changed"], default="all")
+        ap.add_argument("--previous", help="dataset root (URL or dir) of the published version, for --mode")
         ap.add_argument("--out", type=Path)
         a = ap.parse_args(rest)
-        p = plan(a.batches, a.list, a.only_missing)
+        p = plan(a.batches, a.list, a.previous, a.mode)
         text = json.dumps(p)
         if a.out:
             a.out.write_text(text)

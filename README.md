@@ -14,7 +14,7 @@ each pull request gets its own preview URL.
 | `web/` | The frontend. Currently a provisional placeholder (see `web/README.md`) |
 | `contracts/` | The shared API contract (OpenAPI 3.1), database migrations and seed, conformance suite and mocks (see `contracts/README.md`) |
 | `api/{java,node,rust,go}/` | The four interchangeable backends (research docs so far) |
-| `pipeline/` | Python data pipeline (IBTrACS, ERA5, crosswalks) |
+| `pipeline/` | Python data pipeline: IBTrACS catalogue, places and exposure, ERA5 replay frames, Hugging Face publishing |
 | `docs/architecture/` | System architecture research and the decisions log |
 | `compose.yaml` | Local services by profile: `db` (PostGIS + migrations + seed), `mail`, `mock` (Prism), `idp` (mock OAuth) |
 | `justfile` | Entry point for the contract and backend workflow (`just` lists recipes) |
@@ -150,15 +150,31 @@ is queried in the browser with DuckDB-WASM, not served from Pages.
 
 When the app starts fetching data from a new host, add it to `connect-src`.
 
-### TODO: data pipeline workflow
+### Data pipeline and workflows
 
-The Python pipeline (`pipeline/`, run with `uv`) has no workflow yet. It
-plugs in as a separate `.github/workflows/pipeline.yml` with a schedule (for
-example, after the IBTrACS update three times a week) or `workflow_dispatch`.
-That workflow runs `uv run --project pipeline …`, publishes Parquet to Hugging
-Face, and writes per-storm frame files. The frame files are either committed
-or uploaded as an artifact that `deploy.yml` copies into the build output
-under `frames/`. The size guard in `scripts/ci.sh` already covers them. For
-`scripts/dev.sh --sample`, the pipeline exposes a `sample-data` script in
-`pipeline/pyproject.toml` (or a `typhoon.sample` module) that writes a small
-dataset for local development.
+The Python pipeline (`pipeline/`, Python 3.12 with `uv`) builds the static data and publishes it to the
+public Hugging Face dataset
+[`permission-alluring/typhoon-replay`](https://huggingface.co/datasets/permission-alluring/typhoon-replay),
+never to Pages. Every download goes through `typhoon.sources` (archivekit) with automatic fallback and
+provenance; see `docs/architecture/DATA-RESILIENCE.md`.
+
+```sh
+cd pipeline && uv sync
+uv run python -m typhoon prepare            # IBTrACS, places, JMA numbers, PAGASA names, catalogue, exposure
+uv run python -m typhoon frames --list curated/replay-v1.txt   # ERA5 replay frames (about 2 min per storm)
+uv run python -m typhoon dataset build --version 1             # data/build/v1/ + gates
+uv run python -m typhoon publish all --version 1               # upload, verify Range/CORS, flip latest.json
+uv run python -m typhoon publish rollback --to 1               # point latest.json back at v1
+uv run python -m typhoon dbload --dsn "$DATABASE_URL" --tables ../data/build/v1/tables --ibtracs-version v04r01
+```
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `pipeline.yml` | PRs and pushes touching `pipeline/` | registry validation, ruff, mypy, unit tests, the Postgres loader against `postgis/postgis:18-3.6` (testcontainers), actionlint |
+| `backfill.yml` | `workflow_dispatch` | prepare → a matrix of storm batches building and uploading frames → assemble, gate, upload and flip `latest.json` only if every batch passed |
+| `refresh.yml` | weekly (Mon 03:17 UTC) | re-fetch IBTrACS; if it changed, frames for new or revised storms, then publish a new version |
+
+Secrets: `ARCHIVE_READ_TOKEN` (installs the private `archivekit` through a git `insteadOf` rewrite and
+reads the archive fallback) and `HF_TOKEN` (a Hugging Face write token for `permission-alluring`). Jobs
+skip with a notice when either is missing. Locally the token comes from `HF_TOKEN` or the Keychain item
+`huggingface-token`.

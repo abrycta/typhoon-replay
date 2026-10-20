@@ -143,6 +143,20 @@ def current() -> dict[str, Any] | None:
     return dict(r.json()) if r.status_code == 200 else None
 
 
+def input_changed(source_id: str) -> dict[str, Any]:
+    """Whether the local copy of a source (just fetched) differs from what the published version used."""
+    from .sources import local_path
+
+    local = json.loads((local_path(source_id).with_name(local_path(source_id).name + ".provenance.json")).read_text())
+    cur = current()
+    used = None
+    if cur:
+        r = httpx.get(resolve_url(cur["manifest"]), follow_redirects=True, timeout=120)
+        if r.status_code == 200:
+            used = r.json()["provenance"]["inputs"].get(source_id, {}).get("sha256")
+    return {"source": source_id, "changed": used != local["sha256"], "published": used, "local": local["sha256"]}
+
+
 def rollback(to: int) -> dict[str, Any]:
     """Point latest.json at an older version that is still in the repo (nothing is deleted)."""
     r = httpx.get(resolve_url(f"v{to}/manifest.json"), follow_redirects=True, timeout=60)
@@ -157,12 +171,18 @@ def rollback(to: int) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["upload", "verify", "flip", "rollback", "all", "current"])
+    ap.add_argument("cmd", choices=["upload", "verify", "flip", "rollback", "all", "current", "next-version", "changed"])
+    ap.add_argument("--source", default="ibtracs-wp")
     ap.add_argument("--version", type=int)
     ap.add_argument("--to", type=int)
     a = ap.parse_args(argv)
     if a.cmd == "current":
         print(json.dumps(current(), indent=1))
+    elif a.cmd == "changed":
+        print(json.dumps(input_changed(a.source)))
+    elif a.cmd == "next-version":
+        cur = current()
+        print(int(cur["dataVersion"]) + 1 if cur else 1)
     elif a.cmd == "rollback":
         print(json.dumps(rollback(a.to), indent=1))
     elif a.cmd == "upload":
