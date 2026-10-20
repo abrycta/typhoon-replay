@@ -103,7 +103,7 @@ const HITS = {
     },
   ],
 };
-const HITS_NODE = { items: HITS.items.map((h) => ({ hoursWithinRadius: h.hoursWithinRadius, ...h, closestApproachAt: h.closestApproachAt.replace("Z", ".000Z") })), radiusKm: 100, nextCursor: "opaque" };
+const HITS_NODE = { items: HITS.items.map((h) => ({ ...Object.fromEntries(Object.entries(h).reverse()), closestApproachAt: h.closestApproachAt.replace("Z", ".000Z") })), radiusKm: 100, nextCursor: "opaque" };
 const STORM = { sid: HAIYAN, name: "Haiyan", localNames: { ph: "Yolanda" }, season: 2013, basin: "WP", startedAt: "2013-11-03T00:00:00Z", endedAt: "2013-11-11T00:00:00Z", durationHours: 192, fixCount: 64, landfallCountries: ["PH"], peak: { windKt: 170, agency: "jtwc", pressureHpa: 895 }, intensity: [], landfalls: [{ country: "PH", at: "2013-11-07T20:40:00Z", position: [125.7, 11.0] }], sources: [], replayAvailable: true };
 const META = { impl: "java", implVersion: "0.1.0", contractVersion: "2.0.0", schemaVersion: "3", datasetVersion: 1, commit: "abc", startedAt: "2026-10-21T00:00:00Z" };
 
