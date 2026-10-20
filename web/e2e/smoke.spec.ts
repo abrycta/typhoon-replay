@@ -74,12 +74,18 @@ test("graceful degradation: the replay works with every API blocked", async ({ p
 });
 
 test("storm header: one landfall phrase per country; each landfall in the timeline", async ({ page }) => {
+  test.slow(); // a full storm page with a software-rendered map; under CI load this alone can take ~40 s
+  // Header and timeline come from summary.json and track.json; the ERA5 field is not needed. Reduced motion keeps
+  // the software-rendered map from animating particles, which starves the main thread on a loaded CI machine.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/storm/${HAIYAN}?t=${PEAK}`);
-  await waitForReplay(page);
   const lede = page.getByTestId("storm-lede");
-  await expect(lede).toContainText("in the Philippines");
+  await expect(lede).toContainText("landfall in the Philippines 8 Nov 2013");
   expect((await lede.textContent())!.match(/in the Philippines/g)).toHaveLength(1);
-  await expect(page.getByTestId("timeline-landfall").first()).toContainText("Landfall in the Philippines at");
+  // The timeline table sits below the map; give it the time the replay tests give the first frame.
+  const marks = page.getByTestId("timeline-landfall");
+  await expect(marks).toHaveCount(1, { timeout: 30_000 });
+  await expect(marks).toHaveText("Landfall in the Philippines at 8 Nov, 08:00"); // 00:00 UTC in the default local time (GMT+8)
 });
 
 test("errors: unknown storm and unknown page show the 404", async ({ page }) => {
