@@ -33,8 +33,8 @@ export function UnderTheHood() {
   useEffect(() => {
     const c = new AbortController();
     void wakePing(baseUrlOf("java"), c.signal).then((r) => {
-      if (!r || c.signal.aborted) return;
-      hint("java", r.kind === "ok" ? "ok" : r.kind === "waking" ? "waking" : r.kind === "not-deployed" ? "not-deployed" : "idle");
+      if (!r || c.signal.aborted || r.kind === "error") return;
+      hint("java", r.kind);
     });
     return () => c.abort();
   }, [baseUrlOf, hint]);

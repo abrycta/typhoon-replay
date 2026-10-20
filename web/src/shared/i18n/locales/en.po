@@ -92,6 +92,13 @@ msgstr "{AUTHOR}'s portfolio"
 msgid "{d}s"
 msgstr "{d}s"
 
+#. placeholder {0}: lane.httpStatus
+#. placeholder {1}: lane.reason ?? "?"
+#. placeholder {2}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} answered HTTP {0} ({1}) in {2}."
+msgstr "{label} answered HTTP {0} ({1}) in {2}."
+
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} answered in {0}."
@@ -99,12 +106,20 @@ msgstr "{label} answered in {0}."
 
 #. placeholder {0}: lane.reason ?? "?"
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} answered with an error ({0})."
-msgstr "{label} answered with an error ({0})."
+msgid "{label} did not answer ({0})."
+msgstr "{label} did not answer ({0})."
 
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} did not wake up within 3 minutes."
 msgstr "{label} did not wake up within 3 minutes."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is awake."
+msgstr "{label} is awake."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is not deployed yet."
+msgstr "{label} is not deployed yet."
 
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} is not deployed yet. Nothing to wait for."
@@ -113,6 +128,10 @@ msgstr "{label} is not deployed yet. Nothing to wait for."
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 msgstr "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is waking up; opening this page started it."
+msgstr "{label} is waking up; opening this page started it."
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #. placeholder {1}: formatMs(lane.lastMs ?? 0)

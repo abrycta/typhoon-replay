@@ -43,6 +43,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     "not-deployed": t`not deployed yet`,
     error: t`error`,
   };
+  // Before a run, the chip shows what the wake-up ping found (Java only); it is not an answer.
+  const chipStatus: LaneStatus = lane.status === "idle" && lane.hint ? lane.hint : lane.status;
   const waiting = lane.status === "running" || lane.status === "waking";
   const elapsed = waiting && lane.startedAt !== undefined ? now - lane.startedAt : undefined;
   const pct =
@@ -66,15 +68,24 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
           : lane.status === "error"
             ? lane.reason === "did not wake up in time"
               ? t`${label} did not wake up within 3 minutes.`
-              : t`${label} answered with an error (${lane.reason ?? "?"}).`
-            : "";
-  const time = lane.status === "ok" ? formatMs(lane.totalMs ?? 0) : elapsed !== undefined ? formatMs(elapsed, true) : "—";
+              : lane.httpStatus
+                ? t`${label} answered HTTP ${lane.httpStatus} (${lane.reason ?? "?"}) in ${formatMs(lane.totalMs ?? 0)}.`
+                : t`${label} did not answer (${lane.reason ?? "?"}).`
+            : lane.hint === "ok"
+              ? t`${label} is awake.`
+              : lane.hint === "waking"
+                ? t`${label} is waking up; opening this page started it.`
+                : lane.hint === "not-deployed"
+                  ? t`${label} is not deployed yet.`
+                  : "";
+  const time =
+    lane.status === "ok" || (lane.status === "error" && lane.httpStatus) ? formatMs(lane.totalMs ?? 0) : elapsed !== undefined ? formatMs(elapsed, true) : "—";
   return (
     <article className="grid min-w-0 content-start gap-2 rounded-sm border border-border bg-card p-3.5" aria-labelledby={`lane-${lane.id}-h`} data-testid={`lane-${lane.id}`}>
       <h3 id={`lane-${lane.id}-h`} className="flex items-baseline justify-between gap-2 font-heading text-lg font-semibold">
         {label}
-        <span className={`rounded-full border border-current px-2 font-mono text-[11px] font-normal whitespace-nowrap ${CHIP[lane.status]}`} data-testid={`lane-${lane.id}-state`}>
-          {chip[lane.status]}
+        <span className={`rounded-full border border-current px-2 font-mono text-[11px] font-normal whitespace-nowrap ${CHIP[chipStatus]}`} data-testid={`lane-${lane.id}-state`}>
+          {chip[chipStatus]}
         </span>
       </h3>
       <p className="font-mono text-[11px] text-muted-foreground">{CONFORMANCE.backends[lane.id]?.stack}</p>

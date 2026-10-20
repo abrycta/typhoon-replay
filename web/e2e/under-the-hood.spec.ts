@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 
-import { expect, HAIYAN, PEAK, test, waitForReplay } from "./fixtures";
+import { expect, HAIYAN, PEAK, test } from "./fixtures";
 
 // ------------------------------------------------------------------------------------------ static visitor pages
 
@@ -28,7 +28,7 @@ test("visitor routes make zero /api requests", async ({ page }) => {
   });
   for (const path of VISITOR_ROUTES) {
     await page.goto(path);
-    if (path.startsWith("/storm/")) await waitForReplay(page);
+    if (path.startsWith("/storm/")) await expect(page.getByTestId("storm-replay")).toBeVisible({ timeout: 20_000 });
     await settle(page);
   }
   // Client-side navigation through the header too (the shell must not probe anything).
@@ -138,6 +138,10 @@ test("race: java answers, node wakes then answers the same, rust and go are not 
   await expect.poll(() => count["java /api/java/healthz"]).toBe(1);
   await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
   expect(Object.keys(count)).toEqual(["java /api/java/healthz"]);
+  // The ping is not an answer: no time, no match line.
+  await expect(page.getByTestId("lane-java-note")).toHaveText("Java is awake.");
+  await expect(page.getByTestId("lane-java-time")).toHaveText("—");
+  await expect(page.getByTestId("lane-java-match")).toHaveText("");
 
   await expect(page.getByLabel("Question", { exact: true })).toHaveValue("town");
   await page.getByTestId("race-run").click();
@@ -182,6 +186,22 @@ test("race: a backend that never wakes ends as an error, the others are unaffect
   await page.getByTestId("race-run").click();
   for (const id of ["java", "node", "rust", "go"]) await expect(page.getByTestId(`lane-${id}-state`)).toHaveText("waking up");
   await expect(page.getByTestId("race-results")).toHaveCount(0);
+});
+
+test("race: a contract error (404) is shown with its status and time, not retried", async ({ page }) => {
+  let calls = 0;
+  await page.route(/\/api\/(java|node|rust|go)\//, (r) => {
+    if (r.request().url().includes("/healthz")) return json(r, { status: "ok" }, "java");
+    if (!r.request().url().includes("/api/java/")) return problemReply(r, "backend-not-deployed");
+    calls++;
+    return r.fulfill({ status: 404, contentType: PROBLEM, headers: { "X-Backend-Impl": "java" }, body: JSON.stringify({ ...problem("not-found", 404), title: "Not found" }) });
+  });
+  await page.goto("/under-the-hood");
+  await page.getByTestId("race-run").click();
+  await expect(page.getByTestId("lane-java-state")).toHaveText("error");
+  await expect(page.getByTestId("lane-java-note")).toHaveText(/^Java answered HTTP 404 \(Not found\) in \d+ ms\.$/);
+  await expect(page.getByTestId("lane-java-time")).toHaveText(/^\d+ ms$/);
+  expect(calls).toBe(1);
 });
 
 test("explorer: request line, status, edge headers and JSON", async ({ page }) => {

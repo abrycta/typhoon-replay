@@ -18,6 +18,10 @@ export interface LaneState {
   attempts?: number;
   body?: unknown;
   reason?: string;
+  /** HTTP status of the final answer (0 for a network failure). */
+  httpStatus?: number;
+  /** Before any run: what the wake-up ping found (shown on the chip only; not an answer). */
+  hint?: "ok" | "waking" | "not-deployed";
   /** Order in which lanes answered (1 = first). */
   answeredRank?: number;
 }
@@ -26,7 +30,7 @@ type Action =
   | { type: "start"; ids: BackendId[]; at: number }
   | { type: "waking"; id: BackendId }
   | { type: "finish"; id: BackendId; result: Omit<LaneState, "id" | "answeredRank"> }
-  | { type: "hint"; id: BackendId; status: LaneStatus };
+  | { type: "hint"; id: BackendId; hint: NonNullable<LaneState["hint"]> };
 
 interface State {
   lanes: LaneState[];
@@ -48,7 +52,7 @@ function reducer(s: State, a: Action): State {
     }
     case "hint":
       // A pre-run hint (from the wake-up ping) only decorates an idle lane.
-      return { ...s, lanes: s.lanes.map((l) => (l.id === a.id && l.status === "idle" ? { ...l, status: a.status } : l)) };
+      return { ...s, lanes: s.lanes.map((l) => (l.id === a.id && l.status === "idle" ? { ...l, hint: a.hint } : l)) };
   }
 }
 
@@ -95,6 +99,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
                 attempts: o.attempts,
                 body: o.outcome === "ok" ? last.body : undefined,
                 reason: o.reason,
+                httpStatus: last.status,
               },
             });
           })
@@ -106,7 +111,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
     [ids],
   );
 
-  const hint = useCallback((id: BackendId, status: LaneStatus) => dispatch({ type: "hint", id, status }), []);
+  const hint = useCallback((id: BackendId, h: NonNullable<LaneState["hint"]>) => dispatch({ type: "hint", id, hint: h }), []);
 
   const matches: Record<string, MatchState> = useMemo(
     () => matchStates(Object.fromEntries(state.lanes.filter((l) => l.status === "ok").map((l) => [l.id, l.body]))),

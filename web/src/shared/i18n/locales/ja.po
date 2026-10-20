@@ -92,6 +92,13 @@ msgstr "{AUTHOR} のポートフォリオ"
 msgid "{d}s"
 msgstr "{d}年代"
 
+#. placeholder {0}: lane.httpStatus
+#. placeholder {1}: lane.reason ?? "?"
+#. placeholder {2}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} answered HTTP {0} ({1}) in {2}."
+msgstr "{label} は {2} で HTTP {0}（{1}）を返しました。"
+
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} answered in {0}."
@@ -99,12 +106,20 @@ msgstr "{label} は {0} で応答しました。"
 
 #. placeholder {0}: lane.reason ?? "?"
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} answered with an error ({0})."
-msgstr "{label} はエラーを返しました（{0}）。"
+msgid "{label} did not answer ({0})."
+msgstr "{label} から応答がありません（{0}）。"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} did not wake up within 3 minutes."
 msgstr "{label} は 3 分以内に起動しませんでした。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is awake."
+msgstr "{label} は稼働中です。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is not deployed yet."
+msgstr "{label} はまだデプロイされていません。"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} is not deployed yet. Nothing to wait for."
@@ -113,6 +128,10 @@ msgstr "{label} はまだデプロイされていません。待つ必要はあ�
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 msgstr "{label} はスリープから起動中です（無料ホスティングで約 1 分）。このページが再試行を続けます。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} is waking up; opening this page started it."
+msgstr "{label} は起動中です（このページを開いたときに起動を始めました）。"
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #. placeholder {1}: formatMs(lane.lastMs ?? 0)
