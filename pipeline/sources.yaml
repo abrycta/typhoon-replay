@@ -1,0 +1,406 @@
+# yaml-language-server: $schema=../../data-archive-kit/schema/sources.schema.json
+# Typhoon Replay source registry (format: archivekit, abrycta/data-archive-kit).
+#
+# Every upstream input the pipeline reads is listed here. `typhoon.sources.fetch(<id>)` walks the
+# `links` in order (primary first), validates each download against `checks`, and finally falls back
+# to the latest validated snapshot in the private archive repo (the `archive` link). See
+# docs/architecture/DATA-RESILIENCE.md for the plain-language plan and runbook.
+#
+# Link fields:
+#   id        stable name, recorded in provenance ("which mirror served the data")
+#   url       HTTPS URL (s3:// and gs:// only for kind: remote-dataset, which fetch() never downloads)
+#   probe     health-check URL when it differs from `url` (e.g. one object inside a bucket)
+#   transform post-download step that turns this link's bytes into the canonical file
+#   automatic false = listed and health-checked, but fetch() skips it (different format/schema;
+#             a human switches to it via the runbook)
+#   probe_size false = skip the size bound in the health probe (CDN reports a compressed size)
+#   archive   true = the last-resort link: latest release `<id>-<YYYY-MM-DD>` in archive.repo
+#
+# checks:
+#   bytes / rows   inclusive bounds; rows = CSV data rows (header and units rows excluded) or
+#                  GeoJSON features or JSON array items
+#   required_columns / required_properties   missing => validation failure
+#   header_sha256  exact header fingerprint; a mismatch with the required columns still present is
+#                  "schema drift" (warning + health issue), not a failure
+#   shrink_tolerance  reject a download whose row count is more than this fraction below the local
+#                  copy it would replace (catches silent truncation of append-only data)
+#   sha256         exact content pin (pinned releases only)
+version: 1
+project: typhoon-replay
+
+archive:
+  repo: abrycta/typhoon-replay-archive
+  token_env: ARCHIVE_READ_TOKEN          # fine-grained PAT, Contents: read on the archive repo only
+  tag_format: "{id}-{date}"              # date = UTC YYYY-MM-DD of the snapshot
+  compression: zstd
+  compression_level: auto                # 19 below 150 MB raw, 15 above (measured, see DATA-RESILIENCE.md)
+
+health:
+  # Issues go to the private archive repo (the default); pipeline runs in the public repo reach it
+  # with ARCHIVE_READ_TOKEN, which therefore also carries Issues: read and write on the archive repo.
+  issue_label: source-health
+  issue_token_env: ARCHIVE_READ_TOKEN
+  token_expiry_warn_days: 30
+  user_agent: "typhoon-replay-pipeline/0.1 (+https://github.com/abrycta/typhoon-replay)"
+
+sources:
+  # ------------------------------------------------------------------ best tracks
+  - id: ibtracs-wp
+    description: IBTrACS v04r01 best tracks, Western Pacific list (full tracks of every WP storm)
+    kind: file
+    format: csv
+    filename: ibtracs.WP.list.v04r01.csv
+    local_path: data/raw/ibtracs/ibtracs.WP.list.v04r01.csv
+    licence: >-
+      NOAA NCEI, "full and open access" under WMO Resolution 40; no formal licence.
+    attribution: >-
+      Knapp, K. R., et al. (2010) BAMS 91, 363-376, doi:10.1175/2009BAMS2755.1; and Gahtan, J., et al.
+      (2024) IBTrACS Project, Version 4r01, NOAA NCEI, doi:10.25921/82ty-9e16.
+    cadence: three times a week (NCEI); provisional tracks for the current season
+    pin: { version: v04r01 }
+    hooks: ["typhoon.sources:check_ibtracs"]
+    links:
+      - id: ncei-csv-wp
+        url: https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.WP.list.v04r01.csv
+      - id: ncei-csv-all-subset
+        # Same columns; keep every row of each SID that has at least one BASIN=WP row.
+        url: https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ALL.list.v04r01.csv
+        # Verified 2026-10-21: byte-identical to ibtracs.WP.list.v04r01.csv.
+        transform: { name: csv-group-filter, key: SID, column: BASIN, value: WP, header_rows: 2 }
+      - id: ncei-netcdf-wp
+        url: https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/netcdf/IBTrACS.WP.v04r01.nc
+        automatic: false   # NetCDF, not CSV: needs a converter before ibtracs.py can read it
+      - id: archive
+        archive: true
+    checks:
+      bytes: { min: 90000000, max: 300000000 }
+      rows: { min: 240000, max: 400000 }
+      header_rows: 2
+      header_sha256: 96873ede925e7a2fe34a12b9c331e67385166e1cac671d4247a6adc7f9749e98
+      required_columns: &ibtracs_cols [SID, SEASON, NUMBER, BASIN, SUBBASIN, NAME, ISO_TIME, NATURE,
+        LAT, LON, WMO_WIND, WMO_PRES, WMO_AGENCY, TRACK_TYPE, DIST2LAND, LANDFALL, IFLAG, USA_ATCF_ID,
+        USA_WIND, USA_PRES, USA_SSHS, USA_RMW, USA_ROCI, USA_GUST, USA_R34_NE, USA_R34_SE, USA_R34_SW,
+        USA_R34_NW, USA_R64_NE, USA_R64_SE, USA_R64_SW, USA_R64_NW, TOKYO_GRADE, TOKYO_WIND,
+        TOKYO_PRES, TOKYO_R50_LONG, TOKYO_R30_LONG, TOKYO_LAND, CMA_WIND, HKO_WIND, KMA_WIND,
+        STORM_SPEED, STORM_DIR]
+      shrink_tolerance: 0.02
+    archived: { enabled: true, retention: all }
+
+  - id: ibtracs-all
+    description: IBTrACS v04r01 best tracks, all basins (cross-basin checks, future basins)
+    kind: file
+    format: csv
+    filename: ibtracs.ALL.list.v04r01.csv
+    local_path: data/raw/ibtracs/ibtracs.ALL.list.v04r01.csv
+    licence: >-
+      NOAA NCEI, "full and open access" under WMO Resolution 40; no formal licence.
+    attribution: >-
+      Knapp et al. (2010) doi:10.1175/2009BAMS2755.1; Gahtan et al. (2024) doi:10.25921/82ty-9e16.
+    cadence: three times a week (NCEI)
+    pin: { version: v04r01 }
+    hooks: ["typhoon.sources:check_ibtracs"]
+    links:
+      - id: ncei-csv-all
+        url: https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ALL.list.v04r01.csv
+      - id: ncei-netcdf-all
+        url: https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/netcdf/IBTrACS.ALL.v04r01.nc
+        automatic: false
+      - id: archive
+        archive: true
+    checks:
+      bytes: { min: 250000000, max: 700000000 }
+      rows: { min: 650000, max: 1200000 }
+      header_rows: 2
+      header_sha256: 96873ede925e7a2fe34a12b9c331e67385166e1cac671d4247a6adc7f9749e98
+      required_columns: *ibtracs_cols
+      shrink_tolerance: 0.02
+    archived: { enabled: true, retention: all }
+
+  # ------------------------------------------------------------------ reanalysis (listed, never archived raw)
+  - id: era5
+    description: >-
+      ERA5 hourly single levels (u10, v10, MSLP, gust, precipitation) read as storm-following
+      windows. Petabyte-scale and already mirrored by three public hosts, so it is NOT archived;
+      the derived frames on Hugging Face are the project's own durable copy.
+    kind: remote-dataset
+    licence: CC BY 4.0 (Copernicus, from 2025-07-02); NSF NCAR copy also under UCAR data terms.
+    attribution: >-
+      Contains modified Copernicus Climate Change Service information [year]. Hersbach, H., et al.
+      (2020) doi:10.1002/qj.3803. NSF NCAR RDA ds633.0 (doi:10.5065/BH6N-5N20) when served by NCAR.
+    cadence: ERA5T daily, about 5 days behind; NCAR monthly, about 3 months behind
+    links:
+      - id: ncar-aws
+        url: s3://nsf-ncar-era5
+        probe: https://nsf-ncar-era5.s3.amazonaws.com/e5.oper.an.sfc/201311/e5.oper.an.sfc.128_165_10u.ll025sc.2013110100_2013113023.nc
+        probe_bytes: { min: 1000000000, max: 3000000000 }
+      - id: arco-gcs
+        url: gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3
+        probe: https://storage.googleapis.com/gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3/.zmetadata
+        probe_bytes: { min: 10000, max: 10000000 }
+      - id: earth-engine
+        url: ee://ECMWF/ERA5/HOURLY
+        probe: https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_HOURLY
+        probe_html: true
+        automatic: false   # needs a registered Earth Engine project
+      - id: copernicus-cds
+        url: https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels
+        probe: https://cds.climate.copernicus.eu/api/catalogue/v1/collections/reanalysis-era5-single-levels
+        automatic: false   # needs an ECMWF account and licence acceptance; queues take hours
+    archived: { enabled: false }
+
+  # ------------------------------------------------------------------ boundaries
+  - id: geoboundaries-phl-adm3
+    description: Philippines ADM3 (municipalities and cities), geoBoundaries gbOpen, full resolution
+    kind: file
+    format: geojson
+    filename: geoBoundaries-PHL-ADM3.geojson
+    local_path: data/raw/boundaries/geoBoundaries-PHL-ADM3.geojson
+    licence: >-
+      CC BY 3.0 IGO (source: NAMRIA, PSA, OCHA Philippines via HDX COD-AB; geoBoundaries
+      boundaryID PHL-ADM3-30758251).
+    attribution: >-
+      Runfola, D. et al. (2020) geoBoundaries, PLoS ONE 15(4): e0231866; boundaries from NAMRIA and
+      PSA via OCHA Philippines, CC BY 3.0 IGO.
+    cadence: static (pinned commit); geoBoundaries rebuilds irregularly
+    pin:
+      repo: wmgeolab/geoBoundaries
+      commit: 9469f09592ced973a3448cf66b6100b741b64c0d
+      boundary_id: PHL-ADM3-30758251
+    links:
+      - id: geoboundaries-github
+        url: https://github.com/wmgeolab/geoBoundaries/raw/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/PHL/ADM3/geoBoundaries-PHL-ADM3.geojson
+      - id: geoboundaries-lfs-media
+        url: https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/PHL/ADM3/geoBoundaries-PHL-ADM3.geojson
+      - id: archive
+        archive: true
+      - id: hdx-cod-ab-phl
+        # 1.06 GB zip of all levels with COD-AB property names (adm3 p-codes, not shapeID):
+        # the pipeline needs an adapter before it can use it, so it is a manual fallback.
+        url: https://data.humdata.org/dataset/caf116df-f984-4deb-85ca-41b349d3f313/resource/0120c30e-ba8b-487d-83f5-a664eddd3a8e/download/phl_admin_boundaries.geojson.zip
+        probe_bytes: { min: 500000000, max: 2000000000 }
+        automatic: false
+    checks:
+      sha256: 0a125b1716b584ac6728ca0249beb49f29636966b6ecb8974bc0c36db01d4624
+      bytes: { min: 400000000, max: 700000000 }
+      rows: { min: 1600, max: 1700 }
+      required_properties: [shapeName, shapeID, shapeType]
+    archived: { enabled: true, retention: all }
+
+  - id: geoboundaries-jpn-adm2
+    description: Japan ADM2 (municipalities), geoBoundaries gbOpen, full resolution
+    kind: file
+    format: geojson
+    filename: geoBoundaries-JPN-ADM2.geojson
+    local_path: data/raw/boundaries/geoBoundaries-JPN-ADM2.geojson
+    licence: >-
+      Derived from OpenStreetMap (ODbL 1.0); geoBoundaries labels it CC BY-SA 2.0. Treat as ODbL:
+      attribute OSM and share derived databases alike.
+    attribution: >-
+      © OpenStreetMap contributors (ODbL), via geoBoundaries (Runfola et al. 2020), boundaryID
+      JPN-ADM2-22064153.
+    cadence: static (pinned commit)
+    pin:
+      repo: wmgeolab/geoBoundaries
+      commit: 9469f09592ced973a3448cf66b6100b741b64c0d
+      boundary_id: JPN-ADM2-22064153
+    links:
+      - id: geoboundaries-github
+        url: https://github.com/wmgeolab/geoBoundaries/raw/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/JPN/ADM2/geoBoundaries-JPN-ADM2.geojson
+      - id: geoboundaries-lfs-media
+        url: https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/9469f09592ced973a3448cf66b6100b741b64c0d/releaseData/gbOpen/JPN/ADM2/geoBoundaries-JPN-ADM2.geojson
+      - id: archive
+        archive: true
+      - id: mlit-ksj-n03
+        # 国土数値情報 行政区域 (N03), GML/Shapefile zip; different schema (N03_007 codes). Manual.
+        # Credit: 出典「国土数値情報（行政区域データ）」（国土交通省）
+        url: https://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2025/N03-20250101_GML.zip
+        probe_bytes: { min: 400000000, max: 1000000000 }
+        automatic: false
+    checks:
+      sha256: 27a0a8fa84fdab6d56b2da1c295b3c71090190d155f6b463bfd5c47beffba972
+      bytes: { min: 8000000, max: 20000000 }
+      rows: { min: 1700, max: 1800 }
+      required_properties: [shapeName, shapeID, shapeType]
+    archived: { enabled: true, retention: all }
+
+  # ------------------------------------------------------------------ basemap
+  - id: naturalearth-50m-coastline
+    description: Natural Earth 1:50m coastline (viewer basemap)
+    kind: file
+    format: geojson
+    filename: ne_50m_coastline.geojson
+    local_path: data/raw/naturalearth/ne_50m_coastline.geojson
+    licence: Public domain (Natural Earth terms of use).
+    attribution: Made with Natural Earth (naturalearthdata.com).
+    cadence: static (pinned release v5.1.2)
+    pin: { repo: nvkelso/natural-earth-vector, tag: v5.1.2, commit: f1890d9f152c896d250a77557a5751a93d494776 }
+    links:
+      - id: github-raw
+        url: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_50m_coastline.geojson
+      - id: jsdelivr
+        url: https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_coastline.geojson
+        probe_size: false   # jsDelivr reports the compressed size in Content-Range; full GET is byte-identical
+      - id: archive
+        archive: true
+      - id: naciscdn-shp
+        url: https://naciscdn.org/naturalearth/50m/physical/ne_50m_coastline.zip
+        probe_bytes: { min: 200000, max: 2000000 }
+        automatic: false   # shapefile zip
+    checks:
+      sha256: 271f1c4c1908312bac6b29d158ea1356544beafc129f260005300913aa5ea283
+      bytes: { min: 1000000, max: 3000000 }
+      rows: { min: 1000, max: 2000 }
+      required_properties: [featurecla]
+    archived: { enabled: true, retention: all }
+
+  - id: naturalearth-50m-countries
+    description: Natural Earth 1:50m admin-0 countries (PH/JP land flags in ibtracs.py)
+    kind: file
+    format: geojson
+    filename: ne_50m_admin_0_countries.geojson
+    local_path: data/raw/naturalearth/ne_50m_admin_0_countries.geojson
+    licence: Public domain (Natural Earth terms of use).
+    attribution: Made with Natural Earth (naturalearthdata.com).
+    cadence: static (pinned release v5.1.2)
+    pin: { repo: nvkelso/natural-earth-vector, tag: v5.1.2, commit: f1890d9f152c896d250a77557a5751a93d494776 }
+    links:
+      - id: github-raw
+        url: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/f1890d9f152c896d250a77557a5751a93d494776/geojson/ne_50m_admin_0_countries.geojson
+      - id: jsdelivr
+        url: https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@v5.1.2/geojson/ne_50m_admin_0_countries.geojson
+        probe_size: false   # jsDelivr reports the compressed size in Content-Range; full GET is byte-identical
+      - id: archive
+        archive: true
+      - id: naciscdn-shp
+        url: https://naciscdn.org/naturalearth/50m/cultural/ne_50m_admin_0_countries.zip
+        probe_bytes: { min: 300000, max: 5000000 }
+        automatic: false
+    checks:
+      sha256: 3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb
+      bytes: { min: 2000000, max: 5000000 }
+      rows: { min: 230, max: 260 }
+      required_properties: [ADM0_A3, NAME]
+    archived: { enabled: true, retention: all }
+
+  # ------------------------------------------------------------------ PAGASA local names
+  - id: pagasa-crosswalk
+    description: >-
+      Curated PAGASA <-> international name crosswalk. The CSV in this repo is the source of truth;
+      git history is its versioning, so it is neither fetched nor archived.
+    kind: repo-file
+    format: csv
+    local_path: pipeline/crosswalk/pagasa_names_seed.csv
+    licence: CC BY-SA 4.0 (facts compiled with Wikipedia as a cited source).
+    share_alike: true
+    attribution: Per-row source_url column (Wikipedia articles and season pages).
+    cadence: manual, after each season
+    links: []
+    checks:
+      header_rows: 1
+      rows: { min: 50, max: 5000 }
+      required_columns: [pagasa_name, intl_name, season, source_url]
+    archived: { enabled: false }
+
+  - id: wikipedia-season-pages
+    description: >-
+      English Wikipedia "YYYY Pacific typhoon season" wikitext (?action=raw). Update INPUT for the
+      crosswalk only; never read at runtime. Throttle below 1 request/s (HTTP 429 seen at 1/s).
+    kind: update-input
+    format: text
+    licence: CC BY-SA 4.0
+    share_alike: true
+    attribution: Wikipedia contributors, "<year> Pacific typhoon season", English Wikipedia.
+    cadence: ad hoc
+    links:
+      - id: enwiki-raw
+        url: https://en.wikipedia.org/w/index.php?title={year}_Pacific_typhoon_season&action=raw
+        probe: https://en.wikipedia.org/w/index.php?title=2013_Pacific_typhoon_season&action=raw
+        probe_contains: "Pacific typhoon season"
+    archived: { enabled: false }
+
+  # ------------------------------------------------------------------ live feeds (samples only)
+  # The archive keeps periodic SAMPLES of these for parser tests. It is not a live mirror, so the
+  # archive is not a fetch() fallback for live data: a week-old sample presented as "live" would be
+  # wrong. A live-feed outage pauses the tracker ("last updated X ago").
+  - id: jtwc-rss
+    description: JTWC tropical cyclone RSS (warnings and graphics for active storms)
+    kind: live-feed
+    format: xml
+    filename: jtwc.rss
+    licence: US Government work (public domain); JTWC products are not for official use outside DoD.
+    attribution: Joint Typhoon Warning Center (JTWC), U.S. Navy / U.S. Air Force.
+    cadence: every 6 h per active storm
+    links:
+      - id: metoc
+        url: https://www.metoc.navy.mil/jtwc/rss/jtwc.rss
+    checks:
+      bytes: { min: 200, max: 2000000 }
+      xml_root: rss
+    archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
+
+  - id: jtwc-abpw
+    description: JTWC significant tropical weather advisory, Western Pacific (text)
+    kind: live-feed
+    format: text
+    filename: abpwweb.txt
+    licence: US Government work (public domain).
+    attribution: Joint Typhoon Warning Center (JTWC).
+    cadence: daily, plus updates
+    links:
+      - id: metoc
+        url: https://www.metoc.navy.mil/jtwc/products/abpwweb.txt
+    checks:
+      bytes: { min: 100, max: 200000 }
+      contains: "WESTERN NORTH PACIFIC"
+    archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
+
+  - id: jma-bosai-target-tc
+    description: JMA bosai list of tracked tropical cyclones (entry point to per-TC JSON)
+    kind: live-feed
+    format: json
+    filename: targetTc.json
+    licence: JMA website terms (government standard terms of use, compatible with CC BY 4.0).
+    attribution: Source - Japan Meteorological Agency (気象庁) website.
+    cadence: every 1-3 h while a TC is active
+    links:
+      - id: jma-bosai
+        url: https://www.jma.go.jp/bosai/typhoon/data/targetTc.json
+    checks:
+      bytes: { min: 2, max: 100000 }
+      json_type: array
+    archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
+
+  - id: jma-xml-extra
+    description: JMA disaster-prevention XML feed (extra), incl. typhoon advisories (台風解析・予報情報)
+    kind: live-feed
+    format: xml
+    filename: jma-extra.xml
+    licence: JMA website terms (government standard terms of use, compatible with CC BY 4.0).
+    attribution: Source - Japan Meteorological Agency (気象庁) XML feed.
+    cadence: minutes
+    links:
+      - id: jma-xml
+        url: https://www.data.jma.go.jp/developer/xml/feed/extra.xml
+    checks:
+      bytes: { min: 500, max: 5000000 }
+      xml_root: feed
+    archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
+
+  - id: gdacs-rss-tc
+    description: GDACS tropical cyclone RSS, last 7 days
+    kind: live-feed
+    format: xml
+    filename: gdacs_rss_tc_7d.xml
+    licence: GDACS terms (free use with attribution; JRC/UN OCHA).
+    attribution: Global Disaster Alert and Coordination System (GDACS), European Commission JRC and UN OCHA.
+    cadence: event-driven
+    links:
+      - id: gdacs-rss
+        url: https://www.gdacs.org/xml/rss_tc_7d.xml
+      - id: gdacs-api
+        url: https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC
+        automatic: false   # JSON, not RSS
+    checks:
+      bytes: { min: 200, max: 5000000 }
+      xml_root: rss
+    archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }

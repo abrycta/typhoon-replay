@@ -5,6 +5,7 @@ description = "Typhoon Replay data pipeline: IBTrACS ingest, ERA5 storm frames, 
 authors = [{ name = "Kurt" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "archivekit",
     "duckdb>=1.5.6",
     "gcsfs>=2026.10.1",
     "h5netcdf>=1.8.1",
@@ -22,3 +23,11 @@ dependencies = [
     "xarray>=2026.9.0",
     "zarr>=3.4.1",
 ]
+
+[dependency-groups]
+dev = [
+    "respx>=0.23.1",
+]
+
+[tool.uv.sources]
+archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.0.0" }
