@@ -92,6 +92,31 @@ mail:
 idp:
     {{ compose }} --profile idp up -d oauth-mock
 
+# --- backends -----------------------------------------------------------------
+
+# Java backend (api/java) in Docker on :8081, with PostGIS, seed and the mock IdP: then `just conformance java`
+java-run: bundle db-up idp
+    nice -n 15 {{ compose }} --profile java up -d --build api-java
+    for i in $(seq 1 120); do curl -fsS -o /dev/null http://localhost:{{ port_java }}/readyz && break; sleep 1; done
+    @echo "Java: http://localhost:{{ port_java }}/v1/meta"
+
+# Java backend from source (Gradle, JDK 25 toolchain) against the compose database; Ctrl-C to stop
+java-dev: bundle db-up idp
+    cd api/java && SPRING_PROFILES_ACTIVE=local TR_TEST_HOOKS=1 PORT={{ port_java }} \
+      TR_OAUTH_GITHUB_CLIENT_ID=test-client TR_OAUTH_GITHUB_CLIENT_SECRET=test-secret \
+      TR_OAUTH_GOOGLE_CLIENT_ID=test-client TR_OAUTH_GOOGLE_CLIENT_SECRET=test-secret \
+      TR_OAUTH_GITHUB_AUTH_URL=http://localhost:9090/github/login/oauth/authorize \
+      TR_OAUTH_GITHUB_TOKEN_URL=http://localhost:9090/github/login/oauth/access_token \
+      TR_OAUTH_GITHUB_USERINFO_URL=http://localhost:9090/github/api/user \
+      TR_OAUTH_GOOGLE_AUTH_URL=http://localhost:9090/google/authorize \
+      TR_OAUTH_GOOGLE_TOKEN_URL=http://localhost:9090/google/token \
+      TR_OAUTH_GOOGLE_USERINFO_URL=http://localhost:9090/google/userinfo \
+      nice -n 15 ./gradlew bootRun
+
+# Java unit, slice and Testcontainers tests (PostGIS 18, contract migrations + seed)
+java-test: bundle
+    cd api/java && nice -n 15 ./gradlew test
+
 # --- conformance --------------------------------------------------------------
 
 # Scenario suite + Schemathesis against one backend: `just conformance java` or `just conformance IMPL=java`
