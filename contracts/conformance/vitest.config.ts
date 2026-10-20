@@ -13,7 +13,7 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     testTimeout: 15_000,
     hookTimeout: 30_000,
-    fileParallelism: false, // auth, live and me scenarios mutate shared fixture state
+    fileParallelism: false, // the live scenarios mutate shared fixture state
     sequence: { concurrent: false },
     reporters: ['default', 'json'],
     outputFile: { json: `results/${impl}-scenarios.json` },

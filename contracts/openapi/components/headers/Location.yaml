@@ -1,5 +1,0 @@
-description: Redirect target.
-required: true
-schema:
-  type: string
-example: https://github.com/login/oauth/authorize?client_id=Iv1.example&redirect_uri=https%3A%2F%2Ftyphoon-replay.pages.dev%2Fapi%2Fjava%2Fv1%2Fauth%2Fgithub%2Fcallback&state=v7c4D2l6Hq&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&scope=read%3Auser+user%3Aemail

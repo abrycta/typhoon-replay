@@ -1,9 +1,0 @@
-summary: Signed-in user
-value:
-  id: 0192f5a0-0000-7000-8000-000000000001
-  displayName: Ana Reyes
-  email: ana@example.com
-  avatarUrl: https://avatars.githubusercontent.com/u/1?v=4
-  locale: en
-  providers: [github]
-  createdAt: '2026-10-01T00:00:00Z'

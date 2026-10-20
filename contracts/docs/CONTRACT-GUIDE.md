@@ -1,6 +1,6 @@
-# Typhoon Replay API: contract guide (v1)
+# Typhoon Replay API: contract guide
 
-> **Status: v1 accepted 2026-10-21** (contract `1.0.0`). `contracts/openapi/` is the single source of truth; this guide only explains the rules the spec can't express. Refinements made while writing the v1 spec are listed in §13.
+> **Status: contract `2.0.0`, accepted 2026-10-21** (`1.0.0` the same day). `contracts/openapi/` is the single source of truth; this guide only explains the rules the spec can't express. Refinements made while writing the v1 spec are listed in §13; what v2 removed, and the rules it changed, in §14.
 > Background and the reasons for each rule: [`docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md`](../../docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md). Open decisions: [`docs/architecture/OPEN-QUESTIONS.md`](../../docs/architecture/OPEN-QUESTIONS.md).
 
 The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
@@ -10,8 +10,9 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 1. **One contract, four implementations.** The Java, Node/TypeScript, Rust and Go backends MUST be interchangeable behind the same frontend: same paths, status codes, headers, JSON shapes, error codes, cursors, ETags and SSE events. Bytes may differ (key order, whitespace, float formatting); semantics may not.
 2. **Contract-first.** `contracts/openapi/openapi.yaml` (OpenAPI 3.1.0, portable subset, §1) is the source of truth. A backend that generates its spec from code MUST pass `oasdiff breaking` against the contract in both directions.
 3. **The schema belongs to the contract.** Database DDL lives in `contracts/db/migrations` (dbmate). Backends MUST NOT run migrations or any DDL.
-4. **No background work in backends.** Live ingestion, alert matching and email sending run in the shared pipeline job. Backends only serve requests and fan out SSE.
+4. **No background work in backends.** Live ingestion runs in the shared pipeline job. Backends only serve requests and fan out SSE.
 5. **Tolerant reader.** Clients (the web app, conformance tests) MUST ignore unknown JSON fields and unknown SSE event types. Additive changes are minor versions.
+6. **Public and read-only (v2).** No accounts, cookies, sessions or CSRF. Every public operation is an anonymous `GET`, and every `/v1` response except the live stream is publicly cacheable (§6, §9, §14).
 
 ## 1. Spec conventions (enforced by `redocly lint`)
 
@@ -31,8 +32,12 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 ## 2. Base path, routing and versioning
 
 - The public base as seen by the browser is `https://typhoon-replay.pages.dev/api/{impl}/v1`, with `{impl} ∈ java | node | rust | go`. The edge proxy strips `/api/{impl}`, so **backends serve `/v1/...`, `/healthz` and `/readyz` at their own root**.
-- `/v1` is the major version. A breaking change creates `/v2`, served alongside `/v1` until every backend has moved.
 - `info.version` is the contract semver. Each backend declares the contract range it implements in `api/<lang>/impl.json` and reports it at runtime (§4).
+- `/v1` is the **URL major version**, a promise to callers: an operation served under `/v1` keeps its meaning. Since v2 it is distinct from the contract major:
+  - A breaking change to an operation that stays (a removed or renamed field, a new required parameter, a changed status code, cursor or ETag rule) bumps the contract major **and** creates `/v2`, served alongside `/v1` until every backend has moved.
+  - **Removing whole operations** (and the components, codes and rules only they used) bumps the contract major but **keeps the URL prefix**: every surviving operation answers exactly as before, so a `/v2` copy would only break the callers of those operations and the edge proxy for nothing. A removed operation returns 404 `not-found`.
+  - Either way the major bump is the explicit acknowledgement that the change is intended: `scripts/oasdiff-check.sh` fails on breaking changes unless `info.version`'s major was bumped **and** `CHANGELOG.md` has a `## X.0.0` entry; it then prints the breaking changes for the record.
+- Contract `2.0.0` (§14) is the second kind, so it is served under `/v1`.
 
 ## 3. Data conventions
 
@@ -58,10 +63,11 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 | `X-Request-Id` | echo the inbound `X-Request-Id` if it is 1–64 chars of `[A-Za-z0-9._-]`; otherwise a new UUIDv7 |
 | `Content-Type` | `application/json; charset=utf-8`, `application/problem+json`, `application/geo+json` or `text/event-stream` |
 | `Cache-Control` | always present (§6) |
-| `Vary` | `Accept-Encoding` on all responses; also `Cookie` on responses that depend on the session |
+| `Vary` | `Accept-Encoding` on all responses (no response depends on cookies) |
 
 - Responses over 1 KB MUST be compressed when the client accepts it: gzip MUST be supported, br SHOULD be.
-- CORS: browsers reach the API same-origin through the proxy, so backends MUST NOT send `Access-Control-Allow-Credentials`. They MAY allow `*` for anonymous `GET`s, for third-party API users.
+- CORS: browsers reach the API same-origin through the proxy, so backends MUST NOT send `Access-Control-Allow-Credentials`. They MAY allow `*` for `GET`s (every public operation), for third-party API users.
+- Backends MUST NOT send `Set-Cookie` and MUST ignore any `Cookie` request header (§9).
 
 ## 5. Pagination
 
@@ -80,13 +86,12 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 | Catalogue reads (storms, places, hits, search) | `public, max-age=300, stale-while-revalidate=86400` | `W/"d{datasetVersion}-{resourceKey}"` |
 | `/v1/meta`, `/v1/openapi.json` | `public, max-age=60` | `W/"c{contractVersion}-{impl}-{implVersion}"` |
 | Live snapshot `GET /v1/live/storms` | `no-cache` | `W/"s{latestSeq}"` |
-| Anything under `/v1/me`, auth endpoints | `private, no-store` | none |
 | Errors | `no-store`, except 404 on catalogue (`public, max-age=60`) | none |
 | `/healthz`, `/readyz` | `no-store` | none |
 
 - `datasetVersion` is the integer in the newest `catalog.dataset_version` row. `resourceKey` is the first 16 lowercase hex digits of SHA-256 over the canonical request string: the path as served under `/v1` (e.g. `/v1/storms`), then, if any recognised query parameters were sent, `?` and `name=value` pairs sorted by name then value, each percent-encoded as UTF-8 per RFC 3986 (unreserved characters literal, uppercase hex), joined by `&`. Defaults are not filled in, and unknown parameters are dropped. Example: `/v1/storms?limit=5&season=2013`. **ETags are derived from data, never from response bytes**, so all four backends emit the same ETag for the same resource.
 - `If-None-Match` matching a weak ETag (weak comparison) MUST return `304` with the same `ETag` and `Cache-Control` and no body.
-- Unsafe methods on user resources MAY use `If-Match`; a mismatch returns 412 `precondition-failed`.
+- **Everything is public and cacheable except the live stream.** No response varies by user, so shared caches (the edge proxy, CDNs, browsers) may store every `/v1` response in the table; the live snapshot is storable but always revalidated (`no-cache` + ETag). Only `GET /v1/live/stream` (§7), the probes and errors are never stored. Reads MUST be fast and give the same status, headers, ETag and JSON on every backend: they are what the site's "Under the hood" page races.
 
 ## 7. Live stream (SSE)
 
@@ -131,44 +136,30 @@ Every 4xx/5xx response (except 304) MUST be `application/problem+json`:
   | Status | Codes |
   |---|---|
   | 400 | `validation`, `invalid-cursor` |
-  | 401 | `unauthenticated` |
-  | 403 | `forbidden`, `csrf` |
   | 404 | `not-found` |
   | 405 | `method-not-allowed` |
   | 406 | `not-acceptable` |
-  | 409 | `conflict` |
-  | 412 | `precondition-failed` |
-  | 413 | `payload-too-large` |
-  | 415 | `unsupported-media-type` |
-  | 422 | `unprocessable` (e.g. both or neither of `placeId`/`position`, a 21st saved place, a foreign `savedPlaceId`) |
+  | 413 | `payload-too-large` (test hooks only: no public operation takes a body) |
+  | 415 | `unsupported-media-type` (test hooks only) |
   | 429 | `rate-limited` (with `Retry-After`) |
   | 500 | `internal` (no stack traces, no SQL) |
   | 503 | `not-ready`, `stream-capacity` |
 
-- Unknown routes under `/v1` return 404 problem+json, not a framework HTML page.
+- Unknown routes under `/v1` return 404 problem+json, not a framework HTML page. This includes the operations removed in v2 (`/v1/auth/…`, `/v1/me…`, `/v1/alerts/…`, `/v1/_test/sessions`).
+- Contract 2.0.0 removed `unauthenticated` (401), `forbidden` and `csrf` (403), `conflict` (409), `precondition-failed` (412) and `unprocessable` (422): no remaining operation can produce them.
 
-## 9. Auth
+## 9. No accounts (v2)
 
-- **Providers:** Google and GitHub, OAuth2 authorization code + PKCE S256 + `state`. Provider endpoints and client credentials come from env (`TR_OAUTH_{GOOGLE,GITHUB}_{CLIENT_ID,CLIENT_SECRET,AUTH_URL,TOKEN_URL,USERINFO_URL}`), so tests can point them at the mock IdP.
-- **Flow state:** `state`, the PKCE verifier, the provider and `returnTo` are stored in `auth.oauth_state` (10-minute TTL, single use), never in process memory. Any backend can complete a flow any backend started.
-- **`returnTo`:** MUST be a same-origin relative path starting with `/` and not `//`; otherwise use `/`.
-- **Session:**
-  - 32 random bytes from a CSPRNG, base64url;
-  - stored only as `sha256` in `auth.session`;
-  - cookie `__Host-tr_session=<token>; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=2592000`;
-  - sliding 30-day expiry; `last_seen_at` is updated at most every 5 min.
-- **Accounts:** `auth.app_user` (one row per account) and `auth.oauth_account` (`provider`, `subject` → user), upserted on every callback. Accounts are not linked by email.
-- **Storage:** sessions live in the contract-owned table `auth.session` (`token_hash bytea PK, user_id, data jsonb, created_at, last_seen_at, expires_at, revoked_at, created_by_impl, user_agent`). Backends MUST use a custom store against this table. Framework session serialisation (Spring Session JDBC, gob, etc.) MUST NOT be used. `data` holds only neutral JSON attributes. Provider access/refresh tokens are never stored.
-- **Callback URIs:** one GitHub OAuth app and one Google client, each registering exact-match URIs `https://typhoon-replay.pages.dev/api/{impl}/v1/auth/{provider}/callback` (wildcard matching off). Backends build `redirect_uri` from `TR_SITE_ORIGIN` + `X-Forwarded-Prefix`, never from the Render host.
-- **Callback failures** redirect to `/signin?error={code}` with `code` ∈ `access-denied`, `invalid-state`, `provider-error`, and set no cookie. Providers are called through their userinfo endpoints (`TR_OAUTH_*_USERINFO_URL`), not by verifying ID tokens, so the mock IdP can stand in for both.
-- **Lookup:** valid when `revoked_at IS NULL AND expires_at > now()`. An invalid or missing session on a protected endpoint returns 401 `unauthenticated`. The cookie is cleared only by logout.
-- **CSRF**, for `POST`/`PUT`/`PATCH`/`DELETE`: the `Origin` header MUST equal the configured site origin (`TR_SITE_ORIGIN`), and the request MUST carry `X-Requested-With: typhoon-replay`. Otherwise 403 `csrf`.
-- **Logout:** sets `revoked_at` and clears the cookie (same attributes, `Max-Age=0`). It is effective on all backends immediately.
-- **Account deletion** (`DELETE /v1/me`): deletes the user, their identities, sessions, saved places and subscriptions.
+v1's sign-in, sessions, saved places and alert preferences were removed in contract 2.0.0 (§14). Visitor features (saved towns, preferences) live in the browser and in static files, not in the API.
 
-## 10. Endpoints (v1 outline)
+- **No auth.** No security schemes, no OAuth, no sessions. Every operation is anonymous.
+- **No cookies.** Backends MUST NOT set cookies and MUST ignore `Cookie` request headers; responses never vary by `Cookie`.
+- **No CSRF.** No public operation uses an unsafe method, so there is nothing to protect. Backends MUST NOT require `Origin` or `X-Requested-With`. A `POST`/`PUT`/`PATCH`/`DELETE` to a public path returns 405 `method-not-allowed` with `Allow`.
+- `npm run lint` enforces this (`portable/public-read-only`): no `securitySchemes`, root `security: []`, no cookie parameters, no `Set-Cookie`, and unsafe methods only on `x-internal` test hooks.
 
-Anonymous unless marked 🔒 (needs a session). All are paths under `/v1`.
+## 10. Endpoints (contract 2.0.0)
+
+All anonymous `GET`s, under `/v1` except the probes.
 
 **Meta**
 - `GET /meta`: `{impl, implVersion, contractVersion, schemaVersion, datasetVersion, commit, startedAt}`
@@ -192,43 +183,28 @@ Anonymous unless marked 🔒 (needs a session). All are paths under `/v1`.
 - `GET /live/storms`: `LiveSnapshot`
 - `GET /live/stream`: SSE (§7)
 
-**Auth**
-- `GET /auth/providers`: `[{id:"google",name:"Google"},{id:"github",name:"GitHub"}]`
-- `GET /auth/{provider}/login?returnTo=`: 302 to the provider
-- `GET /auth/{provider}/callback?code=&state=`: 302 to `returnTo`; on failure, 302 to `/signin?error=<code>`
-- `POST /auth/logout` 🔒: 204
-
-**Me**
-- `GET /me` 🔒: `{id, displayName, email, avatarUrl?, providers[], createdAt}`
-- `DELETE /me` 🔒: 204
-- `GET /me/places` 🔒 and `POST /me/places` 🔒 `{placeId?, position?: [lon,lat], label?}` with exactly one of `placeId`/`position`: max 20 per user (enforced by a trigger, 422), 409 `conflict` on a duplicate
-- `PATCH /me/places/{id}` 🔒 and `DELETE /me/places/{id}` 🔒
-- `GET /me/alerts` 🔒 and `PUT /me/alerts` 🔒 `{enabled, radiusKm, minWindKt, savedPlaceIds[], language?}` (saved-place ids, since saved points have no `placeId`)
-- `GET /alerts/unsubscribe?token=`: anonymous; the token is a random value stored in `app.alert_subscription`; returns a small HTML confirmation page (the only non-JSON success response)
-
-**Test hooks** (only when `TR_TEST_HOOKS=1`; otherwise MUST return 404 `not-found`). Documented in the source spec with `x-internal: true`, so they are absent from the public bundle; not CSRF-checked.
-- `POST /_test/sessions {email, provider}` → 201, upserts the user and identity and sets the session cookie (`created_by_impl = 'test'` is reserved for the seed)
+**Test hooks** (only when `TR_TEST_HOOKS=1`; otherwise MUST return 404 `not-found`). Documented in the source spec with `x-internal: true`, so they are absent from the public bundle.
 - `POST /_test/live-events {type, payload}` → 201 `{seq}`, runs `SELECT live.apply_event(type, payload)`
 
 ## 11. Operational rules
 
-- Configuration comes only from env, with the same names in every backend: `DATABASE_URL` (pooled), `TR_SITE_ORIGIN`, `TR_TEST_HOOKS`, `TR_OAUTH_*`, `TR_LOG_LEVEL`, `PORT`.
-- Logs: one JSON object per line with `ts, level, msg, requestId, impl, method, path, status, durMs`. Never log cookies, tokens or OAuth codes.
+- Configuration comes only from env, with the same names in every backend: `DATABASE_URL` (pooled), `TR_SITE_ORIGIN`, `TR_TEST_HOOKS`, `TR_LOG_LEVEL`, `PORT` (`TR_OAUTH_*` went with v2).
+- Logs: one JSON object per line with `ts, level, msg, requestId, impl, method, path, status, durMs`. Never log `Cookie` or `Authorization` headers.
 - Readiness: answer `/healthz` within 1 s of the port opening. Fail `/readyz` (503 `not-ready`) until the DB is reachable and the schema version is ≥ the minimum.
 - DB use: through the Neon pooler (transaction mode). No session-level state (`SET`, `LISTEN`, session advisory locks, SQL `PREPARE`). Statement timeout 5 s. Pool max ≤ 5 per backend. Any coordination uses lease rows (`ops.job_lease`) or `SELECT … FOR UPDATE SKIP LOCKED` inside one transaction.
-- No background work: no in-process schedulers, ingestion or mail sending. These belong to the shared pipeline job (live ingestion, `app.alert_outbox` with a unique `dedupe_key`, an HTTPS email API). Optional `POST /v1/_jobs/{name}` endpoints exist only if the user picks the rotating-backend job option (see OPEN-QUESTIONS).
+- No background work: no in-process schedulers, ingestion or mail sending. These belong to the shared pipeline job (live ingestion). Optional `POST /v1/_jobs/{name}` endpoints exist only if the user picks the rotating-backend job option (see OPEN-QUESTIONS).
 - Rate limits: the proxy enforces per-IP limits. Backends MAY add their own, and MUST use 429 `rate-limited` + `Retry-After` if they do.
 - Request body limit 64 KB → 413 `payload-too-large`.
 - Response size budget (Render free egress is 5 GB/month for all four backends): JSON responses MUST stay ≤ 64 KB uncompressed at the maximum `limit`. Tracks are served at observed (3/6-hourly) resolution only. Hourly data, frames and polygons beyond the simplified geometry come from the static stores (Pages / Hugging Face), never from the API.
 
 ## 12. Conformance expectations
 
-A backend is "v1-conformant at contract X.Y" when, against the fixture database (`contracts/db/seed`, loaded by `just db-up`), all of these pass in CI (how to run them: `contracts/conformance/README.md`):
+A backend is "conformant at contract X.Y" when, against the fixture database (`contracts/db/seed`, loaded by `just db-up`), all of these pass in CI (how to run them: `contracts/conformance/README.md`):
 
 1. **Schemathesis** with the contract bundle: no 5xx, and every response matches its documented status, content type, headers and schema; invalid input is rejected with 4xx problem+json.
-2. **Scenario suite** (Vitest): golden results for the fixture places and storms; pagination walks; cross-backend cursor reuse; ETag/304; required headers; error `code`s; CSRF and `returnTo` rules.
+2. **Scenario suite** (Vitest): golden results for the fixture places and storms; pagination walks; cross-backend cursor reuse; ETag/304; required headers; error `code`s; no cookies; removed v1 operations answer 404.
 3. **SSE suite:** snapshot first, heartbeat ≤ 20 s, resume via `Last-Event-ID`, delivery ≤ 5 s, schema-valid events, 503 on capacity.
-4. **Auth suite** (mock IdP): login redirect parameters (state, S256 challenge); callback cookie attributes; a session usable on every other backend; logout revokes everywhere; test hooks absent when disabled.
+4. **Test hooks** absent (404) when disabled.
 5. **Differential check:** canonicalised responses equal across all four backends for the read-only scenario set.
 
 Results are published per backend and contract version on the compatibility table (`/compat`). Tests tagged with a contract version newer than the backend's claim are reported as "not claimed", not as failed.
@@ -253,3 +229,28 @@ The spec needed these refinements to the draft; none changes a decision in `DECI
 | Fixtures | `contracts/db/fixtures` | `contracts/db/seed` (SQL, generated from the pipeline's Parquet) |
 | Lint | portable subset | also bans `anyOf`/`const`/`not`, requires `maxItems` on arrays, forbids closed objects; `x-external-enum` exempts external code lists from kebab-case |
 
+## 14. v2: accounts removed (2026-10-21)
+
+Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): **no account features**. Visitor features are served from static files; the API is a read-only showcase, raced across the backends on the site's "Under the hood" page, so reads must stay fast and identical everywhere.
+
+**Removed** in contract `2.0.0` (breaking; still served under `/v1`, see §2):
+
+| Kind | Removed |
+|---|---|
+| Operations | `GET /auth/providers`, `GET /auth/{provider}/login`, `GET /auth/{provider}/callback`, `POST /auth/logout`, `GET`/`DELETE /me`, `GET`/`POST /me/places`, `PATCH`/`DELETE /me/places/{savedPlaceId}`, `GET`/`PUT /me/alerts`, `GET /alerts/unsubscribe`, test hook `POST /_test/sessions` |
+| Security | `sessionCookie` and `csrfHeader` schemes; the `__Host-tr_session` cookie; the `Origin` + `X-Requested-With` CSRF rule |
+| Schemas | `User`, `AuthProvider`, `AuthProviderList`, `Provider`, `SavedPlace`, `SavedPlaceCreate`, `SavedPlaceUpdate`, `SavedPlaceList`, `AlertPreferences`, `AlertPreferencesUpdate`, `TestSessionCreate`, `TestSessionCreated` |
+| Components | parameters `ProviderPath`, `ReturnTo`, `SavedPlaceId`; headers `Set-Cookie-Session`, `Location`; responses `NoContent`, `Problem401`, `Problem403`, `Problem409`, `Problem413`, `Problem415`, `Problem422`; their examples |
+| Problem codes | `unauthenticated`, `forbidden`, `csrf`, `conflict`, `precondition-failed`, `unprocessable` |
+| Database | `auth.*` (users, OAuth accounts and state, sessions), `app.saved_place`, `app.alert_subscription` and its places, `app.alert_outbox`, `app.email_suppression`, with their functions and triggers (migration `20261021000600_drop_accounts`) |
+| Config and tooling | `TR_OAUTH_*`; the mock IdP; the auth, session, CSRF and saved-place conformance scenarios |
+
+**Rule changes:**
+
+1. No CSRF: there are no public unsafe methods (§9).
+2. No cookies: backends never set them and ignore them; `Vary` is `Accept-Encoding` only (§4).
+3. All endpoints are public and cacheable except the live stream (§6). The `private, no-store` class is gone.
+4. URL major and contract major are now told apart (§2): removing operations is a contract major under the same `/v1`.
+5. The Redocly rule `portable/public-read-only` enforces 1–3 on the spec.
+
+**Unchanged:** every remaining operation, with its parameters, responses, headers, ETags, cursors and SSE events, is the same as in 1.0.0, so callers of those operations need no change.

@@ -2,6 +2,12 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
+// Frozen showcase (docs/architecture/DECISIONS.md): every configuration and the plugin classpath resolve from the
+// committed lockfiles (gradle.lockfile, buildscript-gradle.lockfile); a version change needs `--write-locks`.
+buildscript {
+    configurations.classpath { resolutionStrategy.activateDependencyLocking() }
+}
+
 plugins {
     java
     alias(libs.plugins.spring.boot)
@@ -9,13 +15,18 @@ plugins {
 }
 
 group = "dev.krtmtthw"
-version = "0.1.0"
+version = "0.2.0"
 
 java {
     toolchain { languageVersion = JavaLanguageVersion.of(25) }
 }
 
 repositories { mavenCentral() }
+
+dependencyLocking {
+    lockAllConfigurations()
+    lockMode = LockMode.STRICT
+}
 
 // The contract bundle (CONTRACT-GUIDE §1). `just bundle` (or `npm --prefix contracts run bundle`) writes it;
 // the Docker build bundles it in its own stage and passes -Pcontract=/path/to/openapi.json.
@@ -30,8 +41,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
@@ -43,7 +52,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
     testImplementation("org.springframework.modulith:spring-modulith-docs")
@@ -55,12 +63,11 @@ dependencies {
 
 // ---------------------------------------------------------------------------------------------------------------
 // Contract-first: interfaces and models generated from the 3.1 bundle, never committed (build/generated/openapi).
-// Three operations are not served by an MVC handler with a generated signature, so the codegen view of the
-// spec marks them x-internal (openapi-generator skips those):
-//   streamLiveEvents       SseEmitter, hand-written in live/web/LiveStreamController
-//   startLogin/completeLogin  handled by Spring Security's oauth2Login filters (accounts/internal/security)
+// One operation is not served by an MVC handler with a generated signature, so the codegen view of the spec marks
+// it x-internal (openapi-generator skips those):
+//   streamLiveEvents       SseEmitter, hand-written in live/web/LiveController
 // ---------------------------------------------------------------------------------------------------------------
-val handWrittenOperations = setOf("streamLiveEvents", "startLogin", "completeLogin")
+val handWrittenOperations = setOf("streamLiveEvents")
 val codegenSpec = layout.buildDirectory.file("contract/openapi.codegen.json")
 
 val codegenView = tasks.register("codegenView") {
@@ -141,4 +148,12 @@ tasks.test {
     systemProperty("tr.migrations", layout.projectDirectory.dir("../../contracts/db").asFile.absolutePath)
     jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:auto")
     testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+}
+
+// Rewrites every lockfile: `./gradlew resolveAndLockAll --write-locks` (only for a deliberate upgrade or a security
+// fix; see README "Frozen showcase policy").
+tasks.register("resolveAndLockAll") {
+    notCompatibleWithConfigurationCache("resolves configurations at execution time")
+    doFirst { require(gradle.startParameter.isWriteDependencyLocks) { "run with --write-locks" } }
+    doLast { configurations.filter { it.isCanBeResolved }.forEach { it.resolve() } }
 }

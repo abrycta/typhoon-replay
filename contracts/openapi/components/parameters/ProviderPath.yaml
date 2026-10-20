@@ -1,8 +1,0 @@
-name: provider
-in: path
-required: true
-description: OAuth2 identity provider (same values as the `Provider` schema).
-schema:
-  type: string
-  enum: [google, github]
-example: github

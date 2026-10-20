@@ -80,8 +80,12 @@ public final class RequestContext {
         }
         response.setHeader("X-Request-Id", requestId(request));
         String path = path(request);
-        response.setHeader(HttpHeaders.VARY, CachePolicy.isSessionScoped(path) ? "Accept-Encoding, Cookie" : "Accept-Encoding");
+        response.setHeader(HttpHeaders.VARY, "Accept-Encoding");
         response.setHeader(HttpHeaders.CACHE_CONTROL, CachePolicy.forSuccess(path));
+        // The hardening headers Spring Security used to add; harmless on JSON and kept on every response.
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-XSS-Protection", "0");
         if (request.getAttribute(STICKY_HEADERS) instanceof Map<?, ?> sticky) {
             sticky.forEach((k, v) -> response.setHeader(k.toString(), v.toString()));
         }

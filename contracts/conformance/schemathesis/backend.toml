@@ -8,10 +8,6 @@ workers = 4
 max-redirects = 0
 request-timeout = 10
 
-[headers]
-Origin = "${TR_SITE_ORIGIN}"
-X-Requested-With = "typhoon-replay"
-
 [generation]
 mode = "all"
 max-examples = 50
@@ -28,22 +24,7 @@ response_headers_conformance.enabled = true
 negative_data_rejection.enabled = true
 unsupported_method.enabled = true
 
-[auth.openapi.sessionCookie]
-api_key = "fixture-session-token-ana-0000000000000"
-
-[auth.openapi.csrfHeader]
-api_key = "typhoon-replay"
-
 [[operations]]
 # Infinite stream: covered by the Vitest SSE scenarios.
 include-operation-id = "streamLiveEvents"
-enabled = false
-
-[[operations]]
-# Would revoke or delete the fixture user's session mid-run: covered by the Vitest auth scenarios.
-include-operation-id = "logout"
-enabled = false
-
-[[operations]]
-include-operation-id = "deleteMe"
 enabled = false

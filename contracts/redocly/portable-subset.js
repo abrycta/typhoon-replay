@@ -10,9 +10,10 @@ const BANNED_KEYWORDS = [
 ];
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const CAMEL = /^[a-z][a-zA-Z0-9]*$/;
-const OPERATION_ID = /^(get|list|search|create|update|replace|delete|stream|start|complete|logout|unsubscribe)[A-Z][A-Za-z0-9]*$|^logout$/;
+const OPERATION_ID = /^(get|list|search|create|stream)[A-Z][A-Za-z0-9]*$/;
 const REQUIRED_HEADERS = ['X-Backend-Impl', 'X-Backend-Version', 'X-Contract-Version', 'X-Request-Id', 'Cache-Control'];
-const NO_BODY_STATUSES = new Set(['204', '302', '304']);
+const NO_BODY_STATUSES = new Set(['204', '304']);
+const SAFE_METHODS = new Set(['get', 'head']);
 
 function isSchemaContext(ctx) {
   // Skip `properties` maps etc.: the Schema visitor only fires on schema objects.
@@ -124,7 +125,7 @@ const PathSegmentCase = () => ({
 const OperationIdVerbNoun = () => ({
   Operation(op, ctx) {
     if (op.operationId && !OPERATION_ID.test(op.operationId)) {
-      ctx.report({ message: `operationId \`${op.operationId}\` must be verbNoun, starting with a known verb (get, list, search, create, update, replace, delete, stream, start, complete).`, location: ctx.location.child('operationId') });
+      ctx.report({ message: `operationId \`${op.operationId}\` must be verbNoun, starting with a known verb (get, list, search, create, stream).`, location: ctx.location.child('operationId') });
     }
   },
 });
@@ -190,6 +191,32 @@ const SseEventsDeclared = () => ({
   },
 });
 
+// Contract 2.0.0 (CONTRACT-GUIDE §14): no accounts. Every public operation is an anonymous GET: no security schemes,
+// no operation-level security, no cookies in or out. Unsafe methods exist only on x-internal test hooks.
+const PublicReadOnly = () => ({
+  Root: {
+    enter(root, ctx) {
+      if (root.components?.securitySchemes) ctx.report({ message: 'No security schemes: every operation is public (CONTRACT-GUIDE §14).', location: ctx.location.child(['components', 'securitySchemes']).key() });
+      if (!Array.isArray(root.security) || root.security.length !== 0) ctx.report({ message: 'Root `security` must be `[]` (all operations public).', location: ctx.location.child('security') });
+    },
+  },
+  PathItem(item, ctx) {
+    for (const [method, op] of Object.entries(item)) {
+      if (!op || typeof op !== 'object' || !op.responses) continue;
+      if (op.security && op.security.length) ctx.report({ message: `${method.toUpperCase()} must not require security (CONTRACT-GUIDE §14).`, location: ctx.location.child([method, 'security']) });
+      if (!SAFE_METHODS.has(method) && op['x-internal'] !== true) ctx.report({ message: `${method.toUpperCase()} is not allowed on public operations: the API is read-only (only x-internal test hooks may write).`, location: ctx.location.child(method).key() });
+    }
+  },
+  Parameter(param, ctx) {
+    if (param.in === 'cookie') ctx.report({ message: 'Cookie parameters are not allowed: the API has no sessions.', location: ctx.location.child('in') });
+  },
+  Response(response, ctx) {
+    for (const name of Object.keys(response.headers || {})) {
+      if (name.toLowerCase() === 'set-cookie') ctx.report({ message: 'Responses must not set cookies.', location: ctx.location.child(['headers', name]).key() });
+    }
+  },
+});
+
 export default function portableSubsetPlugin() {
   return {
     id: 'portable',
@@ -210,6 +237,7 @@ export default function portableSubsetPlugin() {
         'errors-are-problem-json': ErrorsAreProblemJson,
         'required-response-headers': RequiredResponseHeaders,
         'sse-events-declared': SseEventsDeclared,
+        'public-read-only': PublicReadOnly,
       },
     },
   };

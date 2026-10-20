@@ -1,4 +1,4 @@
-description: '`Accept-Encoding` on every response; `Accept-Encoding, Cookie` on responses that depend on the session.'
+description: '`Accept-Encoding` on every response. No response depends on cookies (contract 2.0.0 has no sessions).'
 required: true
 schema:
   type: string

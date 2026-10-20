@@ -13,8 +13,7 @@
     "mock": "prism mock dist/openapi.json --host 0.0.0.0 --port 4010",
     "typecheck": "tsc -p conformance/tsconfig.json",
     "conformance": "vitest run --config conformance/vitest.config.ts",
-    "compat-table": "node conformance/scripts/results-to-markdown.mjs",
-    "mock-idp": "node conformance/mock-idp/server.mjs"
+    "compat-table": "node conformance/scripts/results-to-markdown.mjs"
   },
   "devDependencies": {
     "@apiture/openapi-down-convert": "0.14.2",

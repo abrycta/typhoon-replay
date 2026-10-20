@@ -1,5 +1,0 @@
-description: '`__Host-tr_session=<token>; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=2592000`. Logout sends the same attributes with an empty value and `Max-Age=0`.'
-required: true
-schema:
-  type: string
-example: __Host-tr_session=q2v8l0kXz3n5bJ1Yc7d9fH4tR6wE2aS0uI8oP3mN5gU; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=2592000

@@ -65,7 +65,7 @@ migrate-check:
     {{ compose }} exec -T db psql -U tr -d typhoon -v ON_ERROR_STOP=1 -Atc "select 'schemas left: ' || count(*) from pg_namespace where nspname in ('catalog','live','auth','app','ops')"
     {{ compose }} --profile db run --rm migrate up
 
-# (Re)load the deterministic fixture (wipes catalogue, live, auth and app data)
+# (Re)load the deterministic fixture (wipes catalogue and live data)
 seed:
     {{ compose }} --profile db run --rm -q seed
 
@@ -82,36 +82,17 @@ db-reset:
     {{ compose }} --profile db down -v
     just db-up
 
-# --- side services ------------------------------------------------------------
-
-# Mailpit SMTP sink (UI on :8025)
-mail:
-    {{ compose }} --profile mail up -d mailpit
-
-# Mock OAuth2 provider for the auth scenarios (:9090)
-idp:
-    {{ compose }} --profile idp up -d oauth-mock
-
 # --- backends -----------------------------------------------------------------
 
-# Java backend (api/java) in Docker on :8081, with PostGIS, seed and the mock IdP: then `just conformance java`
-java-run: bundle db-up idp
+# Java backend (api/java) in Docker on :8081, with PostGIS and the seed: then `just conformance java`
+java-run: bundle db-up
     nice -n 15 {{ compose }} --profile java up -d --build api-java
     for i in $(seq 1 120); do curl -fsS -o /dev/null http://localhost:{{ port_java }}/readyz && break; sleep 1; done
     @echo "Java: http://localhost:{{ port_java }}/v1/meta"
 
 # Java backend from source (Gradle, JDK 25 toolchain) against the compose database; Ctrl-C to stop
-java-dev: bundle db-up idp
-    cd api/java && SPRING_PROFILES_ACTIVE=local TR_TEST_HOOKS=1 PORT={{ port_java }} \
-      TR_OAUTH_GITHUB_CLIENT_ID=test-client TR_OAUTH_GITHUB_CLIENT_SECRET=test-secret \
-      TR_OAUTH_GOOGLE_CLIENT_ID=test-client TR_OAUTH_GOOGLE_CLIENT_SECRET=test-secret \
-      TR_OAUTH_GITHUB_AUTH_URL=http://localhost:9090/github/login/oauth/authorize \
-      TR_OAUTH_GITHUB_TOKEN_URL=http://localhost:9090/github/login/oauth/access_token \
-      TR_OAUTH_GITHUB_USERINFO_URL=http://localhost:9090/github/api/user \
-      TR_OAUTH_GOOGLE_AUTH_URL=http://localhost:9090/google/authorize \
-      TR_OAUTH_GOOGLE_TOKEN_URL=http://localhost:9090/google/token \
-      TR_OAUTH_GOOGLE_USERINFO_URL=http://localhost:9090/google/userinfo \
-      nice -n 15 ./gradlew bootRun
+java-dev: bundle db-up
+    cd api/java && SPRING_PROFILES_ACTIVE=local TR_TEST_HOOKS=1 PORT={{ port_java }} nice -n 15 ./gradlew bootRun
 
 # Java unit, slice and Testcontainers tests (PostGIS 18, contract migrations + seed)
 java-test: bundle

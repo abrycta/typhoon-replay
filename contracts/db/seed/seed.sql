@@ -3,5 +3,4 @@
 \ir 10_storms.sql
 \ir 20_places.sql
 \ir 30_exposure.sql
-\ir 40_users.sql
 \ir 50_live.sql

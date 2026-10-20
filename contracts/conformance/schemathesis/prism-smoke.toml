@@ -8,10 +8,6 @@ workers = 4
 max-redirects = 0
 request-timeout = 10
 
-[headers]
-# Needed by the second security alternative of logout (csrfHeader only), which auth.openapi does not fill in.
-X-Requested-With = "typhoon-replay"
-
 [generation]
 mode = "positive"
 max-examples = 25
@@ -41,12 +37,6 @@ positive_data_acceptance.enabled = false
 missing_required_header.enabled = false
 unsupported_method.enabled = false
 ignored_auth.enabled = false
-
-[auth.openapi.sessionCookie]
-api_key = "fixture-session-token-ana-0000000000000"
-
-[auth.openapi.csrfHeader]
-api_key = "typhoon-replay"
 
 [[operations]]
 # The event stream never ends on a real backend; it is covered by the Vitest SSE scenarios.

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Frozen showcase (docs/architecture/DECISIONS.md): the backends under api/** get no routine updates, only",
+    "vulnerability fixes and base-image digest refreshes, grouped per backend and auto-merged when that backend's CI",
+    "(its own tests plus the conformance suite against its image) is green. Everything else (web/, pipeline/,",
+    "contracts/, edge/, GitHub Actions) keeps Renovate's normal policy.",
+    "How the override works: vulnerabilityAlerts is applied as a final packageRule with force, so enabled: true",
+    "re-enables a dependency the api/** rule disabled, but only for the vulnerable version range."
+  ],
+  "extends": ["config:recommended"],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "groupName": "{{#if additionalBranchPrefix}}{{{replace '/' '' additionalBranchPrefix}}} backend security fixes{{else}}{{{depName}}} vulnerability{{/if}}",
+    "groupSlug": "{{#if additionalBranchPrefix}}security-fixes{{else}}{{{datasource}}}-{{{depNameSanitized}}}-vulnerability{{/if}}"
+  },
+  "packageRules": [
+    {
+      "description": "Frozen showcase: no routine version updates for any backend (dependencies, toolchains, base images).",
+      "matchFileNames": ["api/**"],
+      "enabled": false
+    },
+    {
+      "description": "Base images: a new digest for the same pinned tag is a patched rebuild (OS and JRE/Node CVE fixes).",
+      "matchFileNames": ["api/**"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest"],
+      "enabled": true,
+      "labels": ["security", "base-image"]
+    },
+    {
+      "description": "One security PR per backend, auto-merged only after the backend's tests and conformance pass.",
+      "matchFileNames": ["api/**"],
+      "groupSlug": "security-fixes",
+      "automerge": true,
+      "automergeType": "pr",
+      "prCreation": "immediate",
+      "minimumReleaseAge": null
+    },
+    {
+      "matchFileNames": ["api/java/**"],
+      "additionalBranchPrefix": "java/",
+      "groupName": "java backend security fixes"
+    },
+    {
+      "matchFileNames": ["api/node/**"],
+      "additionalBranchPrefix": "node/",
+      "groupName": "node backend security fixes"
+    },
+    {
+      "matchFileNames": ["api/rust/**"],
+      "additionalBranchPrefix": "rust/",
+      "groupName": "rust backend security fixes"
+    },
+    {
+      "matchFileNames": ["api/go/**"],
+      "additionalBranchPrefix": "go/",
+      "groupName": "go backend security fixes"
+    }
+  ]
+}

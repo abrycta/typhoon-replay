@@ -2,9 +2,11 @@
 # Typhoon Replay Java backend. Build context: the repository root (the contract lives in contracts/):
 #   docker build -f api/java/Dockerfile -t typhoon-replay-java .
 # Stages: bundle the contract -> Gradle bootJar -> extract -> AOT cache training run (JEP 514/515) -> JRE 25 runtime.
+# Frozen showcase (docs/architecture/DECISIONS.md): base images are pinned by digest; Renovate only bumps a digest
+# for a security fix (the tag stays), and the dependency lockfiles keep the jar's contents fixed.
 
 # --- 1. The contract bundle (contracts/dist/openapi.json), generated from the split YAML -----------------------
-FROM node:24-alpine AS contract
+FROM node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS contract
 WORKDIR /contracts
 COPY contracts/package.json contracts/package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
@@ -12,9 +14,9 @@ COPY contracts/ ./
 RUN npm run bundle
 
 # --- 2. Build the jar (interfaces generated from the bundle) ---------------------------------------------------
-FROM eclipse-temurin:25-jdk AS build
+FROM eclipse-temurin:25-jdk@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641 AS build
 WORKDIR /src/api/java
-COPY api/java/gradlew api/java/settings.gradle.kts api/java/build.gradle.kts ./
+COPY api/java/gradlew api/java/settings.gradle.kts api/java/build.gradle.kts api/java/*.lockfile ./
 COPY api/java/gradle ./gradle
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -q help
 COPY --from=contract /contracts/dist/openapi.json /contract/openapi.json
@@ -24,7 +26,7 @@ RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -q bootJar -Pc
  && mv /app/typhoon-replay-api-*.jar /app/app.jar
 
 # --- 3. Runtime image with an AOT cache trained on this exact JRE and class path ------------------------------
-FROM eclipse-temurin:25-jre AS runtime
+FROM eclipse-temurin:25-jre@sha256:dbb43d81099eec91e0800226ed2296d03146ee7857165b95112372ad0d67e87f AS runtime
 RUN groupadd --system app && useradd --system --gid app --home /app app && install -d -o app -g app /app
 WORKDIR /app
 COPY --from=build --chown=app:app /app ./

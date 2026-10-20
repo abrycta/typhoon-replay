@@ -21,7 +21,6 @@ const READS: [string, string][] = [
   ['/v1/places/{placeId}/storms', `/v1/places/${TACLOBAN}/storms?radiusKm=100`],
   ['/v1/hits', '/v1/hits?lat=11.2433&lon=125.0039&radiusKm=100'],
   ['/v1/live/storms', '/v1/live/storms'],
-  ['/v1/auth/providers', '/v1/auth/providers'],
 ];
 
 describe('required headers and contract shape [c1.0.0]', () => {

@@ -80,6 +80,7 @@ jobs:
             contracts/dist/openapi.json
             contracts/dist/openapi.3.0.json
             contracts/dist/changelog.md
+            contracts/dist/breaking.txt
           if-no-files-found: error
 
   database:
