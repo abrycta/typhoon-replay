@@ -80,8 +80,8 @@ export function Shell({ children }: { children: ReactNode }) {
             actions={
               <>
                 <PortfolioLink className={`${PORTFOLIO_LINK} hidden md:inline-flex`} />
-                <ContrastToggle />
                 <ThemeToggle variant="compact" />
+                <ContrastToggle />
                 <LangSwitch />
               </>
             }

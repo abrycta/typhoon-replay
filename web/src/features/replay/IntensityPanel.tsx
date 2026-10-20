@@ -110,7 +110,7 @@ export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, three
           </p>
         ) : null}
         <Collapsible>
-          <CollapsibleTrigger className="group flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline">
+          <CollapsibleTrigger className="group flex items-center gap-1 text-sm text-ak-text-link underline-offset-4 hover:underline">
             {t`Why is the field weaker than the storm?`}
             <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
           </CollapsibleTrigger>

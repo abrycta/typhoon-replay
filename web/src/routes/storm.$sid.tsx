@@ -195,7 +195,7 @@ function StormPage() {
           <ul className="grid gap-1 text-sm">
             {s.sources.map((src) => (
               <li key={src.id}>
-                <a href={src.url} className="text-primary underline-offset-4 hover:underline" rel="noreferrer">
+                <a href={src.url} className="text-ak-text-link underline-offset-4 hover:underline" rel="noreferrer">
                   {src.name}
                 </a>
                 {src.license ? <span className="text-muted-foreground"> · {src.license}</span> : null}

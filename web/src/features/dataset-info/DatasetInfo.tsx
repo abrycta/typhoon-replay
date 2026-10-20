@@ -41,7 +41,7 @@ export function SourcesList() {
     <ul className="grid gap-2 text-sm">
       {sources.map((s) => (
         <li key={s.id}>
-          <a href={s.url} className="font-semibold text-primary underline-offset-4 hover:underline" rel="noreferrer">
+          <a href={s.url} className="font-semibold text-ak-text-link underline-offset-4 hover:underline" rel="noreferrer">
             {s.name}
           </a>
           {s.license ? <span className="text-muted-foreground"> · {s.license}</span> : null}

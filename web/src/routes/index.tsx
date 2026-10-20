@@ -110,7 +110,7 @@ function Home() {
         </nav>
         {index.isPending ? <Skeleton className="h-40" /> : <StormList storms={sortStorms(storms, "newest").slice(0, 6)} label={t`Recent storms`} />}
         <p>
-          <Link to="/storms" className="text-primary underline underline-offset-4">
+          <Link to="/storms" className="text-ak-text-link underline underline-offset-4">
             {t`All ${storms.length} storms`}
           </Link>
         </p>
