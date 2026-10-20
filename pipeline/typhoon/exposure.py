@@ -22,9 +22,11 @@ import math
 import numpy as np
 import pandas as pd
 import shapely
+import shapely.ops
 from pyproj import Transformer
 
-from . import catalog, places as places_mod
+from . import catalog
+from . import places as places_mod
 from .config import EARTH_R_KM, PROCESSED, RADII_KM, ensure_dir
 from .track import lon180
 
@@ -41,7 +43,7 @@ def haversine_km(lon1: np.ndarray, lat1: np.ndarray, lon2: float, lat2: float) -
 
 
 def _opt(v: float) -> float | None:
-    return None if v is None or not np.isfinite(v) else int(round(v))
+    return None if v is None or not np.isfinite(v) else int(round(v))  # noqa: RUF046
 
 
 def compute(places: pd.DataFrame, hourly: pd.DataFrame, storms: pd.DataFrame) -> pd.DataFrame:
@@ -72,7 +74,7 @@ def compute(places: pd.DataFrame, hourly: pd.DataFrame, storms: pd.DataFrame) ->
         tf = Transformer.from_crs("EPSG:4326", f"+proj=aeqd +lat_0={cy} +lon_0={cx} +datum=WGS84 +units=m",
                                   always_xy=True)
         px, py = tf.transform(x[idx], y[idx])
-        fine = shapely.transform(g, lambda c: np.column_stack(tf.transform(c[:, 0], c[:, 1])))
+        fine = shapely.transform(g, lambda c, tf=tf: np.column_stack(tf.transform(c[:, 0], c[:, 1])))
         coarse = shapely.simplify(fine, 500.0, preserve_topology=True)
         d = shapely.distance(shapely.points(px, py), coarse) / 1000.0
         keep = d <= MAX_KM + 1
@@ -93,7 +95,7 @@ def compute(places: pd.DataFrame, hourly: pd.DataFrame, storms: pd.DataFrame) ->
             if dd > MAX_KM:
                 continue
             if hi > lo:
-                near = shapely.ops.nearest_points(line, fine)[0]  # type: ignore[attr-defined]
+                near = shapely.ops.nearest_points(line, fine)[0]
                 f = float(shapely.line_locate_point(line, near, normalized=True)) * (hi - lo)
                 i0 = lo + min(int(f), hi - lo - 1)
                 t0, t1 = t_arr[i0], t_arr[i0 + 1]
@@ -104,7 +106,7 @@ def compute(places: pd.DataFrame, hourly: pd.DataFrame, storms: pd.DataFrame) ->
                    "closest_approach_km": round(min(dd, d[m].min()), 1), "closest_approach_at": at.floor("min")}
             for r in RADII_KM:
                 inr = m[d[m] <= r]
-                row[f"hours_r{r}"] = int(len(inr))
+                row[f"hours_r{r}"] = len(inr)
                 wv = wind[idx[inr]] if len(inr) else np.array([])
                 gv = gust[idx[inr]] if len(inr) else np.array([])
                 row[f"max_wind_kt_r{r}"] = _opt(np.nanmax(wv)) if len(wv) and np.isfinite(wv).any() else None
@@ -122,8 +124,6 @@ def compute(places: pd.DataFrame, hourly: pd.DataFrame, storms: pd.DataFrame) ->
 
 
 def build() -> pd.DataFrame:
-    import shapely.ops  # noqa: F401  (nearest_points)
-
     ensure_dir(OUT)
     ex = compute(places_mod.load(), catalog.load("hourly"), catalog.load("storms"))
     ex.to_parquet(OUT / "exposure.parquet", index=False, compression="zstd")

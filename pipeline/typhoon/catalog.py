@@ -114,13 +114,13 @@ def load_jma() -> pd.DataFrame:
         j = jma_numbers()
         return j[~j.match_quality.str.contains("weak|spur")][["sid", "jma_number", "jma_intl_id", "season"]] \
             .rename(columns={"season": "jma_season"})
-    except Exception as e:  # pragma: no cover - degrade to no Japanese designation
+    except Exception as e:  # pragma: no cover - degrade to no Japanese designation  # noqa: BLE001
         log.warning("JMA numbers unavailable: %s", e)
         return pd.DataFrame(columns=["sid", "jma_number", "jma_intl_id", "jma_season"])
 
 
 def _i(v: Any) -> int | None:
-    return None if v is None or pd.isna(v) else int(round(float(v)))
+    return None if v is None or pd.isna(v) else int(round(float(v)))  # noqa: RUF046
 
 
 def build() -> dict[str, pd.DataFrame]:
@@ -176,8 +176,8 @@ def build() -> dict[str, pd.DataFrame]:
             "jma_season": _i(jm.jma_season) if jm is not None else None,
             "atcf_id": s.usa_atcf_id if isinstance(s.usa_atcf_id, str) else None,
             "track_type": str(s.track_type), "started_at": obs.iso_time.min(), "ended_at": obs.iso_time.max(),
-            "fix_count": int(len(obs)), "duration_h": round((obs.iso_time.max() - obs.iso_time.min()).total_seconds() / 3600, 1),
-            "hours": int(len(tr)),
+            "fix_count": len(obs), "duration_h": round((obs.iso_time.max() - obs.iso_time.min()).total_seconds() / 3600, 1),
+            "hours": len(tr),
             "peak_wind_kt": _i(per[peak_agency][0]) if peak_agency else None, "peak_wind_agency": peak_agency,
             "peak_at": peak.get("peak_at"), "peak_lon": peak.get("peak_lon"), "peak_lat": peak.get("peak_lat"),
             "min_pressure_hpa": _i(min_p),
@@ -217,7 +217,7 @@ def build() -> dict[str, pd.DataFrame]:
         df.to_parquet(OUT / f"{k}.parquet", index=False, compression="zstd")
     summary = {"storms": len(storms), "by_country": out["storms"].landfall_countries.explode().value_counts().to_dict(),
                "entered_par": int(out["storms"].entered_par.sum()), "fixes": len(fixes),
-               "hourly_points": int(len(out["hourly"])), "landfalls": len(landfalls),
+               "hourly_points": len(out["hourly"]), "landfalls": len(landfalls),
                "with_pagasa_name": int(out["storms"].name_pagasa.notna().sum()),
                "with_jma_number": int(out["storms"].jma_number.notna().sum())}
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))

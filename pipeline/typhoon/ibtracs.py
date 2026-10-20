@@ -162,9 +162,9 @@ def main(argv: list[str] | None = None) -> None:
     s40 = st[st.season >= 1940]
     main_only = s40[s40.track_type == "main"]
     summary = {
-        "rows": int(len(fx)), "storms": int(len(st)),
+        "rows": len(fx), "storms": len(st),
         "season_range": [int(st.season.min()), int(st.season.max())],
-        "storms_since_1940": int(len(s40)), "storms_since_1940_main_track": int(len(main_only)),
+        "storms_since_1940": len(s40), "storms_since_1940_main_track": len(main_only),
         "storm_hours_since_1940": float(s40.duration_h.sum()),
         "mean_duration_h_since_1940": float(s40.duration_h.mean()),
         "since_1940_entered_study_box": int(s40.entered_study_box.sum()),

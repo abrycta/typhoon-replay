@@ -215,7 +215,7 @@ def match_ph(gb_names: list[str], gb_geoms: np.ndarray, cod: pd.DataFrame) -> li
         if out[i] is not None:
             continue
         n = norm_name(name)
-        cands = [c for c in np.flatnonzero(cod_norm == n) if c not in used]
+        cands = [int(c) for c in np.flatnonzero(cod_norm == n) if int(c) not in used]
         if cands:
             d = [shapely.distance(cent[i], pts[c]) for c in cands]
             j = int(np.argmin(d))
@@ -282,7 +282,9 @@ def build_ph(manifest: sources.RunManifest | None = None) -> tuple[pd.DataFrame,
             matches[i] = Match(MANILA_PCODE, "manila-district")
     p10 = psgc10_lookup(psgc, cod)
     cod_by = cod.set_index("adm3_pcode")
-    rows, unmatched, merged = [], [], []
+    rows: list[dict[str, Any]] = []
+    unmatched: list[dict[str, Any]] = []
+    merged: list[dict[str, Any]] = []
     seen: dict[str, int] = {}
     for i, m in enumerate(matches):
         name = str(gb.shapeName.iloc[i])
@@ -365,7 +367,7 @@ def build_jp(manifest: sources.RunManifest | None = None) -> tuple[pd.DataFrame,
             "source_ref": f"N03-20250101:{code}", "match": "n03+geoboundaries-overlap", "psgc_name": None,
             "_geoms": [g],
         })
-    report = {"n03_features": int(len(df)), "places": len(rows), "weak_name_overlap": weak}
+    report = {"n03_features": len(df), "places": len(rows), "weak_name_overlap": weak}
     return pd.DataFrame(rows), report
 
 

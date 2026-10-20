@@ -14,8 +14,9 @@ import respx
 import zstandard
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # pipeline/ is not an installed package
-import archivekit  # noqa: E402
-from typhoon import sources as S  # noqa: E402
+import archivekit
+
+from typhoon import sources as S
 
 WP = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.WP.list.v04r01.csv"
 ALL = WP.replace("ibtracs.WP.list", "ibtracs.ALL.list")

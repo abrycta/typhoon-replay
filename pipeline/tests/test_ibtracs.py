@@ -5,6 +5,8 @@ import pandas as pd
 import pytest
 
 D = Path(__file__).resolve().parents[2] / "data/processed/ibtracs"
+pytestmark = [pytest.mark.data,
+              pytest.mark.skipif(not (D / "fixes.parquet").exists(), reason="run python -m typhoon ibtracs first")]
 
 
 @pytest.fixture(scope="module")

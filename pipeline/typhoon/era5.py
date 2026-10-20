@@ -28,7 +28,6 @@ import zlib
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import httpx
@@ -113,7 +112,7 @@ def get_range(url: str, start: int, size: int, retries: int = 4) -> bytes:
             return r.content
         except LinkFailed:
             raise
-        except Exception as e:  # network errors, 5xx: retry with backoff
+        except Exception as e:  # network errors, 5xx: retry with backoff  # noqa: BLE001
             last = e
             time.sleep(1.5 * (k + 1))
     raise LinkFailed(f"{url}: {last}")
@@ -130,7 +129,7 @@ def get_all(url: str, retries: int = 4) -> bytes:
             return r.content
         except LinkFailed:
             raise
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             last = e
             time.sleep(1.5 * (k + 1))
     raise LinkFailed(f"{url}: {last}")
@@ -158,7 +157,7 @@ def ncar_relpath(var: Var, month: str | None = None, init: np.datetime64 | None 
 def fc_init(valid: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Forecast initialisation (06/18 UTC) and step (1..12 h) whose step ends at each valid hour."""
     v = valid.astype("datetime64[h]")
-    k = ((v - np.timedelta64(7, "h") - T0) // np.timedelta64(12, "h"))
+    k = ((v - np.timedelta64(7, "h") - T0) // np.timedelta64(12, "h"))  # type: ignore[operator]
     init = T0 + k * np.timedelta64(12, "h") + np.timedelta64(6, "h")
     return init, (v - init).astype(int)
 
@@ -261,7 +260,10 @@ def ncar_an(var: Var, base: str, month: str, hours: np.ndarray, row0: np.ndarray
     tiles = dict(pool.map(fetch, keys))
     out = np.empty((len(hours), N, N), np.float32)
     for i, (t, rows, cols) in enumerate(zip(ti, rows_all, cols_all, strict=True)):
-        _fill(out[i], lambda rc, cc, t=t: tiles[(int(t // ct), rc, cc)][t % ct], rows, cols, ch, cw)
+        def plane(rc: int, cc: int, t: int = int(t)) -> np.ndarray:
+            return tiles[(t // ct, rc, cc)][t % ct]
+
+        _fill(out[i], plane, rows, cols, ch, cw)
     return out
 
 

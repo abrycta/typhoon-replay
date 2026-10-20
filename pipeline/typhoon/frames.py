@@ -28,6 +28,7 @@ import io
 import json
 import logging
 import math
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -178,7 +179,7 @@ def honesty(fields: dict[str, np.ndarray], w: era5.Windows, hourly: pd.DataFrame
                 "ratioAtPeak": r(df.era5_wind[k] / s[k]),
                 "ratioLifetimeMax": r(df.era5_wind.max() / s.max()),
                 "medianRatioTyphoonHours": r((strong.era5_wind / strong[col]).median()) if len(strong) else None,
-                "typhoonHours": int(len(strong)),
+                "typhoonHours": len(strong),
             }
     out["era5MaxWindMs"] = r(df.era5_wind.max(), 1)
     out["era5MaxGustMs"] = r(df.era5_gust.max(), 1)
@@ -264,20 +265,96 @@ def build_storm(sid: str, hourly: pd.DataFrame, storm: dict[str, Any], *, format
     return meta
 
 
+def validate_storm(d: Path) -> None:
+    """Gate before a storm's frames leave the machine: header, sizes, checksums, nodata, WebP == tyf."""
+    meta = json.loads((d / "frames.json").read_text())
+    for seg in meta["segments"]:
+        if "tyf" not in seg:
+            continue
+        blob = (d / seg["tyf"]["file"]).read_bytes()
+        if sha256(blob) != seg["tyf"]["sha256"] or len(blob) >= MAX_FILE_BYTES:
+            raise ValueError(f"{d.name}: bad tyf segment {seg['index']}")
+        h, q = parse_tyf(blob)
+        if h["frames"] != seg["frames"]:
+            raise ValueError(f"{d.name}: frame count mismatch in segment {seg['index']}")
+        nod = float((q[:, :4] == NODATA).mean())
+        if nod > 0.01:
+            raise ValueError(f"{d.name}: {nod:.1%} nodata in segment {seg['index']}")
+        names = [v["name"] for v in h["vars"]]
+        for name, w in seg.get("webp", {}).items():
+            back = unsprite((d / w["file"]).read_bytes(), seg["frames"], h["ny"], h["nx"], w["cols"])
+            if not np.array_equal(back, q[:, names.index(name)]):
+                raise ValueError(f"{d.name}: webp {name} differs from tyf in segment {seg['index']}")
+
+
+def upload_storm(d: Path, version: int) -> None:
+    """Push one storm's frame files to v<version>/storms/<sid>/ (retrying concurrent-commit conflicts)."""
+    from huggingface_hub import HfApi
+
+    from .config import HF_REPO
+    from .publish import token
+
+    for k in range(5):
+        try:
+            HfApi(token=token()).upload_folder(
+                repo_id=HF_REPO, repo_type="dataset", folder_path=str(d), path_in_repo=f"v{version}/storms/{d.name}",
+                allow_patterns=["*.tyf", "*.webp"], commit_message=f"v{version}: frames for {d.name}")
+            return
+        except Exception as e:  # noqa: BLE001  concurrent batch commits can conflict: retry
+            log.warning("upload of %s failed (%s), retry %d", d.name, e, k + 1)
+            time.sleep(10 * (k + 1))
+    raise RuntimeError(f"could not upload {d.name}")
+
+
+def read_list(path: Path) -> list[str]:
+    """SIDs from a curated list file (one per line, '#' comments)."""
+    out = []
+    for line in path.read_text().splitlines():
+        s = line.split("#", 1)[0].strip()
+        if s:
+            out.append(s)
+    return out
+
+
 def main(argv: list[str] | None = None) -> None:
     from . import catalog
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sid", action="append", required=True)
+    ap.add_argument("--sid", action="append", default=[])
+    ap.add_argument("--list", type=Path, help="file of SIDs (e.g. curated/replay-v1.txt)")
     ap.add_argument("--formats", default="tyf,webp")
+    ap.add_argument("--skip-existing", action="store_true", help="skip storms whose frames.json exists")
+    ap.add_argument("--plan", type=Path, help="batch plan JSON from `python -m typhoon plan`")
+    ap.add_argument("--batch", help="batch number within --plan")
+    ap.add_argument("--upload-version", type=int,
+                    help="after building and validating each storm, upload its frame files to v<N>/storms/<sid>/ "
+                         "on the Hugging Face dataset (invisible until latest.json flips)")
     a = ap.parse_args(argv)
+    sids = a.sid + (read_list(a.list) if a.list else [])
+    if a.plan:
+        sids += json.loads(a.plan.read_text())[str(a.batch)]
     st = catalog.load("storms").set_index("sid")
     hr = catalog.load("hourly")
-    for sid in a.sid:
+    for n, sid in enumerate(sids, 1):
+        if sid not in st.index:
+            log.error("%s is not in the catalogue; skipped", sid)
+            continue
+        if a.skip_existing and (OUT / sid / "frames.json").exists():
+            continue
+        t0 = time.time()
+        man = sources.RunManifest()
         m = build_storm(sid, hr[hr.sid == sid], {"name": st.loc[sid, "name"], "season": int(st.loc[sid, "season"])},
-                        formats=tuple(a.formats.split(",")))
-        print(json.dumps({k: m[k] for k in ("sid", "frames", "servedBy", "quantisation", "era5VsBestTrack")}, indent=1))
+                        formats=tuple(a.formats.split(",")), manifest=man)
+        man.write(OUT / sid / "provenance.json")
+        validate_storm(OUT / sid)
+        if a.upload_version:
+            upload_storm(OUT / sid, a.upload_version)
+        h = m["era5VsBestTrack"]
+        log.info("[%d/%d] %s %s: %d frames in %.0f s, %.0f MB read, ratio %s (%s), served %s", n, len(sids), sid,
+                 st.loc[sid, "name"], m["frames"], time.time() - t0,
+                 sum(p.bytes for p in man.items.values()) / 1e6, h["headlineRatio"], h["headlineAgency"],
+                 {k: list(v) for k, v in m["servedBy"].items()})
 
 
 if __name__ == "__main__":

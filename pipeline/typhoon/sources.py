@@ -199,7 +199,7 @@ def _report(key: str, state: str, summary: str) -> None:
                                      label=reg.health.get("issue_label", "source-health"))
         if rep is not None:
             log.warning("%s: health issue %s", key, rep.report_problem(key, state, summary))
-    except Exception as e:  # reporting must never fail the pipeline
+    except Exception as e:  # reporting must never fail the pipeline  # noqa: BLE001
         log.warning("%s: could not open/update the health issue: %s", key, e)
 
 

@@ -22,7 +22,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely
 
-from . import catalog, exposure, places as places_mod
+from . import catalog, exposure
+from . import places as places_mod
 from .track import lon180
 
 INT_COL = re.compile(r"(_kt(_r\d+)?|_hpa|^number|jma_number|jma_season|jma_grade|sshs.*|_km|_deg|_deg$)$")
@@ -80,5 +81,5 @@ def build_tables(out: Path, replay: dict[str, dict[str, Any]]) -> dict[str, dict
         path = out / f"{name}.parquet"
         table = pa.Table.from_pandas(df, preserve_index=False)
         pq.write_table(table, path, compression="zstd", row_group_size=200_000)
-        info[name] = {"rows": int(len(df)), "bytes": path.stat().st_size}
+        info[name] = {"rows": len(df), "bytes": path.stat().st_size}
     return info

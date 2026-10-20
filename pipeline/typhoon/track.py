@@ -10,6 +10,7 @@ Longitudes stay 0..360 (continuous across the dateline) internally; writers conv
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -22,9 +23,12 @@ AGENCY_COLUMNS = {  # agency -> (wind column, pressure column, wind averaging mi
 PREFERRED = ("jtwc", "jma", "wmo")   # the contract's peak_wind_agency order
 
 
-def lon180(lon: np.ndarray | float) -> np.ndarray | float:
-    return np.where(np.asarray(lon) > 180, np.asarray(lon) - 360, lon) if isinstance(lon, np.ndarray) \
-        else (lon - 360 if lon > 180 else lon)
+def lon180(lon: Any) -> Any:
+    """Longitudes 0..360 -> (-180, 180]; arrays stay arrays, scalars stay scalars."""
+    if isinstance(lon, (np.ndarray, pd.Series)):
+        a = np.asarray(lon, dtype=float)
+        return np.where(a > 180, a - 360, a)
+    return lon - 360 if lon > 180 else lon
 
 
 def is_observed(iflag: pd.Series) -> pd.Series:
@@ -103,11 +107,11 @@ def hourly(fixes: pd.DataFrame) -> HourlyTrack:
     obs_t = t[is_observed(f.iflag).to_numpy()]
     observed = np.isin(hours, obs_t)
     idx = np.searchsorted(obs_t, hours, side="right") - 1
-    prev_fix = np.where(idx >= 0, obs_t[np.clip(idx, 0, None)] if len(obs_t) else np.datetime64("NaT"),
-                        np.datetime64("NaT")).astype("datetime64[s]")
+    prev_fix = np.where(idx >= 0, obs_t[np.clip(idx, 0, None)] if len(obs_t) else np.datetime64("NaT", "s"),
+                        np.datetime64("NaT", "s")).astype("datetime64[s]")
     jdx = np.searchsorted(obs_t, hours, side="left")
     next_fix = np.where(jdx < len(obs_t), obs_t[np.clip(jdx, 0, max(len(obs_t) - 1, 0))] if len(obs_t)
-                        else np.datetime64("NaT"), np.datetime64("NaT")).astype("datetime64[s]")
+                        else np.datetime64("NaT", "s"), np.datetime64("NaT", "s")).astype("datetime64[s]")
     return HourlyTrack(sid, hours, lat_h, lon_h, wind, pres, gust, observed, prev_fix, next_fix)
 
 

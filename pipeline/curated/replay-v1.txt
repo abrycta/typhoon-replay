@@ -1,0 +1,59 @@
+# Storms with ERA5 replay frames in data version 1 (51 storms, 1947-2026).
+# One IBTrACS SID per line; text after '#' is a comment. The whole catalogue (index, tracks, landfalls,
+# exposure) covers every PH/JP-affecting storm since 1940; this list only selects which get frames.
+# The full backfill (.github/workflows/backfill.yml) builds frames for every catalogue storm.
+#
+# Requested reference storms
+2013306N07162  # Haiyan / Yolanda 2013
+2009268N14128  # Ketsana / Ondoy 2009
+2021346N05145  # Rai / Odette 2021
+2020299N11144  # Goni / Rolly 2020
+2018250N12170  # Mangkhut / Ompong 2018
+2012331N03157  # Bopha / Pablo 2012
+2010285N13145  # Megi / Juan 2010
+2019278N16165  # Hagibis 2019 (Kanto)
+2018239N11161  # Jebi / Maymay 2018 (Kansai)
+2019242N14180  # Faxai 2019 (Chiba)
+1959263N11160  # Vera 1959 (Isewan typhoon). Muroto 1934 predates the 1940 start of ERA5.
+2009299N12153  # Mirinae / Santi 2009
+2011346N03156  # Washi / Sendong 2011
+2022254N24143  # Nanmadol / Josie 2022
+2023201N13134  # Doksuri / Egay 2023
+# Coverage across decades
+1947254N17143  # Kathleen 1947 (Kanto floods)
+1953148N08150  # Judy 1953
+1954261N11150  # Marie 1954 (Toya Maru)
+1958263N13148  # Ida 1958 (Kanogawa)
+1964247N09159  # Sally / Aring 1964
+1970282N08147  # Joan / Sening 1970
+1974324N08146  # Irma / Bidang 1974
+1987320N03171  # Nina / Sisang 1987
+1990310N07152  # Mike / Ruping 1990
+1991304N08140  # Thelma / Uring 1991 (Ormoc)
+1995293N05177  # Angela / Rosing 1995
+1998285N12149  # Babs / Loleng 1998
+2006268N12129  # Xangsane / Milenyo 2006
+2006329N06150  # Durian / Reming 2006
+2008169N08135  # Fengshen / Frank 2008
+2009270N10148  # Parma / Pepeng 2009
+2015285N14151  # Koppu / Lando 2015
+2016288N06146  # Haima / Lawin 2016
+2016230N25160  # Lionrock / Dindo 2016
+2018263N12146  # Trami / Paeng 2018
+2019354N05151  # Phanfone / Ursula 2019
+2020313N08135  # Vamco / Ulysses 2020
+2020244N25146  # Haishen / Kristine 2020
+2022264N17132  # Noru / Karding 2022
+2023207N09141  # Khanun / Falcon 2023
+# Recent seasons (2024-2026; 2026 tracks are IBTrACS PROVISIONAL)
+2024201N12133  # Gaemi / Carina 2024
+2024244N09137  # Yagi / Enteng 2024
+2024233N15148  # Shanshan 2024
+2024298N13150  # Kong-Rey / Leon 2024
+2024313N10169  # Man-yi / Pepito 2024
+2025260N13138  # Ragasa / Nando 2025
+2025305N08140  # Kalmaegi / Tino 2025
+2025308N09145  # Fung-wong / Uwan 2025
+2026170N12145  # Mekkhala / Francisco 2026
+2026182N09163  # Bavi / Inday 2026
+2026266N16138  # Surigae / Queenie 2026 (after NCAR's coverage: ARCO-ERA5T fallback)
