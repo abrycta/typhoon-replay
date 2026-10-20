@@ -1,35 +1,28 @@
-import { Skeleton, useLang } from "@abrycta/akari/react";
+import { useLang } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
+import { Link } from "@tanstack/react-router";
 
-import { useStormPlaces } from "@/api";
 import { formatDate } from "@/shared/lib/time";
-import type { PlaceHit, StormDetail } from "@/shared/model/types";
+import type { StormDetail } from "@/shared/model/types";
 
 /**
- * Places the storm passed near. The static summary carries them when the pipeline computed them;
- * otherwise the selected API backend is asked (the replay itself never waits on this).
+ * Places the storm passed near, from the storm's static summary (`affectedPlaces`, computed by the pipeline).
+ * Static only: a dataset version without the list says so instead of asking an API.
  */
 export function AffectedPlaces({ detail }: { detail: StormDetail }) {
   const { t } = useLingui();
   const { lang } = useLang();
-  const fromStatic = detail.affectedPlaces;
-  const api = useStormPlaces(detail.sid, { enabled: !fromStatic });
-  const items: PlaceHit[] | undefined = fromStatic ?? api.data;
-  const radius = detail.affectedRadiusKm ?? 200;
+  const items = detail.affectedPlaces;
+  const radius = detail.affectedRadiusKm ?? 100;
 
   return (
-    <section aria-labelledby="places-h" className="grid gap-2" data-testid="affected-places">
+    <section aria-labelledby="places-h" className="grid content-start gap-2" data-testid="affected-places">
       <h2 id="places-h" className="text-lg font-semibold">
         {t`Affected places`}
       </h2>
-      <p className="text-xs text-muted-foreground">
-        {t`Places whose centre the best track passed within ${radius} km of, closest first.`}{" "}
-        {fromStatic ? t`From the static dataset.` : t`From the API.`}
-      </p>
-      {!items && api.isPending ? (
-        <Skeleton className="h-20" />
-      ) : !items ? (
-        <p className="text-sm text-muted-foreground">{t`The place list is unavailable right now (the API may be asleep). The replay is unaffected.`}</p>
+      <p className="text-xs text-muted-foreground">{t`Places the best track passed within ${radius} km of, closest first.`}</p>
+      {!items ? (
+        <p className="text-sm text-muted-foreground">{t`This dataset version has no place list for this storm yet.`}</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t`No covered place was within ${radius} km.`}</p>
       ) : (
@@ -37,7 +30,9 @@ export function AffectedPlaces({ detail }: { detail: StormDetail }) {
           {items.map((h) => (
             <li key={h.place.id} className="flex flex-wrap justify-between gap-x-3 border-b border-border pb-1.5 last:border-0">
               <span>
-                {lang === "ja" && h.place.nameJa ? h.place.nameJa : h.place.name}
+                <Link to="/town" search={{ place: h.place.id, radius: 100 }} className="underline-offset-4 hover:underline">
+                  {lang === "ja" && h.place.nameJa ? h.place.nameJa : h.place.name}
+                </Link>
                 <span className="text-muted-foreground">, {lang === "ja" && h.place.admin1Ja ? h.place.admin1Ja : (h.place.admin2 ?? h.place.admin1)}</span>
               </span>
               <span className="tabular-nums text-muted-foreground">

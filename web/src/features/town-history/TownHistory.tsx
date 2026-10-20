@@ -1,20 +1,18 @@
 import { Badge, Button, Empty, EmptyDescription, EmptyHeader, EmptyTitle, Input, Label, NativeSelect, NativeSelectOption, Skeleton, Spinner, useLang } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { ApiError, type RadiusKm, usePlaceSearch, usePlaceStorms } from "@/api";
+import { EXPOSURE_RADII, type ExposureRadiusKm, exposureWithin, type PlaceEntry, searchPlaces, usePlaceIndex, usePlaceShard, useStormIndex } from "@/data";
 import { stormTitle } from "@/shared/lib/names";
 import { formatDate } from "@/shared/lib/time";
-import type { PlaceSummary } from "@/shared/model/types";
+import type { StormSummary } from "@/shared/model/types";
 
 export interface TownUrl {
   q?: string;
   place?: string;
-  radius: RadiusKm;
+  radius: ExposureRadiusKm;
 }
-
-const RADII: RadiusKm[] = [50, 100, 200, 300, 500];
 
 function useDebounced<T>(v: T, ms: number): T {
   const [d, setD] = useState(v);
@@ -25,34 +23,43 @@ function useDebounced<T>(v: T, ms: number): T {
   return d;
 }
 
-function placeLabel(p: PlaceSummary, lang: "en" | "ja") {
+function placeLabel(p: PlaceEntry, lang: "en" | "ja") {
   const name = lang === "ja" && p.nameJa ? p.nameJa : p.name;
   const region = lang === "ja" && p.admin1Ja ? p.admin1Ja : [p.admin2, p.admin1].filter(Boolean).join(", ");
-  return `${name}, ${region}`;
+  return region ? `${name}, ${region}` : name;
 }
 
-function errorText(e: unknown, t: (s: TemplateStringsArray, ...v: unknown[]) => string): string {
-  if (e instanceof ApiError) {
-    if (e.code === "not-deployed") return t`This backend is not deployed at this address yet.`;
-    if (e.status === 0) return t`The backend did not answer (network error).`;
-    return `${e.message} (${e.status}${e.code ? `, ${e.code}` : ""})`;
-  }
-  return String(e);
-}
-
-/** "Typhoons that hit my town": place search and storm history from the selected API backend. */
+/**
+ * "Typhoons that hit my town", entirely from static files: the place index is searched in the browser and the
+ * chosen place's exposure comes from its province/prefecture shard. No API call, so it works with every backend asleep.
+ */
 export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<TownUrl>) => void }) {
   const { t } = useLingui();
   const { lang } = useLang();
   const [text, setText] = useState(url.q ?? "");
-  const q = useDebounced(text.trim(), 300);
+  const q = text.trim();
+  const debounced = useDebounced(q, 300);
   useEffect(() => {
-    if (q !== (url.q ?? "")) onUrl({ q: q || undefined });
+    if (debounced !== (url.q ?? "")) onUrl({ q: debounced || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-  const search = usePlaceSearch(q);
-  const hits = usePlaceStorms(url.place, url.radius);
-  const selected = search.data?.find((p) => p.id === url.place);
+  }, [debounced]);
+
+  const index = usePlaceIndex();
+  const results = useMemo(() => (index.data && q.length >= 2 ? searchPlaces(index.data, q, 10) : []), [index.data, q]);
+  const selected = useMemo(() => index.data?.find((e) => e.place.id === url.place)?.place, [index.data, url.place]);
+  const shard = usePlaceShard(selected?.shard);
+  const storms = useStormIndex();
+  const bySid = useMemo(() => new Map((storms.data ?? []).map((s) => [s.sid, s])), [storms.data]);
+  const hits = useMemo(() => (shard.data && url.place ? exposureWithin(shard.data, url.place, url.radius) : undefined), [shard.data, url.place, url.radius]);
+
+  const status =
+    q.length < 2
+      ? t`Type at least two letters.`
+      : index.isPending
+        ? t`Loading the place list…`
+        : index.error
+          ? t`The place list could not be loaded.`
+          : t`${results.length} places found`;
 
   return (
     <div className="grid gap-6">
@@ -63,8 +70,8 @@ export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<T
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="town-radius">{t`Within`}</Label>
-          <NativeSelect id="town-radius" value={String(url.radius)} onChange={(e) => onUrl({ radius: Number(e.target.value) as RadiusKm })}>
-            {RADII.map((r) => (
+          <NativeSelect id="town-radius" value={String(url.radius)} onChange={(e) => onUrl({ radius: Number(e.target.value) as ExposureRadiusKm })}>
+            {EXPOSURE_RADII.map((r) => (
               <NativeSelectOption key={r} value={String(r)}>
                 {r} km
               </NativeSelectOption>
@@ -77,12 +84,13 @@ export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<T
         <h2 id="places-h" className="text-sm font-semibold">
           {t`Places`}
         </h2>
-        <div role="status" aria-live="polite" className="text-sm text-muted-foreground">
-          {q.length < 2 ? t`Type at least two letters.` : search.isFetching ? <Spinner /> : search.error ? errorText(search.error, t) : t`${search.data?.length ?? 0} places found`}
+        <div role="status" aria-live="polite" className="text-sm text-muted-foreground" data-testid="town-status">
+          {q.length >= 2 && index.isPending ? <Spinner className="mr-2 inline" /> : null}
+          {status}
         </div>
-        {search.data?.length ? (
+        {results.length ? (
           <ul className="flex flex-wrap gap-2">
-            {search.data.map((p) => (
+            {results.map((p) => (
               <li key={p.id}>
                 <Button size="sm" variant={p.id === url.place ? "default" : "outline"} aria-pressed={p.id === url.place} onClick={() => onUrl({ place: p.id })}>
                   {placeLabel(p, lang)}
@@ -99,25 +107,34 @@ export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<T
             {selected ? t`Storms within ${url.radius} km of ${placeLabel(selected, lang)}` : t`Storms within ${url.radius} km`}
           </h2>
           <p className="text-xs text-muted-foreground">{t`Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field.`}</p>
-          {hits.isPending ? (
+          {index.isPending || shard.isLoading ? (
             <Skeleton className="h-24" />
-          ) : hits.error ? (
-            <p className="text-sm text-destructive">{errorText(hits.error, t)}</p>
-          ) : hits.data?.length ? (
+          ) : !selected ? (
+            <p className="text-sm text-muted-foreground">{t`This place is not in the dataset.`}</p>
+          ) : shard.error ? (
+            <p className="text-sm text-destructive">{t`The storm list for this place could not be loaded.`}</p>
+          ) : hits?.length ? (
             <ol className="grid gap-2" data-testid="town-hits">
-              {hits.data.map((h) => (
-                <li key={h.storm.sid} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-sm border border-border p-3">
-                  <Link to="/storm/$sid" params={{ sid: h.storm.sid }} className="font-semibold underline-offset-4 hover:underline">
-                    {stormTitle(h.storm, lang)} {h.storm.season}
-                  </Link>
-                  <span className="text-sm tabular-nums text-muted-foreground">
-                    {t`${h.closestApproachKm.toFixed(0)} km away on ${formatDate(h.closestApproachAt, lang)}`}
-                    {h.maxWindKtWithinRadius !== undefined ? ` · ${t`${h.maxWindKtWithinRadius.toFixed(0)} kt max wind`}` : ""}
-                    {` · ${t`${h.hoursWithinRadius} h within ${url.radius} km`}`}
-                  </span>
-                  {h.storm.landfallCountries.length ? <Badge variant="secondary">{h.storm.landfallCountries.join(" · ")}</Badge> : null}
-                </li>
-              ))}
+              {hits.map((h) => {
+                const s: Pick<StormSummary, "name" | "localNames" | "season" | "landfallCountries"> = bySid.get(h.sid) ?? {
+                  name: h.name ?? h.sid,
+                  season: h.season ?? Number(h.sid.slice(0, 4)),
+                  landfallCountries: [],
+                };
+                return (
+                  <li key={h.sid} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-sm border border-border p-3">
+                    <Link to="/storm/$sid" params={{ sid: h.sid }} className="font-semibold underline-offset-4 hover:underline">
+                      {stormTitle(s, lang)} {s.season}
+                    </Link>
+                    <span className="text-sm tabular-nums text-muted-foreground">
+                      {t`${h.closestApproachKm.toFixed(0)} km away on ${formatDate(h.closestApproachAt, lang)}`}
+                      {h.maxWindKtWithinRadius !== undefined ? ` · ${t`${h.maxWindKtWithinRadius.toFixed(0)} kt max wind`}` : ""}
+                      {` · ${t`${h.hoursWithinRadius} h within ${url.radius} km`}`}
+                    </span>
+                    {s.landfallCountries.length ? <Badge variant="secondary">{s.landfallCountries.join(" · ")}</Badge> : null}
+                  </li>
+                );
+              })}
             </ol>
           ) : (
             <Empty>
