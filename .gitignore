@@ -11,3 +11,4 @@ dist/
 .env.deploy
 web/.npmrc
 *.tsbuildinfo
+.claude/
