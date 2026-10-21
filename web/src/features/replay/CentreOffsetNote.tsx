@@ -1,12 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 
 import { compassPoint, LARGE_OFFSET_KM, NAMED_STORM_KT, type OffsetReading } from "./centre-offset";
-
-/** Eight compass directions, as "about 180 km north-east of the track". */
-export function useCompassNames(): string[] {
-  const { t } = useLingui();
-  return [t`north`, t`north-east`, t`east`, t`south-east`, t`south`, t`south-west`, t`west`, t`north-west`];
-}
+import { useCompassNames } from "./use-compass-names";
 
 /**
  * A small note on the map when ERA5's storm is far from the official track (or missing), so the field is not
@@ -34,5 +29,18 @@ export function CentreOffsetNote({ reading, bestTrackKt }: { reading?: OffsetRea
     >
       {text} <span className="text-muted-foreground">{t`Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it.`}</span>
     </div>
+  );
+}
+
+/** Map key for the ERA5 centre marker (storm page sidebar). */
+export function Era5CentreKey() {
+  const { t } = useLingui();
+  return (
+    <p className="flex items-start gap-2 text-xs text-muted-foreground" data-testid="era5-centre-key">
+      <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" className="mt-0.5 shrink-0">
+        <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+      <span>{t`ERA5 centre: where the reanalysis has the storm, marked when it is ${LARGE_OFFSET_KM} km or more from the official track (the ring).`}</span>
+    </p>
   );
 }

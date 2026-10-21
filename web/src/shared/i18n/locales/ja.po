@@ -390,7 +390,7 @@ msgstr "各バックエンドは契約を守っているか"
 msgid "Duration"
 msgstr "継続時間"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "east"
 msgstr "東"
 
@@ -402,9 +402,23 @@ msgstr "エッジ"
 msgid "Endpoint"
 msgstr "エンドポイント"
 
+#: src/features/replay/StormReplay.tsx
+msgid "ERA5 centre"
+msgstr "ERA5 の中心"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 centre vs best track"
 msgstr "ERA5 の中心とベストトラックの差"
+
+#. placeholder {0}: Math.round(offset.km / 10) * 10
+#. placeholder {1}: dirs[compassPoint(offset.bearingDeg)]
+#: src/features/replay/StormReplay.tsx
+msgid "ERA5 centre, about {0} km {1} of the official track"
+msgstr "ERA5 の中心。公式の経路から{1}へ約 {0} km"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "ERA5 centre: where the reanalysis has the storm, marked when it is {LARGE_OFFSET_KM} km or more from the official track (the ring)."
+msgstr "ERA5 の中心：再解析上の台風の位置。公式の経路（円）から {LARGE_OFFSET_KM} km 以上離れているときに表示します。"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
@@ -822,15 +836,15 @@ msgstr "この距離まで接近した台風は記録にありません"
 msgid "No storms match"
 msgstr "該当する台風がありません"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "north"
 msgstr "北"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "north-east"
 msgstr "北東"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "north-west"
 msgstr "北西"
 
@@ -1126,15 +1140,15 @@ msgstr "出典"
 msgid "Sources and licences"
 msgstr "出典とライセンス"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "south"
 msgstr "南"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "south-east"
 msgstr "南東"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "south-west"
 msgstr "南西"
 
@@ -1351,7 +1365,7 @@ msgstr "値"
 msgid "waking up"
 msgstr "起動中"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "west"
 msgstr "西"
 

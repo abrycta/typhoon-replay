@@ -7,7 +7,7 @@ import { jtwcCategory, ktToMs, msToKt, type SpeedUnit } from "@/shared/lib/units
 import type { ReanalysisCheck, TrackHour } from "@/shared/model/types";
 
 import { compassPoint, type OffsetReading } from "./centre-offset";
-import { useCompassNames } from "./CentreOffsetNote";
+import { useCompassNames } from "./use-compass-names";
 
 export interface IntensityPanelProps {
   hour?: TrackHour;

@@ -1,4 +1,4 @@
-import { type GeoJSONSource, type LngLatBoundsLike, Map as MaplibreMap, type Map as MlMap, NavigationControl } from "maplibre-gl";
+import { type GeoJSONSource, type LngLatBoundsLike, Map as MaplibreMap, Marker, type Map as MlMap, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // MapLibre 6 derives its worker URL at runtime from import.meta.url, which bundlers cannot see, so the
@@ -38,6 +38,8 @@ export interface ReplayMapProps {
   showTrack: boolean;
   themeKey: ThemeKey;
   view?: MapView;
+  /** ERA5's own storm centre at this hour, marked only when it is far from the track (never moves the field). */
+  era5Centre?: { lon: number; lat: number; label: string; name: string };
   onViewChange?: (v: MapView) => void;
   interactive?: boolean;
   className?: string;
@@ -58,6 +60,19 @@ function trackLine(hours: readonly TrackHour[]): [number, number][] {
     prev = lon;
   }
   return out;
+}
+
+function era5Marker(): HTMLElement {
+  const el = document.createElement("div");
+  el.setAttribute("role", "img");
+  el.dataset.testid = "era5-centre-marker";
+  el.className = "pointer-events-none flex items-center gap-1";
+  el.innerHTML =
+    '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="overflow:visible">' +
+    '<path d="M3 3l10 10M13 3L3 13" stroke="var(--background, #fff)" stroke-width="5" stroke-linecap="round"/>' +
+    '<path d="M3 3l10 10M13 3L3 13" stroke="var(--foreground, #111)" stroke-width="2.25" stroke-linecap="round"/></svg>' +
+    '<span data-label aria-hidden="true" class="rounded-sm bg-background/85 px-1 font-mono text-[10px] text-foreground"></span>';
+  return el;
 }
 
 function bounds(hours: readonly TrackHour[]): LngLatBoundsLike | undefined {
@@ -275,6 +290,25 @@ export default function ReplayMap(props: ReplayMapProps) {
       unsub?.();
     };
   }, [clock, store, styleVersion, header, track]);
+
+  // ERA5 centre marker: a DOM marker (an ✕, unlike the track's ring) with a visible label and an accessible name.
+  const era5 = props.era5Centre;
+  const markerRef = useRef<Marker | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleVersion) return;
+    if (!era5) {
+      markerRef.current?.remove();
+      markerRef.current = null;
+      return;
+    }
+    if (!markerRef.current) markerRef.current = new Marker({ element: era5Marker(), anchor: "left", offset: [-8, 0] }) // the ✕ (16 px) on the point;
+    const el = markerRef.current.getElement();
+    el.setAttribute("aria-label", era5.name);
+    el.querySelector("[data-label]")!.textContent = era5.label;
+    markerRef.current.setLngLat([era5.lon, era5.lat]).addTo(map);
+  }, [era5?.lon, era5?.lat, era5?.label, era5?.name, styleVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => void markerRef.current?.remove(), []);
 
   // Particles need continuous frames even while paused; stop when hidden or offscreen.
   useEffect(() => {

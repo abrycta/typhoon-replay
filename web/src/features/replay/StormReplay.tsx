@@ -10,8 +10,8 @@ import type { StormDetail } from "@/shared/model/types";
 import { useHighContrast, useMapTheme, usePrefersReducedMotion } from "@/shared/ui/hooks";
 import { useStormName } from "@/shared/ui/use-storm-name";
 
-import { offsetAt } from "./centre-offset";
-import { CentreOffsetNote } from "./CentreOffsetNote";
+import { compassPoint, markerAt, offsetAt } from "./centre-offset";
+import { CentreOffsetNote, Era5CentreKey } from "./CentreOffsetNote";
 import { FieldLegend } from "./FieldLegend";
 import { IntensityPanel } from "./IntensityPanel";
 import { useFieldLabels } from "./labels";
@@ -22,6 +22,7 @@ import { type Speed, usePlayerClock } from "./player";
 import { StaticTrack } from "./StaticTrack";
 import { TimelineTable } from "./TimelineTable";
 import { localZone, parseView } from "./url";
+import { useCompassNames } from "./use-compass-names";
 import { useReplayKeyboard } from "./useReplayKeyboard";
 
 const ReplayMap = lazy(() => import("./map/ReplayMap"));
@@ -157,6 +158,12 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const cur = useMemo(() => near(state.index), [state.index, snap.loadedFrames, snap.exactFrames, header, hours, series]);
 
   const offset = layer === "none" ? undefined : offsetAt(detail.frames?.centreOffset, state.index);
+  const dirs = useCompassNames();
+  const mark = markerAt(offset);
+  const era5Centre =
+    mark && offset?.kind === "offset"
+      ? { ...mark, label: t`ERA5 centre`, name: t`ERA5 centre, about ${Math.round(offset.km / 10) * 10} km ${dirs[compassPoint(offset.bearingDeg)]!} of the official track` }
+      : undefined;
 
   const timeLabel = time !== undefined ? formatDateTime(time, lang, tzChoice) : "";
   const bw = exactHour ? bestWind(exactHour) : undefined;
@@ -200,6 +207,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                   onViewChange={compact ? undefined : (v) => onUrl({ v: `${v.lon},${v.lat},${v.zoom}` })}
                   interactive={!compact}
                   onUnavailable={setWebglError}
+                  era5Centre={era5Centre}
                 />
               </Suspense>
             )}
@@ -255,6 +263,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
               tz={tzChoice}
             />
             {layer !== "none" ? <FieldLegend layer={layer} units={url.units} theme={theme} /> : null}
+            {layer !== "none" && detail.frames?.centreOffset ? <Era5CentreKey /> : null}
             <LayerPanel
               layer={layer}
               particles={particles}

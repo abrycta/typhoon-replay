@@ -390,7 +390,7 @@ msgstr "Does each backend keep the contract?"
 msgid "Duration"
 msgstr "Duration"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "east"
 msgstr "east"
 
@@ -402,9 +402,23 @@ msgstr "Edge"
 msgid "Endpoint"
 msgstr "Endpoint"
 
+#: src/features/replay/StormReplay.tsx
+msgid "ERA5 centre"
+msgstr "ERA5 centre"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 centre vs best track"
 msgstr "ERA5 centre vs best track"
+
+#. placeholder {0}: Math.round(offset.km / 10) * 10
+#. placeholder {1}: dirs[compassPoint(offset.bearingDeg)]
+#: src/features/replay/StormReplay.tsx
+msgid "ERA5 centre, about {0} km {1} of the official track"
+msgstr "ERA5 centre, about {0} km {1} of the official track"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "ERA5 centre: where the reanalysis has the storm, marked when it is {LARGE_OFFSET_KM} km or more from the official track (the ring)."
+msgstr "ERA5 centre: where the reanalysis has the storm, marked when it is {LARGE_OFFSET_KM} km or more from the official track (the ring)."
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
@@ -822,15 +836,15 @@ msgstr "No storms in the archive passed this close"
 msgid "No storms match"
 msgstr "No storms match"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "north"
 msgstr "north"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "north-east"
 msgstr "north-east"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "north-west"
 msgstr "north-west"
 
@@ -1126,15 +1140,15 @@ msgstr "Sources"
 msgid "Sources and licences"
 msgstr "Sources and licences"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "south"
 msgstr "south"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "south-east"
 msgstr "south-east"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "south-west"
 msgstr "south-west"
 
@@ -1351,7 +1365,7 @@ msgstr "Value"
 msgid "waking up"
 msgstr "waking up"
 
-#: src/features/replay/CentreOffsetNote.tsx
+#: src/features/replay/use-compass-names.ts
 msgid "west"
 msgstr "west"
 
