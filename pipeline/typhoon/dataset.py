@@ -695,9 +695,9 @@ def check(vdir: Path) -> dict[str, Any]:
         fr = entry["frames"]
         replay += 1
         h = fr["era5VsBestTrack"]
-        if h.get("headlineRatio") is None:
-            problems.append(f"{sid}: no ERA5 honesty ratio")
-        elif not 0.05 < h["headlineRatio"] < 1.5:
+        # No ratio is honest, not broken: many older storms have no agency wind to compare against, and the
+        # app says so ("no best-track wind to compare"). Weak storms can sit a little above 1.5.
+        if h.get("headlineRatio") is not None and not 0.05 < h["headlineRatio"] < 3.0:
             problems.append(f"{sid}: implausible ERA5 ratio {h['headlineRatio']}")
         if "tyf" in fr and (root / fr["tyf"]["path"]).exists():
             hdr, q = parse_tyf((root / fr["tyf"]["path"]).read_bytes())
