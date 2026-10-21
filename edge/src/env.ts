@@ -13,7 +13,7 @@ export interface RateLimitBinding {
 export interface Env {
   /** JSON map impl → origin, e.g. `{"java":"https://typhoon-replay-java.onrender.com"}`. A string or an object (wrangler vars allow both). */
   BACKEND_ORIGINS?: string | Record<string, unknown>;
-  /** "true" → serve only cached responses (egress guard, set by the nightly bandwidth job). */
+  /** "true" → serve only cached responses (manual emergency switch; edge/README.md "Static mode"). */
   STATIC_MODE?: string | boolean;
   /** How long a GET waits for the origin before answering 503 backend-waking (default 8000 ms). */
   ORIGIN_TIMEOUT_MS?: string | number;

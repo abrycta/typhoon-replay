@@ -54,8 +54,53 @@ export const NEGATIVE_MAX_AGE_S = 60;
  * Part of every cache key. Bumping it orphans every stored entry at once (the Cache API is per data centre and
  * has no purge-all of its own): do so when entries stored under older rules must not be served again.
  * 2: 2026-10-21, after stale 404s and a datasetVersion-0 /v1/meta outlived a dataset publish.
+ * 3: 2026-10-21, entries are stored decoded (no Content-Encoding) since the proxy asks the origin for gzip.
  */
-export const KEY_VERSION = "2";
+export const KEY_VERSION = "3";
+
+/**
+ * Dataset pin. A catalogue representation changes only with the dataset version: its ETag is `W/"d{n}-{resourceKey}"`,
+ * derived from data, never from bytes (CONTRACT-GUIDE §6), which is also why a revalidation may answer 304. Every
+ * time the origin answers with such an ETag (or `/v1/meta`'s `…-d{n}"`), the proxy records `n` as that backend's
+ * current dataset version at this data centre. A catalogue entry past its max-age whose version matches a record
+ * younger than DATASET_PIN_S is served as a fresh HIT: one origin answer confirms every cached catalogue entry at
+ * once, instead of one revalidation per URL every max-age. The bound on staleness after a publish is the same as
+ * the contract's max-age (300 s), and an entry whose version differs from the record follows the normal rules.
+ */
+export const DATASET_PIN_S = 300;
+const DATASET_HEADER = "X-Edge-Dataset";
+
+/** The dataset version an ETag carries: catalogue `W/"d{n}-…"` or `/v1/meta` `W/"c…-d{n}"`. */
+export function datasetOf(etag: string | null): number | undefined {
+  const m = /^(?:W\/)?"(?:d(\d+)-[^"]*|c[^"]*-d(\d+))"$/.exec(etag?.trim() ?? "");
+  const v = m ? Number(m[1] ?? m[2]) : NaN;
+  return Number.isSafeInteger(v) ? v : undefined;
+}
+
+/** Where a backend's dataset record lives: next to its entries (same host and impl), on a path no backend serves. */
+function datasetKey(key: Request): Request | undefined {
+  const url = new URL(key.url);
+  const m = /^\/api\/[^/]+/.exec(url.pathname);
+  if (!m) return undefined;
+  return new Request(`${url.origin}${m[0]}/__edge/dataset?__edge_v=${KEY_VERSION}`, { method: "GET" });
+}
+
+async function recordDataset(cache: Cache, key: Request, version: number, now: number) {
+  const dk = datasetKey(key);
+  if (!dk) return;
+  const headers = new Headers({ "Cache-Control": `public, max-age=${DATASET_PIN_S}`, [STORED_AT]: String(now), [DATASET_HEADER]: String(version) });
+  await cache.put(dk, new Response(null, { status: 200, headers }));
+}
+
+async function currentDataset(cache: Cache, key: Request, now: number): Promise<number | undefined> {
+  const dk = datasetKey(key);
+  const r = dk && (await cache.match(dk));
+  if (!r) return undefined;
+  const at = Number(r.headers.get(STORED_AT));
+  const v = Number(r.headers.get(DATASET_HEADER));
+  if (!Number.isFinite(at) || !Number.isSafeInteger(v) || now - at >= DATASET_PIN_S * 1000 || now < at) return undefined;
+  return v;
+}
 
 export const STORED_AT = "X-Edge-Stored-At";
 export const ORIGIN_CC = "X-Edge-Origin-Cache-Control";
@@ -123,11 +168,13 @@ export async function store(cache: Cache, key: Request, response: Response, defa
   headers.set(ORIGIN_CC, response.headers.get("Cache-Control")!);
   headers.set(STORED_AT, String(now));
   headers.set("Cache-Control", `public, max-age=${life.fresh + Math.max(life.swr, life.sie)}`);
-  headers.delete("Age");
-  headers.delete("X-Edge-Cache");
-  headers.delete("X-Edge-Stale");
-  headers.delete("Server-Timing");
-  await cache.put(key, new Response(response.body, { status: response.status, headers }));
+  // Stored decoded: reading the body decodes the origin's gzip, so the entry's headers must not claim an encoding.
+  // Cloudflare compresses the answer for each client again; the bytes that count (Render → edge) stay compressed.
+  for (const h of ["Age", "X-Edge-Cache", "X-Edge-Stale", "Server-Timing", "Content-Encoding", "Content-Length"]) headers.delete(h);
+  const body = await response.arrayBuffer();
+  await cache.put(key, new Response(body, { status: response.status, headers }));
+  const version = response.status === 200 ? datasetOf(headers.get("ETag")) : undefined;
+  if (version !== undefined) await recordDataset(cache, key, version, now);
   return true;
 }
 
@@ -148,9 +195,15 @@ export async function lookup(cache: Cache, key: Request, defaultSie: number, now
   if (!Number.isFinite(storedAt) || !originCc) return undefined;
   const life = lifetimes(response.status, parseCacheControl(originCc), defaultSie) ?? { fresh: 0, swr: 0, sie: 0 };
   const ageS = Math.max(0, Math.floor((now - storedAt) / 1000));
-  const state: Freshness =
+  let state: Freshness =
     ageS < life.fresh ? "fresh" : ageS < life.fresh + life.swr ? "revalidate" : ageS < life.fresh + life.sie ? "if-error" : "expired";
-  return { response, ageS, state, etag: response.headers.get("ETag") };
+  const etag = response.headers.get("ETag");
+  if ((state === "revalidate" || state === "if-error") && response.status === 200) {
+    // Dataset pin: past max-age, but the backend recently confirmed the dataset this entry was built from.
+    const version = etag?.trim().replace(/^W\//, "").startsWith('"d') ? datasetOf(etag) : undefined;
+    if (version !== undefined && (await currentDataset(cache, key, now)) === version) state = "fresh";
+  }
+  return { response, ageS, state, etag };
 }
 
 /** Rebuild a stored entry as the client should see it; answers 304 when If-None-Match matches its ETag. */
