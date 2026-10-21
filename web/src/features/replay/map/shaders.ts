@@ -159,6 +159,7 @@ uniform vec4 u_domain;
 uniform mat4 u_matrix;
 uniform float u_pointSize;
 uniform vec4 u_window;   // west, south, east, north of the current field window
+uniform float u_lonShift; // world copy the field is drawn in (multiple of 360 degrees)
 out float v_alpha;
 const float PI = 3.141592653589793;
 void main() {
@@ -166,7 +167,7 @@ void main() {
   vec4 s = texture(u_particles, t);
   vec2 pos = vec2(s.r / 255.0 + s.b, s.g / 255.0 + s.a);
   vec2 ll = mix(u_domain.xy, u_domain.zw, pos);
-  vec2 merc = vec2((ll.x + 180.0) / 360.0, (1.0 - log(tan(PI / 4.0 + radians(ll.y) / 2.0)) / PI) / 2.0);
+  vec2 merc = vec2((ll.x + u_lonShift + 180.0) / 360.0, (1.0 - log(tan(PI / 4.0 + radians(ll.y) / 2.0)) / PI) / 2.0);
   float edge = min(min(ll.x - u_window.x, u_window.z - ll.x), min(ll.y - u_window.y, u_window.w - ll.y));
   v_alpha = smoothstep(0.0, 2.5, edge);
   gl_PointSize = u_pointSize;

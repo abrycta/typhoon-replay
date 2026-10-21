@@ -36,6 +36,39 @@ export interface ParticleStyle {
 }
 
 const mercX = (lon: number) => (lon + 180) / 360;
+
+/**
+ * North-west cell longitudes of every frame, unwrapped so consecutive windows stay continuous across the
+ * antimeridian (the published `nw_lon` is in (-180, 180], so a window east of 170°E can jump by 360°).
+ * The first window's centre is put in (-180, 180], as the first track point is.
+ */
+export function unwrapWindowLons(nwLon: readonly number[], nx: number, res: number): number[] {
+  const half = ((nx - 1) / 2) * res;
+  const out: number[] = [];
+  let prev: number | undefined;
+  for (const w of nwLon) {
+    let c = w + half;
+    if (prev === undefined) {
+      c = ((((c + 180) % 360) + 360) % 360) - 180;
+      if (c === -180) c = 180;
+    } else {
+      while (c - prev > 180) c -= 360;
+      while (prev - c > 180) c += 360;
+    }
+    out.push(c - half);
+    prev = c;
+  }
+  return out;
+}
+
+/**
+ * Longitude shift (a multiple of 360°) that puts a window centred at `centreLon` in the world copy nearest
+ * the camera. A custom layer is drawn once, not per world copy as MapLibre draws the track, so without this
+ * the field can sit 360° away from the track and the eye marker.
+ */
+export function worldShift(centreLon: number, cameraLon: number): number {
+  return 360 * Math.round((cameraLon - centreLon) / 360) || 0;
+}
 const mercY = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2;
 
 export class FieldLayer implements CustomLayerInterface {
@@ -67,6 +100,8 @@ export class FieldLayer implements CustomLayerInterface {
   private stateRes = 0;
 
   private header?: TyfHeader;
+  /** nw_lon of every frame, unwrapped (see unwrapWindowLons). */
+  private nwLon: number[] = [];
   private a?: FrameInput;
   private b?: FrameInput;
   private mixT = 0;
@@ -87,11 +122,11 @@ export class FieldLayer implements CustomLayerInterface {
 
   setHeader(h: TyfHeader) {
     this.header = h;
+    this.nwLon = unwrapWindowLons(h.nw_lon.slice(0, h.frames), h.nx, h.res_deg);
     // Particle domain: every window of the storm, so particles never need re-basing between frames.
     let w = Infinity, e = -Infinity, s = Infinity, n = -Infinity;
     for (let i = 0; i < h.frames; i++) {
-      let west = h.nw_lon[i]! - h.res_deg / 2;
-      if (west > 180) west -= 360;
+      const west = this.nwLon[i]! - h.res_deg / 2;
       const north = h.nw_lat[i]! + h.res_deg / 2;
       w = Math.min(w, west);
       e = Math.max(e, west + h.nx * h.res_deg);
@@ -188,9 +223,7 @@ export class FieldLayer implements CustomLayerInterface {
 
   private geo(i: number): [number, number, number, number] {
     const h = this.header!;
-    let lon = h.nw_lon[i]!;
-    if (lon > 180) lon -= 360;
-    return [lon, h.nw_lat[i]!, h.res_deg, 0];
+    return [this.nwLon[i]!, h.nw_lat[i]!, h.res_deg, 0];
   }
 
   private windowsBounds() {
@@ -201,6 +234,13 @@ export class FieldLayer implements CustomLayerInterface {
     const east = Math.max(ga[0], gb[0]) + (h.nx - 0.5) * h.res_deg;
     const south = Math.min(ga[1], gb[1]) - (h.ny - 0.5) * h.res_deg;
     return { west, north, east, south, ga, gb };
+  }
+
+  /** World-copy shift (degrees) for the current frame, from the camera centre. */
+  private shift() {
+    const h = this.header!;
+    const g = this.geo(this.mixT < 0.5 ? this.a!.index : this.b!.index);
+    return worldShift(g[0] + ((h.nx - 1) / 2) * h.res_deg, this.map?.getCenter().lng ?? 0);
   }
 
   private ensureParticleState(gl: WebGL2RenderingContext) {
@@ -299,6 +339,7 @@ export class FieldLayer implements CustomLayerInterface {
     gl.uniform1f(dp.u.u_res!, res);
     gl.uniform4fv(dp.u.u_domain!, this.domain);
     gl.uniform4f(dp.u.u_window!, cur[0], cur[1] - (h.ny - 1) * h.res_deg, cur[0] + (h.nx - 1) * h.res_deg, cur[1]);
+    gl.uniform1f(dp.u.u_lonShift!, this.shift());
     gl.uniformMatrix4fv(dp.u.u_matrix!, false, options.defaultProjectionData.mainMatrix as Float32Array);
     gl.uniform1f(dp.u.u_pointSize!, Math.max(1, window.devicePixelRatio));
     const [r, g, b, a] = this.particles.color;
@@ -324,7 +365,9 @@ export class FieldLayer implements CustomLayerInterface {
 
     if (st.visible) {
       const { west, north, east, south, ga, gb } = this.windowsBounds();
-      const x0 = mercX(west), x1 = mercX(east), y0 = mercY(north), y1 = mercY(south);
+      // The shader maps each fragment back to lon/lat modulo 360°, so only the quad moves to the camera's copy.
+      const k = this.shift();
+      const x0 = mercX(west + k), x1 = mercX(east + k), y0 = mercY(north), y1 = mercY(south);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.fieldQuad!);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([x0, y0, x1, y0, x0, y1, x0, y1, x1, y0, x1, y1]));
       const fp = this.fieldProg!;
