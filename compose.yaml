@@ -11,8 +11,8 @@ x-db-env: &db-env
 services:
   db:
     profiles: [db, all]
-    # PostgreSQL 17 + PostGIS 3.5, matching Neon's default major version (OPEN-QUESTIONS B.8: confirm the PostGIS minor).
-    image: postgis/postgis:17-3.5
+    # PostgreSQL 18 + PostGIS 3.6, matching production (Neon: Postgres 18.6 + PostGIS 3.6).
+    image: postgis/postgis:18-3.6
     platform: linux/amd64 # the official image is amd64-only; Apple silicon runs it under emulation
     environment:
       POSTGRES_USER: tr
@@ -21,7 +21,9 @@ services:
     ports:
       - "${TR_DB_PORT:-5432}:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      # Postgres 18 images keep PGDATA in a versioned subdirectory (/var/lib/postgresql/18/docker), so the volume
+      # is mounted one level up. A new volume name keeps an old Postgres 17 volume from being reused.
+      - db-data-pg18:/var/lib/postgresql
     # Hide the image's init script that pre-creates postgis/tiger/topology: like Neon, the database starts
     # without extensions and the first migration creates them (so up/down/up is exact).
     tmpfs:
@@ -49,7 +51,7 @@ services:
 
   seed:
     profiles: [db, all]
-    image: postgis/postgis:17-3.5
+    image: postgis/postgis:18-3.6
     platform: linux/amd64
     environment:
       <<: *db-env
@@ -106,4 +108,4 @@ services:
   #   depends_on: { seed: { condition: service_completed_successfully } }
 
 volumes:
-  db-data:
+  db-data-pg18:

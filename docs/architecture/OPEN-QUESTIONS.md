@@ -28,7 +28,7 @@ As of 2026-10-21. Each item says who decides or how to verify it. See [SYSTEM-AR
 **Neon**
 6. Do idle (non-LISTEN) pooled connections block scale-to-zero? The docs don't define "inactivity"; check `compute_tools/src/monitor.rs` or test it by watching suspend with backends idle-connected.
 7. The actual `max_connections` at 0.25 CU (104 vs 112): run `SHOW max_connections`.
-8. The PostGIS version Neon offers on PG 17/18, so the local `postgis/postgis` image tag matches.
+8. ~~The PostGIS version Neon offers on PG 17/18, so the local `postgis/postgis` image tag matches.~~ Resolved: Neon runs Postgres 18.6 + PostGIS 3.6; Compose, CI and Testcontainers use `postgis/postgis:18-3.6`.
 9. Do table renames during a pipeline swap re-plan prepared statements correctly through the transaction-mode pooler (protocol-level prepared statements)? Test with all four drivers (JDBC/pgjdbc, node-postgres or postgres.js, sqlx/tokio-postgres, pgx).
 
 **Cloudflare**

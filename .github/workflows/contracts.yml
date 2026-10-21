@@ -30,7 +30,7 @@ concurrency:
 
 env:
   DBMATE_IMAGE: ghcr.io/amacneil/dbmate:2.37
-  POSTGIS_IMAGE: postgis/postgis:17-3.5
+  POSTGIS_IMAGE: postgis/postgis:18-3.6
   SCHEMATHESIS_IMAGE: schemathesis/schemathesis:stable
 
 jobs:
@@ -89,7 +89,7 @@ jobs:
     timeout-minutes: 10
     services:
       postgis:
-        image: postgis/postgis:17-3.5
+        image: postgis/postgis:18-3.6
         env:
           POSTGRES_USER: tr
           POSTGRES_PASSWORD: tr
@@ -113,7 +113,7 @@ jobs:
         run: |
           cat >> "$GITHUB_ENV" <<'EOF'
           DBMATE=docker run --rm --network host -e DATABASE_URL -e DBMATE_MIGRATIONS_DIR=/db/migrations -e DBMATE_NO_DUMP_SCHEMA=true -v ${{ github.workspace }}/contracts/db:/db:ro ghcr.io/amacneil/dbmate:2.37
-          PSQL=docker run --rm --network host -v ${{ github.workspace }}/contracts/db:/db:ro postgis/postgis:17-3.5 psql postgres://tr:tr@localhost:5432/typhoon?sslmode=disable -v ON_ERROR_STOP=1
+          PSQL=docker run --rm --network host -v ${{ github.workspace }}/contracts/db:/db:ro postgis/postgis:18-3.6 psql postgres://tr:tr@localhost:5432/typhoon?sslmode=disable -v ON_ERROR_STOP=1
           EOF
 
       - name: Up
