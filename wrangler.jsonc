@@ -15,7 +15,7 @@
   // backend-not-deployed. STATIC_MODE "true" serves cached responses only: a manual emergency switch,
   // nothing sets it automatically (edge/README.md "Static mode").
   "vars": {
-    "BACKEND_ORIGINS": "{\"java\":\"https://typhoon-replay-java.onrender.com\"}",
+    "BACKEND_ORIGINS": "{\"java\":\"https://typhoon-replay-java.onrender.com\",\"go\":\"https://typhoon-replay-go.onrender.com\"}",
     "STATIC_MODE": "false",
     "ORIGIN_TIMEOUT_MS": "8000",
     "STALE_TIMEOUT_MS": "1500",

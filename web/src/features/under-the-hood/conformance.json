@@ -1,7 +1,7 @@
 {
   "$comment": "Conformance figures per backend, bundled into the Under the hood page at build time. Hand-maintained until CI writes it: see web/README.md, 'Conformance figures'. A backend whose status is 'next' shows 'next' / '-' cells.",
   "source": "ci-main",
-  "updatedAt": "2026-10-20",
+  "updatedAt": "2026-10-22",
   "backends": {
     "java": {
       "stack": "Spring Boot 4.1 · Java 25",
@@ -13,6 +13,11 @@
     },
     "node": { "stack": "Fastify 5 · Node 24", "status": "next" },
     "rust": { "stack": "Axum 0.8 · SQLx", "status": "next" },
-    "go": { "stack": "net/http · oapi-codegen · sqlc", "status": "next" }
+    "go": {
+      "stack": "net/http · oapi-codegen · Go 1.27",
+      "status": "measured",
+      "scenarios": { "passed": 86, "total": 86 },
+      "generated": { "passed": 1444, "total": 1444 }
+    }
   }
 }
