@@ -59,7 +59,8 @@ test("track-only storms still replay (no frames published)", async ({ page }) =>
   await expect(page.getByTestId("timeline-table").getByRole("row").nth(1)).toBeVisible();
 });
 
-test("compare keeps both storms and the hour in the URL", async ({ page }) => {
+test("compare keeps both storms and the hour in the URL, and plays them together, API down", async ({ page }) => {
+  await page.route("**/api/**", (r) => r.abort());
   await page.goto(`/compare?a=${HAIYAN}&b=${RAI}&h=30`);
   await expect(page.getByRole("heading", { name: /Haiyan/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Rai/ })).toBeVisible();
@@ -67,6 +68,14 @@ test("compare keeps both storms and the hour in the URL", async ({ page }) => {
   await expect(scrubbers).toHaveCount(2);
   await expect(scrubbers.nth(0)).toHaveValue("30");
   await expect(scrubbers.nth(1)).toHaveValue("30");
+  // Moving one replay moves both (it used to snap back to the shared hour, so Play and the scrubber did nothing).
+  await scrubbers.nth(1).fill("40");
+  await expect(scrubbers.nth(0)).toHaveValue("40");
+  await expect(scrubbers.nth(1)).toHaveValue("40");
+  await expect(page).toHaveURL(/h=40/);
+  await page.getByRole("button", { name: "Play replay" }).nth(1).click();
+  await expect.poll(async () => Number(await scrubbers.nth(0).inputValue()), { timeout: 15_000 }).toBeGreaterThan(41);
+  await page.getByRole("button", { name: "Pause replay" }).click();
   await page.getByRole("combobox", { name: "First storm" }).selectOption("2019278N16165");
   await expect(page).toHaveURL(/a=2019278N16165/);
 });

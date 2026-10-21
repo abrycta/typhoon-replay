@@ -93,10 +93,13 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     clock.play();
   }, [autoplay, reducedMotion, clock, times.length]);
 
-  // External sync (compare view).
+  // External sync (compare view): follow the shared hour when *it* changes. Not on local moves: re-seeking to the
+  // old shared hour whenever this replay's own index moved snapped Play and the scrubber back to it.
   useEffect(() => {
-    if (times.length && syncIndex !== undefined && syncIndex !== state.index) clock.seek(Math.min(syncIndex, times.length - 1));
-  }, [syncIndex, clock, state.index, times.length]);
+    if (!times.length || syncIndex === undefined) return;
+    const target = Math.min(syncIndex, times.length - 1);
+    if (clock.snapshot.index !== target) clock.seek(target);
+  }, [syncIndex, clock, times.length]);
   useEffect(() => {
     // Read the clock, not the render's state: a sync seek in the same commit has already moved it.
     const i = clock.snapshot.index;
