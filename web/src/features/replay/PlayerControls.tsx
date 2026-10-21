@@ -67,7 +67,9 @@ export function PlayerControls({ clock, state, frames, timeLabel, valueText, buf
         <output className="ml-auto font-mono text-sm tabular-nums" aria-live="off" data-testid="replay-time">
           {timeLabel}
         </output>
-        {state.buffering ? <span className="text-xs text-muted-foreground">{t`Loading frames…`}</span> : null}
+        <span aria-live="polite" className="text-xs text-muted-foreground empty:hidden" data-testid="replay-buffering">
+          {state.buffering ? t`Loading frames…` : null}
+        </span>
         {compact ? null : (
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {t`Speed`}

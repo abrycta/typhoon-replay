@@ -80,7 +80,9 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const { clock, state } = usePlayerClock(times.length, { index: startIndex, speed: url.speed }, { loop });
   const hasFrames = !!detail.frames;
   useEffect(() => {
-    clock.setReady((i) => !hasFrames || !!store?.has(i));
+    // Wait for a frame only while it can still arrive: once the load has finished (or failed, which the
+    // alert below reports), play on with the best track rather than hold forever.
+    clock.setReady((i) => !hasFrames || !!store?.has(i) || !!store?.getSnapshot().done);
   }, [clock, store, hasFrames]);
 
   // Autoplay (home page) unless the user asked for reduced motion.

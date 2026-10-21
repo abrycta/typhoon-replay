@@ -19,7 +19,8 @@ export class PlayerClock {
   private listeners = new Set<() => void>();
   private tickListeners = new Set<(pos: number) => void>();
   private raf = 0;
-  private last = 0;
+  /** rAF timestamp of the previous tick; undefined until the first tick after play(). */
+  private last: number | undefined;
 
   constructor(
     readonly frames: number,
@@ -64,7 +65,9 @@ export class PlayerClock {
     if (this.frames < 2) return;
     if (this.pos >= this.frames - 1) this.pos = 0;
     this.set({ playing: true });
-    this.last = performance.now();
+    // Measure time only between rAF timestamps: a frame's timestamp can be earlier than performance.now()
+    // in the click that started playback, which would make the first step negative.
+    this.last = undefined;
     cancelAnimationFrame(this.raf);
     this.raf = requestAnimationFrame(this.tick);
   }
@@ -95,15 +98,17 @@ export class PlayerClock {
 
   private tick = (now: number) => {
     if (!this.state.playing) return;
-    const dt = Math.min(0.25, (now - this.last) / 1000);
+    const dt = this.last === undefined ? 0 : Math.min(0.25, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     const ready = this.opts.isReady ?? (() => true);
-    const next = Math.min(this.frames - 1, Math.floor(this.pos) + 1);
-    if (!ready(next) || !ready(Math.floor(this.pos))) {
+    const cur = Math.min(this.frames - 1, Math.max(0, Math.floor(this.pos + 1e-6)));
+    const next = Math.min(this.frames - 1, cur + 1);
+    if (!ready(next) || !ready(cur)) {
+      // Hold here; the loop keeps running and resumes on the first tick after the frames arrive.
       this.set({ buffering: true });
     } else {
       this.set({ buffering: false });
-      this.pos += dt * this.state.speed;
+      this.pos = Math.max(0, this.pos + dt * this.state.speed);
       if (this.pos >= this.frames - 1) {
         if (this.opts.loop) this.pos = 0;
         else {
