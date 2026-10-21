@@ -1,6 +1,6 @@
 import { AppShell, Header, useLang } from "@abrycta/akari/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { createLink, useLocation } from "@tanstack/react-router";
+import { createLink, useElementScrollRestoration, useLocation } from "@tanstack/react-router";
 import { type ComponentProps, type ReactNode, useEffect } from "react";
 
 import { Attribution, DataAsOf } from "@/features/dataset-info";
@@ -9,6 +9,7 @@ import { isLocale } from "@/shared/i18n/i18n";
 import { AUTHOR, PORTFOLIO_HOST, PORTFOLIO_URL } from "@/shared/lib/site";
 
 import { useHeaderCrumbs } from "./header-crumbs";
+import { settleScroll } from "./scroll-settle";
 import { useIsNotFound } from "./not-found-state";
 
 /** `?lang=` works on any page (share links). */
@@ -29,9 +30,22 @@ const HeaderAnchor = createLink(({ current, ...props }: ComponentProps<"a"> & { 
 /** Footer links: no automatic aria-current from the router (the Header is the only nav that says "current page"). */
 const FooterLink = createLink((props: ComponentProps<"a">) => <a {...props} aria-current={undefined} />);
 
+/**
+ * Back/Forward to a page whose content loads after it renders (a storm, a list), and links to its #sections: keep the
+ * restored position (TanStack's entry for this history entry) or the section in place while the page fills in.
+ * Keyed by path and hash: the storm page's own `?t=` updates (replace) must not restart it.
+ */
+function useScrollSettle() {
+  const { pathname, hash } = useLocation({ select: (l) => ({ pathname: l.pathname, hash: l.hash }) });
+  const entry = useElementScrollRestoration({ getElement: () => (typeof window === "undefined" ? undefined : window) });
+  const y = entry?.scrollY;
+  useEffect(() => settleScroll({ y, hash: y === undefined ? hash || undefined : undefined }), [pathname, hash]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const { t } = useLingui();
   useGlobalParams();
+  useScrollSettle();
   const pathname = useLocation({ select: (l) => l.pathname });
   const notFound = useIsNotFound();
   const crumbs = useHeaderCrumbs();
