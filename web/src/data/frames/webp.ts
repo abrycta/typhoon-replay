@@ -8,6 +8,7 @@
 // re-packs them into the per-frame layout of a .tyf frame (uint8[vars][ny][nx]) plus the RG8 u/v texture,
 // so the map layer draws both formats with the same code. Lossy codes are never used for numbers.
 import { type DecodedFrames, FrameLoadError, type FrameSink } from "./loader";
+import { defaultSheetCache, type SheetCache } from "./sheetcache";
 import { decoder, type TyfHeader, type TyfVar, UV_SCALE } from "./tyf";
 
 export interface SheetGeometry {
@@ -244,6 +245,8 @@ export interface WebpLoadOptions {
   decode?: ImageDecode;
   /** Parallel sheet requests (all six field sheets at once by default: they are small). */
   concurrency?: number;
+  /** Sheet bytes kept across visits (./sheetcache.ts); null for none. Default: Cache Storage where available. */
+  cache?: SheetCache | null;
 }
 
 /**
@@ -255,16 +258,39 @@ export class WebpLoader {
 
   constructor(private readonly source: WebpSource, private readonly sink: FrameSink, private readonly opts: WebpLoadOptions = {}) {}
 
-  private async sheet(v: SheetVar, g: SheetGeometry, total?: number): Promise<Uint8Array> {
+  private get cache(): SheetCache | null {
+    return this.opts.cache === undefined ? defaultSheetCache() : this.opts.cache;
+  }
+
+  /** A sheet's bytes: from the browser cache when stored there, else the network (then stored in the background). */
+  private async bytes(v: SheetVar, useCache = true): Promise<{ buf: ArrayBuffer; cached: boolean }> {
+    const cache = this.cache;
+    const hit = useCache ? await cache?.get(v.url) : undefined;
+    this.opts.signal?.throwIfAborted();
+    if (hit) return { buf: hit.bytes, cached: true };
     const f = this.opts.fetch ?? fetch;
     const res = await f(v.url, { signal: this.opts.signal });
     if (!res.ok) throw new FrameLoadError(`frames: HTTP ${res.status} (${v.name} sheet)`, res.status);
     const type = res.headers.get("Content-Type") ?? "";
     if (type.includes("text/html")) throw new FrameLoadError(`frames: got HTML, not WebP (${v.name} sheet)`);
     const buf = await res.arrayBuffer();
+    void cache?.put(v.url, buf, type || "image/webp");
+    return { buf, cached: false };
+  }
+
+  private async sheet(v: SheetVar, g: SheetGeometry, total?: number): Promise<Uint8Array> {
+    const decode = this.opts.decode ?? decodeImage;
+    const { buf, cached } = await this.bytes(v);
     this.loaded += buf.byteLength;
     this.sink.progress?.(this.loaded, total);
-    return cutTiles(await (this.opts.decode ?? decodeImage)(buf), g);
+    try {
+      return cutTiles(await decode(buf), g);
+    } catch (e) {
+      if (!cached || this.opts.signal?.aborted) throw e;
+      // A stored copy that does not decode (damaged or truncated): drop it and use the network once.
+      await this.cache?.delete(v.url);
+      return cutTiles(await decode((await this.bytes(v, false)).buf), g);
+    }
   }
 
   async run(): Promise<"webp"> {
