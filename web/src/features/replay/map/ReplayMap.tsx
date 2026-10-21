@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // MapLibre 6 derives its worker URL at runtime from import.meta.url, which bundlers cannot see, so the
 // self-contained worker file is emitted as an asset and handed to MapLibre explicitly.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-import { setWorkerUrl } from "maplibre-gl";
+import { setWorkerCount, setWorkerUrl } from "maplibre-gl";
 
 setWorkerUrl(workerUrl);
 
@@ -16,6 +16,7 @@ import type { StormTrack, TrackHour } from "@/shared/model/types";
 
 import type { PlayerClock } from "../player";
 import { BASEMAP_STYLE, type CustomBasemap, fallbackStyle, themeBasemap, type ThemeKey, tokenColor } from "./basemap";
+import { coverZoom } from "./cover-zoom";
 import { eyeAt } from "./eye";
 import { FieldLayer } from "./field-layer";
 
@@ -51,6 +52,9 @@ export interface ReplayMapProps {
   pixelRatio?: number;
   /** Called once, on the first idle map after the overlays and the current frame are drawn. */
   onRendered?: () => void;
+  /** The map size `view` was framed for (the embed's baked basemap): at any other size the zoom changes so the map
+   * still fills with the same area (cover), at creation and on every resize. */
+  viewFrame?: readonly [number, number];
 }
 
 function trackLine(hours: readonly TrackHour[]): [number, number][] {
@@ -107,6 +111,9 @@ export default function ReplayMap(props: ReplayMapProps) {
   useEffect(() => {
     const el = container.current;
     if (!el) return;
+    // The compact embed (phones, tablets): one worker is plenty for a still view, and each one costs memory (Safari
+    // otherwise starts up to three). Only before the first map, which the embed's is.
+    if (props.viewFrame) setWorkerCount(1);
     let map: MlMap;
     try {
       map = new MaplibreMap({
@@ -114,7 +121,7 @@ export default function ReplayMap(props: ReplayMapProps) {
         style: props.basemap?.style(themeKey) ?? BASEMAP_STYLE,
         pixelRatio: props.pixelRatio,
         center: view ? [view.lon, view.lat] : [125, 12],
-        zoom: view?.zoom ?? 4,
+        zoom: view && props.viewFrame ? coverZoom(view.zoom, props.viewFrame, el.clientWidth, el.clientHeight) : (view?.zoom ?? 4),
         interactive,
         attributionControl: { compact: true, customAttribution: "ERA5: Copernicus C3S · Track: IBTrACS (NOAA NCEI)" },
         cooperativeGestures: false,
@@ -157,6 +164,10 @@ export default function ReplayMap(props: ReplayMapProps) {
       el.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
       setStyleVersion((v) => v + 1);
     });
+    if (view && props.viewFrame) {
+      const frame = props.viewFrame;
+      map.on("resize", () => map.jumpTo({ center: [view.lon, view.lat], zoom: coverZoom(view.zoom, frame, el.clientWidth, el.clientHeight) }));
+    }
     map.on("moveend", (e) => {
       if (!(e as { originalEvent?: unknown }).originalEvent) return; // only user moves update the URL
       const c = map.getCenter();
@@ -265,7 +276,8 @@ export default function ReplayMap(props: ReplayMapProps) {
       visible: layer !== "none",
     });
     const particleInk = themeKey.startsWith("dark") ? [0.95, 0.95, 0.92, 0.7] : [0.1, 0.11, 0.13, 0.55];
-    const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
+    // Fewer particles on low-end devices and in the compact embed (phones, tablets), where 72² crowd the small map.
+    const lowEnd = !!latest.current.viewFrame || (navigator.hardwareConcurrency ?? 8) <= 4 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
     fl.setParticles({ enabled: particles, color: particleInk as [number, number, number, number], res: lowEnd ? 48 : 72 });
   }, [header, layer, particles, themeKey, styleVersion]);
 

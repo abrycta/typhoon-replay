@@ -5,7 +5,7 @@ import { lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useS
 import { bestWind, type FrameStore, hourAt, maxNear, type ResolvedDataset, useFrameStore, useStormTrack } from "@/data";
 import type { FieldLayer } from "@/shared/lib/fields";
 import { formatDateTime, fromUrlHour, isoToUnix, type TimeZoneChoice, toUrlHour } from "@/shared/lib/time";
-import type { SpeedUnit } from "@/shared/lib/units";
+import { ktToMs, msToKt, type SpeedUnit } from "@/shared/lib/units";
 import type { StormDetail } from "@/shared/model/types";
 import { useHighContrast, useMapTheme, usePrefersReducedMotion } from "@/shared/ui/hooks";
 import { useStormName } from "@/shared/ui/use-storm-name";
@@ -26,6 +26,7 @@ import { useCompassNames } from "./use-compass-names";
 import { useReplayKeyboard } from "./useReplayKeyboard";
 
 const ReplayMap = lazy(() => import("./map/ReplayMap"));
+const fmt = (v: number, d = 0) => v.toFixed(d);
 
 export interface ReplayUrlState {
   t?: string;
@@ -54,6 +55,9 @@ export interface FrozenReplay {
   basemap: CustomBasemap;
   pixelRatio?: number;
   onRendered?: () => void;
+  /** The phone and tablet layout (the frame at the portfolio's picture slot's real size): the map, then a two-line
+   * caption instead of the player and the side panels. `viewFrame`: the map size the view was framed for. */
+  compact?: { viewFrame: readonly [number, number] };
 }
 
 export interface StormReplayProps {
@@ -202,6 +206,8 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     .filter(Boolean)
     .join(", ");
 
+  const speed = (kt: number) => (url.units === "kt" ? `${fmt(kt)} kt` : `${fmt(ktToMs(kt), 1)} m/s`);
+  const speedMs = (ms: number) => (url.units === "kt" ? `${fmt(msToKt(ms))} kt` : `${fmt(ms, 1)} m/s`);
   const progress = detail.frames ? Math.round((snap.loadedFrames / detail.frames.frames) * 100) : 100;
   const layerName = layer === "none" ? t`no` : fieldLabels[layer].long;
   const stormName = useStormName()(detail);
@@ -235,6 +241,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                   basemap={frozen?.basemap}
                   pixelRatio={frozen?.pixelRatio}
                   onRendered={frozen?.onRendered}
+                  viewFrame={frozen?.compact?.viewFrame}
                   onUnavailable={setWebglError}
                   era5Centre={era5Centre}
                 />
@@ -263,7 +270,15 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
               <AlertDescription>{t`The replay continues with the best track only. (${snap.error})`}</AlertDescription>
             </Alert>
           ) : null}
-          {leader ? null : (
+          {frozen?.compact ? (
+            <FrozenCaption
+              title={stormName}
+              time={timeLabel}
+              bestTrack={bw ? `${speed(bw.kt)} (${bw.agency.toUpperCase()})` : undefined}
+              hpa={exactHour?.jmaHpa}
+              era5={cur?.wind !== undefined ? speedMs(cur.wind) : undefined}
+            />
+          ) : leader ? null : (
           <div className="contents" inert={!!frozen}>
           <PlayerControls
             clock={clock}
@@ -334,3 +349,20 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   );
 }
 
+/** The compact embed's caption (src/embed): the storm and the hour, then the intensities, in two short lines, right
+ * under the map (-mt-3 cancels the grid gap; the embed sizes the map to the frame less these 52 px). */
+function FrozenCaption({ title, time, bestTrack, hpa, era5 }: { title: string; time: string; bestTrack?: string; hpa?: number; era5?: string }) {
+  const { t } = useLingui();
+  const parts = [bestTrack ? `${t`Best track`} ${bestTrack}` : undefined, hpa !== undefined ? `${fmt(hpa)} hPa` : undefined, era5 ? `ERA5 ${era5}` : undefined];
+  return (
+    <div className="-mt-3 grid h-[52px] min-w-0 content-center gap-0.5 border-t border-border px-3 leading-snug" data-testid="embed-caption">
+      <p className="truncate text-sm">
+        <span className="font-semibold">{title}</span>
+        <span className="text-muted-foreground"> · {time}</span>
+      </p>
+      <p className="truncate text-xs text-muted-foreground tabular-nums" data-testid="embed-caption-figures">
+        {parts.filter(Boolean).join(" · ")}
+      </p>
+    </div>
+  );
+}

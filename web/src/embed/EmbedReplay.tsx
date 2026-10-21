@@ -19,6 +19,7 @@ import { useStormName } from "@/shared/ui/use-storm-name";
 
 import { bakedBasemap } from "./basemap";
 import { EMBED } from "./haiyan.generated";
+import { useCompact } from "./layout";
 import { embedPixelRatio } from "./link";
 import type { EmbedData } from "./pack";
 import { postReady } from "./parent-bridge";
@@ -37,10 +38,36 @@ export function EmbedReplay({ data, dataset }: { data: EmbedData; dataset: Resol
     units: "ms",
     tz: "local",
   });
+  const compact = useCompact();
   const frozen = useMemo<FrozenReplay>(
-    () => ({ store: data.store, basemap: bakedBasemap, pixelRatio: embedPixelRatio(), onRendered: () => postReady("replay") }),
-    [data.store],
+    () => ({
+      store: data.store,
+      basemap: bakedBasemap,
+      pixelRatio: embedPixelRatio(),
+      onRendered: () => postReady("replay"),
+      // The baked basemap covers exactly the desktop map's view (EMBED.mapSize): smaller maps zoom out to keep it.
+      compact: compact ? { viewFrame: EMBED.mapSize } : undefined,
+    }),
+    [data.store, compact],
   );
+  const onUrl = (p: Partial<ReplayUrlState>) => setUrl((u) => ({ ...u, ...p, t: u.t, v: u.v }));
+
+  // Phones and tablets (src/embed/layout.ts): the map over a two-line caption, edge to edge.
+  if (compact)
+    return (
+      <div className="h-dvh" data-testid="embed-replay" data-layout="compact">
+        <StormReplay
+          detail={s}
+          dataset={dataset}
+          url={url}
+          onUrl={onUrl}
+          frozen={frozen}
+          compact
+          showTable={false}
+          mapClassName="relative h-[calc(100dvh-52px)] w-full overflow-hidden"
+        />
+      </div>
+    );
 
   return (
     <>
@@ -71,7 +98,7 @@ export function EmbedReplay({ data, dataset }: { data: EmbedData; dataset: Resol
             </Button>
           </div>
         </StormHeading>
-        <StormReplay detail={s} dataset={dataset} url={url} onUrl={(p) => setUrl((u) => ({ ...u, ...p, t: u.t, v: u.v }))} frozen={frozen} />
+        <StormReplay detail={s} dataset={dataset} url={url} onUrl={onUrl} frozen={frozen} />
       </div>
     </>
   );

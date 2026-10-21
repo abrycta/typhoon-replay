@@ -50,3 +50,38 @@ test("embed: frozen storm view, no Header, no link out, still map, ready message
     .toContainEqual({ data: { type: "akari:embed-ready", app: "replay" }, origin: "https://krtmtthw.dev" });
   expect(bad, "requests off the app's origin or to /api/").toEqual([]);
 });
+
+// Phones and tablets: krtmtthw.dev gives the frame its picture slot's real size (16:10; 358×224 on a 390 px phone,
+// the frame 1 px inside). The compact layout: the map filling the frame over a two-line caption at a readable size,
+// never the desktop view scaled down; the same packed data, still nothing off this origin.
+test.describe("compact (phone)", () => {
+  test.use({ viewport: { width: 356, height: 222 } });
+
+  test("embed: map over a two-line caption, no player or panels, ready message", async ({ page, baseURL }) => {
+    const bad = offOrigin(page, new URL(baseURL!).origin);
+    await page.addInitScript(() => {
+      const posted: unknown[] = [];
+      Object.defineProperty(window, "__posted", { value: posted });
+      Object.defineProperty(window, "parent", { get: () => ({ postMessage: (data: unknown, origin: string) => posted.push({ data, origin }) }) });
+    });
+    await page.goto(`${EMBED}?lang=en`);
+    await expect(page.locator('[data-layout="compact"]')).toBeVisible();
+    await expect(page.getByTestId("storm-replay")).toHaveAttribute("data-frame-ready", "true");
+    const caption = page.getByTestId("embed-caption");
+    await expect(caption).toContainText("Haiyan");
+    await expect(page.getByTestId("embed-caption-figures")).toContainText("ERA5 26.9 m/s");
+    await expect(page.getByTestId("intensity-panel")).toHaveCount(0);
+    await expect(page.getByTestId("play-toggle")).toHaveCount(0);
+    // Readable at the slot's real size (14 px and 12 px lines); the map takes the rest, and nothing scrolls.
+    expect(await caption.locator("p").evaluateAll((ps) => ps.map((p) => parseFloat(getComputedStyle(p).fontSize)))).toEqual([14, 12]);
+    const map = (await page.getByTestId("replay-map").boundingBox())!;
+    const box = (await caption.boundingBox())!;
+    expect(map.height).toBeGreaterThan(140);
+    expect(box.y + box.height).toBeLessThanOrEqual(222.5);
+    expect(await page.evaluate(() => [document.documentElement.scrollHeight <= innerHeight, scrollY])).toEqual([true, 0]);
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __posted: unknown[] }).__posted))
+      .toContainEqual({ data: { type: "akari:embed-ready", app: "replay" }, origin: "https://krtmtthw.dev" });
+    expect(bad, "requests off the app's origin or to /api/").toEqual([]);
+  });
+});
