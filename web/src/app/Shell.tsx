@@ -9,7 +9,7 @@ import { isLocale } from "@/shared/i18n/i18n";
 import { AUTHOR, PORTFOLIO_HOST, PORTFOLIO_URL } from "@/shared/lib/site";
 
 import { useHeaderCrumbs } from "./header-crumbs";
-import { settleScroll } from "./scroll-settle";
+import { settleScroll, takeTraversal } from "./scroll-settle";
 import { useIsNotFound } from "./not-found-state";
 
 /** `?lang=` works on any page (share links). */
@@ -39,7 +39,11 @@ function useScrollSettle() {
   const { pathname, hash } = useLocation({ select: (l) => ({ pathname: l.pathname, hash: l.hash }) });
   const entry = useElementScrollRestoration({ getElement: () => (typeof window === "undefined" ? undefined : window) });
   const y = entry?.scrollY;
-  useEffect(() => settleScroll({ y, hash: y === undefined ? hash || undefined : undefined }), [pathname, hash]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Only a Back/Forward (or reload) restores a position; any other visit starts at the top or at its #section.
+    const restore = takeTraversal() ? y : undefined;
+    return settleScroll({ y: restore, hash: restore === undefined ? hash || undefined : undefined });
+  }, [pathname, hash]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export function Shell({ children }: { children: ReactNode }) {

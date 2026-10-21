@@ -15,6 +15,25 @@ export interface SettleTarget {
   hash?: string;
 }
 
+/**
+ * Is the page being shown by a history traversal (Back/Forward, or a reload), the only time a saved position should
+ * be restored? True for this document if it was loaded that way, and after every popstate (in-app Back/Forward).
+ * `takeTraversal` reads it and resets it, once per page shown.
+ */
+function loadedByTraversal(): boolean {
+  if (typeof performance === "undefined" || !performance.getEntriesByType) return false;
+  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  return nav?.type === "back_forward" || nav?.type === "reload";
+}
+let traversal = loadedByTraversal();
+if (typeof window !== "undefined") window.addEventListener("popstate", () => (traversal = true));
+
+export function takeTraversal(): boolean {
+  const t = traversal;
+  traversal = false;
+  return t;
+}
+
 /** Give up after this long: the reader is better served by where they are than by a late jump. */
 export const SETTLE_MS = 8000;
 
