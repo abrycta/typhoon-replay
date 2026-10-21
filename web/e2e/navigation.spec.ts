@@ -108,6 +108,29 @@ test("Japanese: home, breadcrumbs and portfolio links are translated", async ({ 
   await expect(page.getByRole("contentinfo")).toContainText("制作: Kurt Matthew Nudo · krtmtthw.dev");
 });
 
+test("?lang=ja over a saved English choice never paints English", async ({ page }) => {
+  // A visitor who chose English before opens a Japanese share link: <html lang> and the header are Japanese from the
+  // first paint (public/lang-init.js), never flipped from English after mount.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __langs: string[] };
+    if (!sessionStorage.getItem("seeded")) {
+      localStorage.setItem("lang", "en");
+      sessionStorage.setItem("seeded", "1");
+    }
+    w.__langs = [];
+    // Every <html lang> change, and any moment the English "Main" navigation is in the DOM.
+    new MutationObserver((records) => {
+      for (const r of records) if (r.type === "attributes") w.__langs.push((r.target as HTMLElement).lang);
+      if (document.querySelector('nav[aria-label="Main"]')) w.__langs.push("en-nav");
+    }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["lang"] });
+  });
+  await page.goto("/storms?lang=ja");
+  await expect(page.getByRole("navigation", { name: "メイン" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  const langs = await page.evaluate(() => (window as unknown as { __langs: string[] }).__langs);
+  expect(langs.filter((l) => l !== "ja")).toEqual([]);
+});
+
 test.describe("360 px", () => {
   test.use({ viewport: { width: 360, height: 780 }, hasTouch: true, isMobile: true });
   for (const lang of ["en", "ja"]) {
