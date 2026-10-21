@@ -133,6 +133,14 @@ describe("header hygiene", () => {
     for (const name of ["CF-Ray", "CF-IPCountry", "Connection", "Keep-Alive", "Accept-Encoding", "CF-Connecting-IP"]) expect(up.has(name), name).toBe(false);
   });
 
+  it("proves itself to the backend with EDGE_SECRET, never forwarding a client's copy", async () => {
+    await h.call("/api/java/v1/storms", { headers: { "X-Edge-Secret": "guess" } });
+    expect(h.calls[0]!.headers.has("X-Edge-Secret")).toBe(false);
+    await h.call("/api/java/v1/storms?season=2013", { headers: { "X-Edge-Secret": "guess", "CF-Connecting-IP": "198.51.100.9" } }, { EDGE_SECRET: "s3cret" });
+    expect(h.calls[1]!.headers.get("X-Edge-Secret")).toBe("s3cret");
+    expect(h.calls[1]!.headers.get("X-Forwarded-For")).toBe("198.51.100.9");
+  });
+
   it("drops a cookie header that holds no session cookie", async () => {
     await h.call("/api/java/v1/storms", { headers: { Cookie: "__cf_bm=1; _ga=2" } });
     expect(h.calls[0]!.headers.has("Cookie")).toBe(false);

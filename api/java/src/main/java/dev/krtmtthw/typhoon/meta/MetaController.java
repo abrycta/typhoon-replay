@@ -34,7 +34,8 @@ class MetaController implements MetaApi {
     private final DatasetVersion dataset;
     private final ApplicationAvailability availability;
     private final OffsetDateTime startedAt = OffsetDateTime.now(ZoneOffset.UTC);
-    private final String metaEtag;
+    /** The contract bundle's ETag, {@code W/"c{contractVersion}-{impl}-{implVersion}"} (CONTRACT-GUIDE §6). */
+    private final String bundleEtag;
 
     MetaController(TrProperties props, ContractDocument contract, SchemaVersion schema, DatasetVersion dataset,
             ApplicationAvailability availability) {
@@ -43,7 +44,7 @@ class MetaController implements MetaApi {
         this.schema = schema;
         this.dataset = dataset;
         this.availability = availability;
-        this.metaEtag = "W/\"c" + contract.contractVersion() + "-" + props.impl() + "-" + contract.implVersion() + "\"";
+        this.bundleEtag = "W/\"c" + contract.contractVersion() + "-" + props.impl() + "-" + contract.implVersion() + "\"";
     }
 
     /** Liveness: the process answers; no database access. */
@@ -67,11 +68,14 @@ class MetaController implements MetaApi {
 
     @Override
     public ResponseEntity<Meta> getMeta(String ifNoneMatch) {
+        // The body carries datasetVersion, so the ETag does too: a publish changes it (CONTRACT-GUIDE §6).
+        long datasetVersion = dataset.current();
+        String metaEtag = metaEtag(bundleEtag, datasetVersion);
         if (Etags.matches(ifNoneMatch, metaEtag)) {
             return Etags.notModified(metaEtag);
         }
         Meta meta = new Meta(impl(), contract.implVersion(), contract.contractVersion(),
-                schema.applied().orElse("00000000000000"), (int) dataset.current(), props.commit(), startedAt);
+                schema.applied().orElse("00000000000000"), (int) datasetVersion, props.commit(), startedAt);
         return ResponseEntity.ok().eTag(metaEtag).body(meta);
     }
 
@@ -79,10 +83,15 @@ class MetaController implements MetaApi {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public ResponseEntity<OpenApiDocument> getOpenApiDocument(String ifNoneMatch) {
-        if (Etags.matches(ifNoneMatch, metaEtag)) {
-            return Etags.notModified(metaEtag);
+        if (Etags.matches(ifNoneMatch, bundleEtag)) {
+            return Etags.notModified(bundleEtag);
         }
-        return (ResponseEntity) ResponseEntity.ok().eTag(metaEtag).contentType(MediaType.APPLICATION_JSON).body(contract.bytes());
+        return (ResponseEntity) ResponseEntity.ok().eTag(bundleEtag).contentType(MediaType.APPLICATION_JSON).body(contract.bytes());
+    }
+
+    /** {@code W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"}: the bundle's ETag plus the dataset. */
+    static String metaEtag(String bundleEtag, long datasetVersion) {
+        return bundleEtag.substring(0, bundleEtag.length() - 1) + "-d" + datasetVersion + "\"";
     }
 
     private Impl impl() {

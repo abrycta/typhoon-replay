@@ -33,7 +33,11 @@ the build together with the Function.
   - `Cookie` is forwarded with only the `__Host-tr_*` cookies, so `__cf_bm`, analytics and other cookies never
     reach a backend;
   - the proxy sets `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-For` (from `CF-Connecting-IP`) and
-    `X-Forwarded-Prefix: /api/{impl}` (the contract uses this for `Link` headers and OAuth `redirect_uri`).
+    `X-Forwarded-Prefix: /api/{impl}` (the contract uses this for `Link` headers and OAuth `redirect_uri`);
+  - with the `EDGE_SECRET` Pages secret set, the proxy adds `X-Edge-Secret`. A backend with the same `TR_EDGE_SECRET`
+    then trusts `X-Forwarded-For` for its own per-IP limit; without it, the backend keys on the connecting address,
+    because on the proxy's subrequest Cloudflare (in front of Render) sets `CF-Connecting-IP` to the Worker, not the
+    visitor, and anyone can send `X-Forwarded-For` straight to the Render URL. A client's own `X-Edge-Secret` is dropped.
 - Response headers:
   - `Set-Cookie` passes through unchanged (same origin, so `__Host-` cookies work);
   - redirects are not followed, so OAuth 302s reach the browser;
@@ -74,8 +78,9 @@ values never share an entry. Bumping `KEY_VERSION` orphans every stored entry on
 a full 200. Two cases need more:
 - 404 and 410 are kept at most 60 s (`NEGATIVE_MAX_AGE_S`) and never served stale, so a storm that a new dataset
   adds shows up within a minute even while the backend sleeps.
-- `/v1/meta`'s ETag (`W/"c{contract}-{impl}-{implVersion}"`) ignores `datasetVersion`, so a conditional
-  revalidation would get a 304 and keep the old body. It is revalidated with a plain GET (a few hundred bytes).
+- Before contract 2.0.1, `/v1/meta`'s ETag (`W/"c{contract}-{impl}-{implVersion}"`) ignored `datasetVersion`, so a
+  conditional revalidation could get a 304 and keep the old body. 2.0.1 adds `-d{datasetVersion}`; the proxy still
+  revalidates `/v1/meta` with a plain GET (a few hundred bytes) for backends that predate it.
 
 | State | Condition (age since stored) | Behaviour |
 |---|---|---|
@@ -170,7 +175,8 @@ Defaults are committed in `wrangler.jsonc` under `vars`:
 | `STALE_IF_ERROR_S` | `604800` | edge stale-if-error window when the origin sends none |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_BURST` | `120` / `60` | per-IP token bucket |
 
-Optional bindings: `EDGE_FLAGS` (KV, static-mode flag) and `RATE_LIMITER`.
+Optional bindings: `EDGE_FLAGS` (KV, static-mode flag) and `RATE_LIMITER`. Optional secret: `EDGE_SECRET`
+(`wrangler pages secret put EDGE_SECRET --project-name typhoon-replay`), the same value as each backend's `TR_EDGE_SECRET`.
 
 ## Tests
 

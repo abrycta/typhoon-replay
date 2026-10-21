@@ -11,6 +11,8 @@ tr:
   commit: ${TR_COMMIT:${RENDER_GIT_COMMIT:unknown}}
   rate-limit-per-minute: ${TR_RATE_LIMIT_PER_MINUTE:600}
   max-streams: ${TR_MAX_STREAMS:200}
+  # Shared with the edge proxy (Pages secret EDGE_SECRET): proves a request came through it (RateLimitFilter).
+  edge-secret: ${TR_EDGE_SECRET:}
 
 server:
   port: ${PORT:8080}

@@ -17,7 +17,7 @@ content:
     examples:
       not-found:
         value:
-          type: https://typhoon-replay.pages.dev/problems/not-found
+          type: https://typhoon.krtmtthw.dev/problems/not-found
           title: Not found
           status: 404
           detail: Example detail text; free-form.

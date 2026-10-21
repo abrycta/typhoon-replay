@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Typhoon Replay API
-  version: 2.0.0
+  version: 2.0.1
   summary: One contract, four interchangeable backends (Java, Node, Rust, Go).
   description: |
-    Public API behind [Typhoon Replay](https://typhoon-replay.pages.dev): "typhoons that hit my town" over PH cities and
+    Public API behind [Typhoon Replay](https://typhoon.krtmtthw.dev): "typhoons that hit my town" over PH cities and
     municipalities and JP municipalities, and a live tracker of active storms over Server-Sent Events. The hour-by-hour
     replay and every visitor feature (saved towns, preferences) are static and are not served by this API, which is
     a read-only showcase: the same answers from four interchangeable backends.
@@ -30,7 +30,7 @@ info:
     name: Typhoon Replay
     url: https://github.com/abrycta/typhoon-replay
 servers:
-  - url: https://typhoon-replay.pages.dev/api/{impl}
+  - url: https://typhoon.krtmtthw.dev/api/{impl}
     description: Production, through the same-origin edge proxy (which strips `/api/{impl}`).
     variables:
       impl:

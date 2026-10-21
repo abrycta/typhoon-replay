@@ -54,7 +54,7 @@ export interface paths {
         };
         /**
          * Backend and dataset metadata
-         * @description `Cache-Control: public, max-age=60`; ETag `W/"c{contractVersion}-{impl}-{implVersion}"`.
+         * @description `Cache-Control: public, max-age=60`; ETag `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"`, so a dataset publish changes it.
          */
         get: operations["getMeta"];
         put?: never;
@@ -620,7 +620,7 @@ export interface components {
         Problem: {
             /**
              * Format: uri
-             * @example https://typhoon-replay.pages.dev/problems/validation
+             * @example https://typhoon.krtmtthw.dev/problems/validation
              */
             type: string;
             title: string;
@@ -634,7 +634,7 @@ export interface components {
         };
         /**
          * ProblemCode
-         * @description Stable machine-readable error code. `type` is `https://typhoon-replay.pages.dev/problems/{code}` and `title` is fixed per code:
+         * @description Stable machine-readable error code. `type` is `https://typhoon.krtmtthw.dev/problems/{code}` and `title` is fixed per code:
          *     validation "Request validation failed"; invalid-cursor "Invalid cursor"; not-found "Not found";
          *     method-not-allowed "Method not allowed"; not-acceptable "Not acceptable"; payload-too-large "Payload too large";
          *     unsupported-media-type "Unsupported media type"; rate-limited "Too many requests"; internal "Internal server error";
@@ -963,9 +963,10 @@ export interface components {
          * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
          *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
          *     or one made for a different sort, returns 400 `invalid-cursor`.
+         *     Example: `[1,"season-desc",2013,"2013306N07162"]` (default sort).
          * @example WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0
          */
-        Cursor: string;
+        StormCursor: string;
         /** @description Page size. The maximum keeps every page under the 64 KB response cap. */
         Limit: number;
         /**
@@ -976,6 +977,14 @@ export interface components {
         /** @description Radius in km; one of the precomputed bands. */
         RadiusKm: components["schemas"]["RadiusKm"];
         Country: components["schemas"]["CountryCode"];
+        /**
+         * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
+         *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
+         *     or one made for a different sort, returns 400 `invalid-cursor`.
+         *     Example: `[1,"closest",12.4,"PH-0831600000"]` (the only sort; the last id is a place id).
+         * @example WzEsImNsb3Nlc3QiLDEyLjQsIlBILTA4MzE2MDAwMDAiXQ
+         */
+        StormPlaceCursor: string;
         /** @example 11.2433 */
         Lat: number;
         /** @example 125.0039 */
@@ -992,6 +1001,14 @@ export interface components {
          *     Ties break by storm id ascending.
          */
         HitSort: "closest" | "peak-wind-desc" | "peak-gust-desc" | "date-desc";
+        /**
+         * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
+         *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
+         *     or one made for a different sort, returns 400 `invalid-cursor`.
+         *     Example: `[1,"closest",12.4,"2013306N07162"]` (default sort).
+         * @example WzEsImNsb3Nlc3QiLDEyLjQsIjIwMTMzMDZOMDcxNjIiXQ
+         */
+        HitCursor: string;
         /**
          * @description Resume after this `seq`. Sent automatically by `EventSource` on reconnect.
          * @example 1042
@@ -1044,13 +1061,14 @@ export interface components {
          * @description Weak ETag derived from data, never from response bytes, so every backend emits the same value for the same resource.
          *     Catalogue: `W/"d{datasetVersion}-{resourceKey}"` where `resourceKey` is the first 16 lowercase hex digits of
          *     SHA-256 over the canonical request string (CONTRACT-GUIDE §6). Live snapshot: `W/"s{latestSeq}"`.
-         *     Meta and contract bundle: `W/"c{contractVersion}-{impl}-{implVersion}"`.
+         *     Meta: `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"` (its body carries `datasetVersion`).
+         *     Contract bundle: `W/"c{contractVersion}-{impl}-{implVersion}"`.
          * @example W/"d1-3f9a1c0b7e2d4a65"
          */
         ETag: string;
         /**
          * @description RFC 8288 `<absolute-url>; rel="next"`, present exactly when the body has `nextCursor`. Built from the browser-visible base (`X-Forwarded-Prefix`).
-         * @example <https://typhoon-replay.pages.dev/api/java/v1/storms?season=2013&limit=2&cursor=WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0>; rel="next"
+         * @example <https://typhoon.krtmtthw.dev/api/java/v1/storms?season=2013&limit=2&cursor=WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0>; rel="next"
          */
         Link: string;
         /**
@@ -1243,9 +1261,10 @@ export interface operations {
                  * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
                  *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
                  *     or one made for a different sort, returns 400 `invalid-cursor`.
+                 *     Example: `[1,"season-desc",2013,"2013306N07162"]` (default sort).
                  * @example WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0
                  */
-                cursor?: components["parameters"]["Cursor"];
+                cursor?: components["parameters"]["StormCursor"];
                 /** @description Page size. The maximum keeps every page under the 64 KB response cap. */
                 limit?: components["parameters"]["Limit"];
             };
@@ -1382,9 +1401,10 @@ export interface operations {
                  * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
                  *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
                  *     or one made for a different sort, returns 400 `invalid-cursor`.
-                 * @example WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0
+                 *     Example: `[1,"closest",12.4,"PH-0831600000"]` (the only sort; the last id is a place id).
+                 * @example WzEsImNsb3Nlc3QiLDEyLjQsIlBILTA4MzE2MDAwMDAiXQ
                  */
-                cursor?: components["parameters"]["Cursor"];
+                cursor?: components["parameters"]["StormPlaceCursor"];
                 /** @description Page size. The maximum keeps every page under the 64 KB response cap. */
                 limit?: components["parameters"]["Limit"];
             };
@@ -1581,9 +1601,10 @@ export interface operations {
                  * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
                  *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
                  *     or one made for a different sort, returns 400 `invalid-cursor`.
-                 * @example WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0
+                 *     Example: `[1,"closest",12.4,"2013306N07162"]` (default sort).
+                 * @example WzEsImNsb3Nlc3QiLDEyLjQsIjIwMTMzMDZOMDcxNjIiXQ
                  */
-                cursor?: components["parameters"]["Cursor"];
+                cursor?: components["parameters"]["HitCursor"];
                 /** @description Page size. The maximum keeps every page under the 64 KB response cap. */
                 limit?: components["parameters"]["Limit"];
             };
@@ -1655,9 +1676,10 @@ export interface operations {
                  * @description Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
                  *     `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
                  *     or one made for a different sort, returns 400 `invalid-cursor`.
-                 * @example WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0
+                 *     Example: `[1,"closest",12.4,"2013306N07162"]` (default sort).
+                 * @example WzEsImNsb3Nlc3QiLDEyLjQsIjIwMTMzMDZOMDcxNjIiXQ
                  */
-                cursor?: components["parameters"]["Cursor"];
+                cursor?: components["parameters"]["HitCursor"];
                 /** @description Page size. The maximum keeps every page under the 64 KB response cap. */
                 limit?: components["parameters"]["Limit"];
             };

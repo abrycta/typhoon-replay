@@ -58,6 +58,15 @@ describe.skipIf(IS_MOCK)('caching and conditional requests [c1.0.0]', () => {
     expect(res.headers.get('etag')).toMatch(/^W\/"c[0-9.]+-[a-z]+-.+"$/);
   });
 
+  it('[c2.0.1] puts the datasetVersion in the meta ETag and answers it with 304', async () => {
+    const res = await get('/v1/meta');
+    const etag = res.headers.get('etag')!;
+    expect(etag).toBe(`W/"c${res.json.contractVersion}-${res.json.impl}-${res.json.implVersion}-d${res.json.datasetVersion}"`);
+    const again = await get('/v1/meta', { headers: { 'If-None-Match': etag } });
+    expect(again.status).toBe(304);
+    expect(again.headers.get('etag')).toBe(etag);
+  });
+
   it('[c2.0.0] ignores cookies: same answer, no Set-Cookie, no Vary: Cookie (everything is publicly cacheable)', async () => {
     const path = `/v1/places/${TACLOBAN}/storms?radiusKm=100`;
     const plain = await get(path);

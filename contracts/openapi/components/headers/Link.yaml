@@ -1,4 +1,4 @@
 description: 'RFC 8288 `<absolute-url>; rel="next"`, present exactly when the body has `nextCursor`. Built from the browser-visible base (`X-Forwarded-Prefix`).'
 schema:
   type: string
-example: '<https://typhoon-replay.pages.dev/api/java/v1/storms?season=2013&limit=2&cursor=WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0>; rel="next"'
+example: '<https://typhoon.krtmtthw.dev/api/java/v1/storms?season=2013&limit=2&cursor=WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0>; rel="next"'

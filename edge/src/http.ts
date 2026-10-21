@@ -1,7 +1,7 @@
 // HTTP helpers: header hygiene, request ids and RFC 9457 problem responses generated at the edge.
 
 /** Same base as the backends' problems (CONTRACT-GUIDE §8). */
-export const PROBLEM_BASE = "https://typhoon-replay.pages.dev/problems/";
+export const PROBLEM_BASE = "https://typhoon.krtmtthw.dev/problems/";
 
 /**
  * Edge problem codes. 413/429/404/405 reuse the contract's codes; the rest are proxy-only (kebab-case like the
@@ -105,7 +105,13 @@ export function clientIp(request: Request): string {
   return request.headers.get("CF-Connecting-IP")?.trim() || "unknown";
 }
 
-export function upstreamHeaders(request: Request, opts: { impl: string; requestId: string; dropConditional?: boolean }): Headers {
+/**
+ * Proves to a backend that a request came through this proxy, so it may trust `X-Forwarded-For` for its per-IP rate
+ * limit (the Java backend's `TR_EDGE_SECRET`). A client-sent copy never passes the allow-list above.
+ */
+export const EDGE_SECRET_HEADER = "X-Edge-Secret";
+
+export function upstreamHeaders(request: Request, opts: { impl: string; requestId: string; dropConditional?: boolean; edgeSecret?: string }): Headers {
   const src = request.headers;
   const out = new Headers();
   for (const name of FORWARD_REQUEST) {
@@ -122,6 +128,7 @@ export function upstreamHeaders(request: Request, opts: { impl: string; requestI
   out.set("X-Forwarded-Prefix", `/api/${opts.impl}`);
   const ip = src.get("CF-Connecting-IP")?.trim();
   if (ip) out.set("X-Forwarded-For", ip);
+  if (opts.edgeSecret) out.set(EDGE_SECRET_HEADER, opts.edgeSecret);
   return out;
 }
 

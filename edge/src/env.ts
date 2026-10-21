@@ -28,6 +28,8 @@ export interface Env {
   RATE_LIMITER?: RateLimitBinding;
   /** Optional KV namespace with a `static_mode` key ("true"/"false"): flips static mode without a redeploy. */
   EDGE_FLAGS?: KVNamespace;
+  /** Pages secret shared with the backends (`TR_EDGE_SECRET`), sent as `X-Edge-Secret` so they trust `X-Forwarded-For`. */
+  EDGE_SECRET?: string;
 }
 
 export interface Settings {
@@ -38,6 +40,7 @@ export interface Settings {
   staleIfErrorS: number;
   ratePerMinute: number;
   rateBurst: number;
+  edgeSecret?: string;
 }
 
 const TRUE = new Set(["1", "true", "yes", "on"]);
@@ -90,6 +93,7 @@ export function readSettings(env: Env): Settings {
     staleIfErrorS: num(env.STALE_IF_ERROR_S, 7 * 86_400, 0, 30 * 86_400),
     ratePerMinute: num(env.RATE_LIMIT_PER_MINUTE, 120, 1, 100_000),
     rateBurst: num(env.RATE_LIMIT_BURST, 60, 1, 100_000),
+    edgeSecret: typeof env.EDGE_SECRET === "string" && env.EDGE_SECRET.trim() ? env.EDGE_SECRET.trim() : undefined,
   };
   memo = { key: env, settings };
   return settings;

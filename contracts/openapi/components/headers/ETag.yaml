@@ -2,7 +2,8 @@ description: |
   Weak ETag derived from data, never from response bytes, so every backend emits the same value for the same resource.
   Catalogue: `W/"d{datasetVersion}-{resourceKey}"` where `resourceKey` is the first 16 lowercase hex digits of
   SHA-256 over the canonical request string (CONTRACT-GUIDE §6). Live snapshot: `W/"s{latestSeq}"`.
-  Meta and contract bundle: `W/"c{contractVersion}-{impl}-{implVersion}"`.
+  Meta: `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"` (its body carries `datasetVersion`).
+  Contract bundle: `W/"c{contractVersion}-{impl}-{implVersion}"`.
 required: true
 schema:
   type: string

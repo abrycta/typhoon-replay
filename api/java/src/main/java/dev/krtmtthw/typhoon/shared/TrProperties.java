@@ -13,6 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param commit            git commit of the build ({@code /v1/meta})
  * @param rateLimitPerMinute per-IP request budget; 0 disables the limiter
  * @param maxStreams        concurrent SSE streams before 503 {@code stream-capacity} (contract minimum 50)
+ * @param edgeSecret        shared with the edge proxy ({@code X-Edge-Secret}); only requests carrying it have their
+ *                          {@code X-Forwarded-For} trusted by the rate limiter. Blank: no request is trusted
  */
 @ConfigurationProperties(prefix = "tr")
 public record TrProperties(
@@ -22,7 +24,8 @@ public record TrProperties(
         String minSchemaVersion,
         String commit,
         int rateLimitPerMinute,
-        int maxStreams) {
+        int maxStreams,
+        String edgeSecret) {
 
     public TrProperties {
         if (siteOrigin != null && siteOrigin.endsWith("/")) {

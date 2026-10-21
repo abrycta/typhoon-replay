@@ -83,6 +83,26 @@ class WebRulesTest {
     }
 
     @Test
+    void rateLimitTrustsForwardedForOnlyWithTheEdgeSecret() {
+        byte[] secret = "s3cret".getBytes(StandardCharsets.UTF_8);
+        MockHttpServletRequest edge = new MockHttpServletRequest("GET", "/v1/storms");
+        edge.setRemoteAddr("10.0.0.9");
+        edge.addHeader("X-Forwarded-For", "203.0.113.7, 2a06:98c0:3600::103");
+        edge.addHeader("CF-Connecting-IP", "2a06:98c0:3600::103");
+        edge.addHeader("X-Edge-Secret", "s3cret");
+        assertThat(RateLimitFilter.clientIp(edge, secret)).isEqualTo("203.0.113.7");
+
+        // A direct caller can't choose its bucket: spoofed headers, a wrong secret, or no secret configured.
+        MockHttpServletRequest direct = new MockHttpServletRequest("GET", "/v1/storms");
+        direct.setRemoteAddr("10.0.0.9");
+        direct.addHeader("X-Forwarded-For", "198.51.100.1");
+        direct.addHeader("CF-Connecting-IP", "198.51.100.1");
+        direct.addHeader("X-Edge-Secret", "guess");
+        assertThat(RateLimitFilter.clientIp(direct, secret)).isEqualTo("10.0.0.9");
+        assertThat(RateLimitFilter.clientIp(edge, null)).isEqualTo("10.0.0.9");
+    }
+
+    @Test
     void requestIdsAreEchoedOnlyWhenWellFormed() {
         assertThat(RequestContext.resolveRequestId("conformance.req-01")).isEqualTo("conformance.req-01");
         assertThat(RequestContext.resolveRequestId("bad id")).matches("[0-9a-f-]{36}").contains("-7");

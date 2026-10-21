@@ -5,6 +5,19 @@ major = breaking. A major that changes an operation which stays also gets a new 
 removes operations keeps the prefix (§2). `scripts/oasdiff-check.sh` writes the machine changelog to
 `dist/changelog.md`, and accepts breaking changes only with a major bump and an entry here.
 
+## 2.0.1 (2026-10-21)
+
+Corrections, no change to fields, parameters, statuses or cursor rules (CONTRACT-GUIDE §15).
+
+- `/v1/meta` ETag is `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"`, so a dataset publish
+  changes it (the body carries `datasetVersion`). `/v1/openapi.json` is unchanged.
+- Problem `type` URIs, the production server and the examples use the canonical host `https://typhoon.krtmtthw.dev`
+  instead of `typhoon-replay.pages.dev`.
+- Cursor examples are per operation (`StormCursor`, `HitCursor`, `StormPlaceCursor` replace `Cursor`), each made for
+  the operation's default sort, so Schemathesis's positive-data checks accept them.
+- New `npm run check-examples` (CI: contracts.yml): every example validated against its schema with formats and
+  undeclared properties checked, SSE example frames against `x-sse-events`, cursor examples against the sort.
+
 ## 2.0.0 (2026-10-21)
 
 **Breaking: accounts removed** (decision of 2026-10-21; CONTRACT-GUIDE §14). Visitor features move to static files and

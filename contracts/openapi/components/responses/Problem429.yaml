@@ -19,7 +19,7 @@ content:
     examples:
       rate-limited:
         value:
-          type: https://typhoon-replay.pages.dev/problems/rate-limited
+          type: https://typhoon.krtmtthw.dev/problems/rate-limited
           title: Too many requests
           status: 429
           detail: Example detail text; free-form.

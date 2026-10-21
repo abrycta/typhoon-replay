@@ -19,7 +19,9 @@ just java-dev               # from source (Gradle), against the compose database
 Configuration comes only from the environment, with the names every backend shares (CONTRACT-GUIDE §11):
 `DATABASE_URL` (a `postgres://` URL, mapped onto JDBC with `prepareThreshold=0` for the Neon pooler), `TR_SITE_ORIGIN`
 (default `https://typhoon.krtmtthw.dev`; the origin of absolute `Link` headers), `TR_TEST_HOOKS`, `TR_LOG_LEVEL`, `PORT`.
-Java-only extras: `TR_RATE_LIMIT_PER_MINUTE` (default 600, 0 disables), `TR_MAX_STREAMS` (default 200), `TR_COMMIT`.
+Java-only extras: `TR_RATE_LIMIT_PER_MINUTE` (default 600, 0 disables), `TR_MAX_STREAMS` (default 200), `TR_COMMIT`,
+`TR_EDGE_SECRET` (shared with the edge proxy's `EDGE_SECRET`: only requests carrying it in `X-Edge-Secret` have their
+`X-Forwarded-For` trusted, so the per-IP limiter keys on the visitor; anything else is keyed on the connecting address).
 Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.pages.dev`) only change the defaults.
 
 ## Layout
@@ -54,7 +56,8 @@ Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.
 - Vitest scenarios: **85/85** (incl. `SLOW=1` heartbeat and a no-hooks instance).
 - Schemathesis, full `backend.toml`: 4 failures, all contract-side positive-data-acceptance: the shared `Cursor`
   example is a `season-desc` cursor, rejected as `invalid-cursor` by the other sorts, and the `season` + `from`
-  examples combine into a documented 400.
+  examples combine into a documented 400. Contract 2.0.1 gives each operation a cursor example for its own sort;
+  generated cursors and `season` + `from` from the coverage and fuzzing phases still can't be ruled out by a schema.
 - Schemathesis gating run (`--exclude-checks positive_data_acceptance --request-retries 3`): **1,441/1,441 pass**.
 
 (Contract 1.0.0 had 99 scenarios and 2,150 gating cases; the difference is the removed account operations.)

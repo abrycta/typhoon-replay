@@ -19,7 +19,7 @@ content:
     examples:
       not-ready:
         value:
-          type: https://typhoon-replay.pages.dev/problems/not-ready
+          type: https://typhoon.krtmtthw.dev/problems/not-ready
           title: Service not ready
           status: 503
           detail: Example detail text; free-form.
@@ -28,7 +28,7 @@ content:
           requestId: 01JAXQ7Z9V8M3K2W4R6T5Y1N0P
       stream-capacity:
         value:
-          type: https://typhoon-replay.pages.dev/problems/stream-capacity
+          type: https://typhoon.krtmtthw.dev/problems/stream-capacity
           title: Too many live streams
           status: 503
           instance: /v1/live/stream

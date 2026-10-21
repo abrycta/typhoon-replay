@@ -1,6 +1,8 @@
 package dev.krtmtthw.typhoon.shared.web;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +34,13 @@ import io.github.bucket4j.ConsumptionProbe;
  * {@code RateLimit} / {@code RateLimit-Policy} headers; an empty bucket gives 429 {@code rate-limited} with
  * {@code Retry-After}. Buckets live in a bounded Caffeine cache that expires idle clients, so nothing runs in the
  * background.
+ *
+ * <p>Keyed by the real client address. The edge proxy (edge/src/http.ts) sets {@code X-Forwarded-For} to the
+ * visitor's {@code CF-Connecting-IP} and proves itself with {@code X-Edge-Secret} ({@code TR_EDGE_SECRET}). Only then
+ * is the left-most {@code X-Forwarded-For} entry used: Cloudflare in front of Render appends hops after it, and on
+ * the edge's subrequest {@code CF-Connecting-IP} is the Worker's address, not the visitor's. Any other request
+ * (a direct call to the Render URL, or no secret configured) is keyed by the connecting address, so a client cannot
+ * pick its own bucket by sending those headers.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -39,8 +48,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
+    static final String EDGE_SECRET_HEADER = "X-Edge-Secret";
+
     private final int perMinute;
     private final String policy;
+    private final byte[] edgeSecret;
     private final ProblemWriter problems;
     private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
             .maximumSize(50_000)
@@ -51,6 +63,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.perMinute = props.rateLimitPerMinute();
         this.policy = "\"per-ip\";q=" + perMinute + ";w=" + WINDOW.toSeconds();
         this.problems = problems;
+        String secret = props.edgeSecret();
+        this.edgeSecret = secret == null || secret.isBlank() ? null : secret.trim().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -62,7 +76,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        Bucket bucket = buckets.get(clientIp(request), ip -> Bucket.builder()
+        Bucket bucket = buckets.get(clientIp(request, edgeSecret), ip -> Bucket.builder()
                 .addLimit(Bandwidth.builder().capacity(perMinute).refillGreedy(perMinute, WINDOW).build())
                 .build());
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
@@ -81,17 +95,27 @@ public class RateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    /** The client address as the edge proxy reports it (Cloudflare first, then the left-most X-Forwarded-For). */
-    static String clientIp(HttpServletRequest request) {
-        String cf = request.getHeader("CF-Connecting-IP");
-        if (cf != null && !cf.isBlank()) {
-            return cf.trim();
-        }
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            int comma = xff.indexOf(',');
-            return (comma < 0 ? xff : xff.substring(0, comma)).trim();
+    /**
+     * The client address: the left-most {@code X-Forwarded-For} entry when the request carries the edge secret,
+     * otherwise the connecting address. {@code CF-Connecting-IP} is never trusted here (see the class comment).
+     */
+    static String clientIp(HttpServletRequest request, byte[] edgeSecret) {
+        if (fromEdge(request, edgeSecret)) {
+            String xff = request.getHeader("X-Forwarded-For");
+            if (xff != null && !xff.isBlank()) {
+                int comma = xff.indexOf(',');
+                String first = (comma < 0 ? xff : xff.substring(0, comma)).trim();
+                if (!first.isEmpty()) {
+                    return first;
+                }
+            }
         }
         return request.getRemoteAddr();
+    }
+
+    static boolean fromEdge(HttpServletRequest request, byte[] edgeSecret) {
+        String sent = request.getHeader(EDGE_SECRET_HEADER);
+        return edgeSecret != null && sent != null
+                && MessageDigest.isEqual(sent.trim().getBytes(StandardCharsets.UTF_8), edgeSecret);
     }
 }

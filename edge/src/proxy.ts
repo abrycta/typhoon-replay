@@ -41,9 +41,10 @@ const WAKE_DEDUPE_MS = 15_000;
 /** After a backend says its database is still waking, retry once in the background after this long. */
 const UPSTREAM_WAKE_RETRY_MS = 5_000;
 /**
- * Paths whose ETag does not change with the dataset (`/v1/meta`'s is `c{contract}-{impl}-{implVersion}`, CONTRACT-GUIDE
- * §6, yet its body carries `datasetVersion`). A conditional revalidation would get a 304 and keep a stale body, so
- * these are revalidated with a plain GET. The body is a few hundred bytes.
+ * Paths revalidated with a plain GET. Before contract 2.0.1 `/v1/meta`'s ETag (`c{contract}-{impl}-{implVersion}`)
+ * ignored the `datasetVersion` its body carries, so a conditional revalidation could get a 304 and keep a stale body.
+ * 2.0.1 adds `-d{datasetVersion}` (CONTRACT-GUIDE §6); this stays for backends that predate it. The body is a few
+ * hundred bytes.
  */
 const UNCONDITIONAL_REVALIDATION = new Set(["/v1/meta"]);
 
@@ -132,7 +133,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   // --- not cacheable: straight pass-through (unsafe methods, SSE, health, signed-in or private reads) ---
   if (!key) {
     const timeout = !safe ? UNSAFE_TIMEOUT_MS : isHealth ? Math.min(HEALTH_TIMEOUT_MS, settings.originTimeoutMs) : settings.originTimeoutMs;
-    const init: RequestInit = { method: request.method, headers: upstreamHeaders(request, { impl, requestId }), body, redirect: "manual" };
+    const init: RequestInit = { method: request.method, headers: upstreamHeaders(request, { impl, requestId, edgeSecret: settings.edgeSecret }), body, redirect: "manual" };
     const r = await raceOrigin(target, init, timeout, true);
     if (r.kind === "timeout") {
       if (!safe) return fail("gateway-timeout");
@@ -157,7 +158,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   if (entry && entry.state === "if-error") {
     // stale-if-error: give the origin a short chance; otherwise serve the stale copy and finish in the background.
     const keep = entry.response.clone();
-    const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, validator);
+    const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, validator, settings.edgeSecret);
     const r = await raceTimer(pending, settings.staleTimeoutMs);
     if (r && r.kind === "response" && !isGatewayError(r.response)) {
       const fresh = await settle(cache, key, keep, r.response, settings);
@@ -174,7 +175,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   }
 
   // Miss: fetch without the client's validators so a full copy can be stored, then answer 304 here if it matches.
-  const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, null);
+  const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, null, settings.edgeSecret);
   const r = await raceTimer(pending, settings.originTimeoutMs);
   if (!r) {
     // Cold start. The request keeps going in the background: it wakes the backend and fills the cache.
@@ -243,8 +244,8 @@ async function raceOrigin(target: URL, init: RequestInit, ms: number, abortOnTim
 }
 
 /** A GET/HEAD to the origin for a cacheable read; resolves (never rejects) within `ms`. */
-async function originFetch(target: URL, request: Request, impl: string, requestId: string, ms: number, etag: string | null): Promise<FetchResult> {
-  const headers = upstreamHeaders(request, { impl, requestId, dropConditional: true });
+async function originFetch(target: URL, request: Request, impl: string, requestId: string, ms: number, etag: string | null, edgeSecret?: string): Promise<FetchResult> {
+  const headers = upstreamHeaders(request, { impl, requestId, dropConditional: true, edgeSecret });
   if (etag) headers.set("If-None-Match", etag);
   try {
     const response = await fetchWithTimeout(target, { method: request.method, headers, redirect: "manual" }, ms);
@@ -292,7 +293,7 @@ async function revalidate(cache: Cache, key: Request, entry: Entry, etag: string
   revalidating.add(key.url);
   try {
     const keep = entry.response.clone();
-    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, etag);
+    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, etag, settings.edgeSecret);
     if (r.kind === "response") await settle(cache, key, keep, r.response, settings);
   } finally {
     revalidating.delete(key.url);
@@ -319,7 +320,7 @@ async function retryWaking(cache: Cache, key: Request, target: URL, request: Req
   revalidating.add(key.url);
   try {
     await new Promise((resolve) => setTimeout(resolve, UPSTREAM_WAKE_RETRY_MS));
-    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS - UPSTREAM_WAKE_RETRY_MS, null);
+    const r = await originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS - UPSTREAM_WAKE_RETRY_MS, null, settings.edgeSecret);
     if (r.kind === "response") await store(cache, key, r.response, settings.staleIfErrorS);
   } finally {
     revalidating.delete(key.url);

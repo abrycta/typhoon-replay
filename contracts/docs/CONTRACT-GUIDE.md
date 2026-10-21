@@ -31,7 +31,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 ## 2. Base path, routing and versioning
 
-- The public base as seen by the browser is `https://typhoon-replay.pages.dev/api/{impl}/v1`, with `{impl} ∈ java | node | rust | go`. The edge proxy strips `/api/{impl}`, so **backends serve `/v1/...`, `/healthz` and `/readyz` at their own root**.
+- The public base as seen by the browser is `https://typhoon.krtmtthw.dev/api/{impl}/v1`, with `{impl} ∈ java | node | rust | go`. The edge proxy strips `/api/{impl}`, so **backends serve `/v1/...`, `/healthz` and `/readyz` at their own root**.
 - `info.version` is the contract semver. Each backend declares the contract range it implements in `api/<lang>/impl.json` and reports it at runtime (§4).
 - `/v1` is the **URL major version**, a promise to callers: an operation served under `/v1` keeps its meaning. Since v2 it is distinct from the contract major:
   - A breaking change to an operation that stays (a removed or renamed field, a new required parameter, a changed status code, cursor or ETag rule) bumps the contract major **and** creates `/v2`, served alongside `/v1` until every backend has moved.
@@ -84,7 +84,8 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 | Resource class | Cache-Control | ETag |
 |---|---|---|
 | Catalogue reads (storms, places, hits, search) | `public, max-age=300, stale-while-revalidate=86400` | `W/"d{datasetVersion}-{resourceKey}"` |
-| `/v1/meta`, `/v1/openapi.json` | `public, max-age=60` | `W/"c{contractVersion}-{impl}-{implVersion}"` |
+| `/v1/meta` | `public, max-age=60` | `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"` (the body carries `datasetVersion`, so a publish changes the ETag; since 2.0.1) |
+| `/v1/openapi.json` | `public, max-age=60` | `W/"c{contractVersion}-{impl}-{implVersion}"` |
 | Live snapshot `GET /v1/live/storms` | `no-cache` | `W/"s{latestSeq}"` |
 | Errors | `no-store`, except 404 on catalogue (`public, max-age=60`) | none |
 | `/healthz`, `/readyz` | `no-store` | none |
@@ -119,7 +120,7 @@ Every 4xx/5xx response (except 304) MUST be `application/problem+json`:
 
 ```json
 {
-  "type": "https://typhoon-replay.pages.dev/problems/validation",
+  "type": "https://typhoon.krtmtthw.dev/problems/validation",
   "title": "Request validation failed",
   "status": 400,
   "detail": "limit must be between 1 and 200",
@@ -254,3 +255,18 @@ Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): 
 5. The Redocly rule `portable/public-read-only` enforces 1–3 on the spec.
 
 **Unchanged:** every remaining operation, with its parameters, responses, headers, ETags, cursors and SSE events, is the same as in 1.0.0, so callers of those operations need no change.
+
+## 15. 2.0.1: corrections (2026-10-21)
+
+1. **`/v1/meta` ETag includes the dataset** (§6): `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"`. The
+   body carries `datasetVersion`, so the old ETag let a revalidation answer 304 and keep a stale body after a
+   publish. `/v1/openapi.json` keeps `W/"c{contractVersion}-{impl}-{implVersion}"`.
+2. **Canonical host.** Problem `type` URIs are `https://typhoon.krtmtthw.dev/problems/{code}` (§8), and the
+   production server and examples use `https://typhoon.krtmtthw.dev`, the site's custom domain.
+3. **Examples work as requests.** Each paginated operation has its own `cursor` example, made for its default sort
+   (a shared `season-desc` cursor was rejected as `invalid-cursor` elsewhere). `npm run check-examples` validates
+   every example against its schema (formats and undeclared properties included) and each cursor example against
+   its operation's sort.
+
+These are patch-level: ETags are opaque to clients (only echoed back), and clients read the stable `code`, not
+`type`. No field, parameter, status or cursor rule changes.

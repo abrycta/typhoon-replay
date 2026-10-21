@@ -2,7 +2,7 @@ get:
   operationId: getMeta
   tags: [meta]
   summary: Backend and dataset metadata
-  description: '`Cache-Control: public, max-age=60`; ETag `W/"c{contractVersion}-{impl}-{implVersion}"`.'
+  description: '`Cache-Control: public, max-age=60`; ETag `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"`, so a dataset publish changes it.'
   parameters:
     - $ref: ../components/parameters/IfNoneMatch.yaml
   responses:
