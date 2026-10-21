@@ -120,11 +120,11 @@ def build(search: dict[str, Any]) -> tuple[dict[str, Any], dict[str, dict[str, A
 
     slices: dict[str, dict[str, Any]] = {}
     letters: dict[str, set[int]] = {}
-    for w, ids in by_word.items():
-        letters.setdefault(w[0], set()).update(ids)
+    for w, wids in by_word.items():
+        letters.setdefault(w[0], set()).update(wids)
     split: list[str] = []
-    for letter, ids in sorted(letters.items()):
-        doc = _doc(pick(ids), columns, shard_paths)
+    for letter, lids in sorted(letters.items()):
+        doc = _doc(pick(lids), columns, shard_paths)
         if _size(doc) <= SPLIT_BYTES:
             slices[letter] = doc
             continue
@@ -135,8 +135,8 @@ def build(search: dict[str, Any]) -> tuple[dict[str, Any], dict[str, dict[str, A
                 two.setdefault(w[:2], set()).update(wids)
         for k, kids in sorted(two.items()):
             slices[k] = _doc(pick(kids), columns, shard_paths)
-    for k, ids in sorted(by_ja.items()):
-        slices[k] = _doc(pick(set(ids)), columns, shard_paths)
+    for k, jids in sorted(by_ja.items()):
+        slices[k] = _doc(pick(set(jids)), columns, shard_paths)
     manifest = {
         "schema": MANIFEST_SCHEMA,
         "note": "Slices of search.json by the first letter(s) of each name word (folded: lower case, no accents) "
