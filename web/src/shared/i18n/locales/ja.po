@@ -1332,10 +1332,6 @@ msgstr "現時点で唯一の応答"
 msgid "Open the full replay"
 msgstr "リプレイを開く"
 
-#: src/embed/EmbedReplay.tsx
-msgid "Open the live app"
-msgstr "ライブアプリを開く"
-
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
 msgstr "OpenAPI 3.1 の 1 つの仕様。破壊的変更は CI で検査"

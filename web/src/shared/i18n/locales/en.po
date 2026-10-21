@@ -1332,10 +1332,6 @@ msgstr "Only answer so far"
 msgid "Open the full replay"
 msgstr "Open the full replay"
 
-#: src/embed/EmbedReplay.tsx
-msgid "Open the live app"
-msgstr "Open the live app"
-
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
 msgstr "OpenAPI 3.1, one spec, checked for breaking changes in CI"

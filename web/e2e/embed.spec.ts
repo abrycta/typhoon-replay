@@ -1,5 +1,6 @@
-// The frozen /embed page krtmtthw.dev frames (src/embed): no Header, a still map over the baked basemap, the
-// "Open the live app" link, the ready message to the parent, and not one request off this origin.
+// The frozen /embed page krtmtthw.dev frames (src/embed): no Header, a still map over the baked basemap, no link
+// out (the live app is reached only from the project page), the ready message to the parent, and not one request
+// off this origin.
 import type { Page } from "@playwright/test";
 
 import { expect, HAIYAN, test } from "./fixtures";
@@ -17,7 +18,7 @@ function offOrigin(page: Page, origin: string) {
   return bad;
 }
 
-test("embed: frozen storm view, no Header, link out, still map, ready message, own origin only", async ({ page, baseURL }) => {
+test("embed: frozen storm view, no Header, no link out, still map, ready message, own origin only", async ({ page, baseURL }) => {
   const bad = offOrigin(page, new URL(baseURL!).origin);
   // Framed by krtmtthw.dev: a stand-in parent records what the embed posts to it.
   await page.addInitScript(() => {
@@ -32,11 +33,9 @@ test("embed: frozen storm view, no Header, link out, still map, ready message, o
   await expect(page.locator("[data-akari-header]")).toHaveCount(0);
   await expect(page.locator("footer")).toHaveCount(0);
 
-  const link = page.getByTestId("embed-open-live");
-  await expect(link).toHaveText(/Open the live app ↗/);
-  await expect(link).toHaveAttribute("href", `https://replay.krtmtthw.dev/storm/${HAIYAN}?t=2013-11-07T21:00Z&v=124.31,11.17,4.6&lang=en`);
-  await expect(link).toHaveAttribute("target", "_blank");
-  await expect(link).toHaveAttribute("rel", "noopener");
+  // No way out of the embed: the live app is linked only from its project page.
+  await expect(page.getByRole("link", { name: /live app/i })).toHaveCount(0);
+  await expect(page.locator('a[target="_blank"]')).toHaveCount(0);
 
   // Still map: no controls, no interactive handlers, the canvas is not focusable.
   const map = page.getByTestId("replay-map");

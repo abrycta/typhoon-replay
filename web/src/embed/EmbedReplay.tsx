@@ -8,7 +8,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
   Button,
-  useLang,
 } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { LinkIcon } from "lucide-react";
@@ -20,13 +19,12 @@ import { useStormName } from "@/shared/ui/use-storm-name";
 
 import { bakedBasemap } from "./basemap";
 import { EMBED } from "./haiyan.generated";
-import { deepLink, embedPixelRatio } from "./link";
+import { embedPixelRatio } from "./link";
 import type { EmbedData } from "./pack";
 import { postReady } from "./parent-bridge";
 
 export function EmbedReplay({ data, dataset }: { data: EmbedData; dataset: ResolvedDataset }) {
   const { t } = useLingui();
-  const { lang } = useLang();
   const stormName = useStormName();
   const s = data.detail;
   // The panels stay usable (layer, units, time zone); the hour and the view are fixed.
@@ -75,24 +73,6 @@ export function EmbedReplay({ data, dataset }: { data: EmbedData; dataset: Resol
         </StormHeading>
         <StormReplay detail={s} dataset={dataset} url={url} onUrl={(p) => setUrl((u) => ({ ...u, ...p, t: u.t, v: u.v }))} frozen={frozen} />
       </div>
-      <Button
-        asChild
-        variant="outline"
-        className="fixed z-20 shadow-sm"
-        style={{
-          right: "calc(16px / var(--embed-scale, 1))",
-          bottom: "calc(16px / var(--embed-scale, 1))",
-          fontSize: "calc(14px / var(--embed-scale, 1))",
-          height: "auto",
-          minHeight: "calc(28px / var(--embed-scale, 1))",
-          paddingInline: "calc(12px / var(--embed-scale, 1))",
-          paddingBlock: "calc(4px / var(--embed-scale, 1))",
-        }}
-      >
-        <a href={deepLink()} target="_blank" rel="noopener" lang={lang} data-testid="embed-open-live">
-          {t`Open the live app`} ↗
-        </a>
-      </Button>
     </>
   );
 }
