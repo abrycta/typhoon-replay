@@ -9,7 +9,6 @@ import {
   Button,
   Page,
   Skeleton,
-  useLang,
 } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { createFileRoute, Link, stripSearchParams } from "@tanstack/react-router";
@@ -18,13 +17,9 @@ import { useCallback, useState } from "react";
 
 import { NotFound } from "@/app/errors";
 import { DataError, useStormDetail } from "@/data";
-import { type ReplayUrlState, StormReplay } from "@/features/replay";
+import { type ReplayUrlState, StormHeading, StormReplay } from "@/features/replay";
 import { AffectedPlaces } from "@/features/storm-places";
-import { landfallSummary } from "@/shared/lib/landfalls";
-import { formatDate } from "@/shared/lib/time";
-import { ktToMs } from "@/shared/lib/units";
 import { stormLabel } from "@/shared/lib/names";
-import { StormName } from "@/shared/ui/storm-name";
 import { useStormName } from "@/shared/ui/use-storm-name";
 import { useDocumentTitle } from "@/shared/ui/use-title";
 
@@ -101,7 +96,6 @@ function BackToStorms() {
 
 function StormPage() {
   const { t } = useLingui();
-  const { lang } = useLang();
   const { sid } = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -141,52 +135,15 @@ function StormPage() {
     );
   }
   const s = d.data;
-  const jtwc = s.intensity.find((i) => i.agency === "jtwc");
-  const jma = s.intensity.find((i) => i.agency === "jma");
-  const peak = [
-    jtwc?.maxWindKt !== undefined ? t`${jtwc.maxWindKt.toFixed(0)} kt (${ktToMs(jtwc.maxWindKt).toFixed(0)} m/s) JTWC 1-min` : undefined,
-    jma?.maxWindKt !== undefined ? t`${jma.maxWindKt.toFixed(0)} kt JMA 10-min` : undefined,
-    jma?.minPressureHpa !== undefined ? `${jma.minPressureHpa.toFixed(0)} hPa` : undefined,
-  ].filter(Boolean);
-
   return (
     <div className="mx-auto grid max-w-[1120px] gap-8 px-4 py-8 md:py-12">
       <StormBreadcrumb current={titled(s)} />
-      <header className="-mt-4 grid gap-2">
-        <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">
-          Replay · {s.season} · {s.sid}
-        </p>
-        <h1 className="font-heading text-[clamp(28px,4vw,40px)] leading-tight font-semibold">
-          <StormName s={s} />
-        </h1>
-        {s.localNames?.ja && stormLabel(s).kind !== "jma" ? (
-          <p lang="ja" className="text-muted-foreground">
-            {s.localNames.ja}
-          </p>
-        ) : null}
-        <p className="max-w-[68ch] text-muted-foreground" data-testid="storm-lede">
-          {formatDate(s.startedAt, lang)} – {formatDate(s.endedAt, lang)}
-          {peak.length ? ` · ${t`peak`} ${peak.join(" · ")}` : ""}
-          {s.landfalls.length
-            ? ` · ${landfallSummary(s.landfalls, lang, {
-                lead: (g, dates) =>
-                  g.count > 1
-                    ? g.country === "PH"
-                      ? t`landfalls in the Philippines ${dates} (${g.count})`
-                      : t`landfalls in Japan ${dates} (${g.count})`
-                    : g.country === "PH"
-                      ? t`landfall in the Philippines ${dates}`
-                      : t`landfall in Japan ${dates}`,
-                more: (g, dates) =>
-                  (g.country === "PH" ? t`Philippines ${dates}` : t`Japan ${dates}`) + (g.count > 1 ? ` (${g.count})` : ""),
-              })}`
-            : ""}
-        </p>
+      <StormHeading s={s}>
         <div className="flex flex-wrap items-center gap-2">
           {s.replayAvailable ? <Badge>{t`ERA5 field replay`}</Badge> : <Badge variant="outline">{t`Track only: field frames not published yet`}</Badge>}
           <ShareButton />
         </div>
-      </header>
+      </StormHeading>
 
       <StormReplay detail={s} dataset={d.dataset} url={search} onUrl={onUrl} pageKeyboard />
 

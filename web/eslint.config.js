@@ -38,6 +38,7 @@ export default tseslint.config(
         { type: "data", pattern: "src/data" },
         { type: "shared", pattern: "src/shared" },
         { type: "test", pattern: "src/test" },
+        { type: "embed", pattern: "src/embed" },
       ],
       "boundaries/include": ["src/**/*"],
       // Entry point and the generated route tree sit above every layer.
@@ -56,6 +57,8 @@ export default tseslint.config(
             { from: { element: { type: "api" } }, allow: { to: { element: { types: { anyOf: ["api", "shared"] } } } } },
             { from: { element: { type: "data" } }, allow: { to: { element: { types: { anyOf: ["data", "shared"] } } } } },
             { from: { element: { type: "shared" } }, allow: { to: { element: { type: "shared" } } } },
+            // The frozen embed (krtmtthw.dev iframe): a second entry point, static data only.
+            { from: { element: { type: "embed" } }, allow: { to: { element: { types: { anyOf: ["app", "embed", "feature", "data", "shared"] } } } } },
             { from: { element: { type: "test" } }, allow: { to: { element: { types: { anyOf: ["api", "data", "shared", "test"] } } } } },
           ],
         },

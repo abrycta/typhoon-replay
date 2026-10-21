@@ -42,12 +42,12 @@ msgstr "{0} kt"
 
 #. placeholder {0}: jtwc.maxWindKt.toFixed(0)
 #. placeholder {1}: ktToMs(jtwc.maxWindKt).toFixed(0)
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "{0} kt ({1} m/s) JTWC 1-min"
 msgstr "{0} kt（{1} m/s）JTWC 1分平均"
 
 #. placeholder {0}: jma.maxWindKt.toFixed(0)
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "{0} kt JMA 10-min"
 msgstr "{0} kt 気象庁 10分平均"
 
@@ -392,6 +392,7 @@ msgstr "どちらも{kt} ktで日本へ({ya}年と{yb}年)"
 msgid "Both {kt} kt into the Philippines, {ya} and {yb}"
 msgstr "どちらも{kt} ktでフィリピンへ({ya}年と{yb}年)"
 
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Breadcrumb"
 msgstr "パンくずリスト"
@@ -490,6 +491,7 @@ msgstr "適合性"
 msgid "Contract"
 msgstr "契約"
 
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
 msgstr "この時刻へのリンクをコピー"
@@ -586,6 +588,7 @@ msgstr "ERA5 の中心：再解析上の台風の位置。公式の経路（円�
 msgid "ERA5 field near the centre"
 msgstr "中心付近の ERA5 の場"
 
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "ERA5 field replay"
 msgstr "ERA5 の場のリプレイ"
@@ -750,6 +753,7 @@ msgid "home"
 msgstr "ホーム"
 
 #: src/app/Shell.tsx
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Home"
 msgstr "ホーム"
@@ -820,7 +824,7 @@ msgstr "補間（{0}–{1}）"
 msgid "Japan"
 msgstr "日本"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "Japan {dates}"
 msgstr "日本 {dates}"
 
@@ -878,7 +882,7 @@ msgstr "上陸"
 msgid "Landfall in Japan"
 msgstr "日本に上陸"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfall in Japan {dates}"
 msgstr "{dates} 日本に上陸"
 
@@ -891,7 +895,7 @@ msgstr "{0} 日本に上陸"
 msgid "Landfall in the Philippines"
 msgstr "フィリピンに上陸"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfall in the Philippines {dates}"
 msgstr "{dates} フィリピンに上陸"
 
@@ -921,12 +925,12 @@ msgid "Landfalls"
 msgstr "上陸"
 
 #. placeholder {0}: g.count
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfalls in Japan {dates} ({0})"
 msgstr "{dates} 日本に上陸（{0} 回）"
 
 #. placeholder {0}: g.count
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfalls in the Philippines {dates} ({0})"
 msgstr "{dates} フィリピンに上陸（{0} 回）"
 
@@ -1207,6 +1211,10 @@ msgstr "現時点で唯一の応答"
 msgid "Open the full replay"
 msgstr "リプレイを開く"
 
+#: src/embed/EmbedReplay.tsx
+msgid "Open the live app"
+msgstr "ライブアプリを開く"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
 msgstr "OpenAPI 3.1 の 1 つの仕様。破壊的変更は CI で検査"
@@ -1231,7 +1239,7 @@ msgstr "両方を一時停止"
 msgid "Pause replay"
 msgstr "リプレイを一時停止"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "peak"
 msgstr "最盛期"
 
@@ -1259,7 +1267,7 @@ msgstr "フィリピン"
 msgid "Philippines · Japan · since 1940"
 msgstr "フィリピン・日本・1940年以降"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "Philippines {dates}"
 msgstr "フィリピン {dates}"
 
@@ -1511,6 +1519,7 @@ msgid "Storm name or year"
 msgstr "台風名または年"
 
 #: src/app/Shell.tsx
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 #: src/routes/storms.tsx
 msgid "Storms"

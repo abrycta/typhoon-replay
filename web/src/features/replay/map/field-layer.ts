@@ -157,6 +157,11 @@ export class FieldLayer implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
+  /** A frame has been handed to the layer (its data is drawn on the next render). */
+  get hasFrame() {
+    return !!this.a;
+  }
+
   get animating() {
     return this.particles.enabled && !!this.a;
   }

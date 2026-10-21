@@ -7,6 +7,15 @@ export const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
 export type ThemeKey = "light" | "dark" | "light-hc" | "dark-hc";
 
+/**
+ * A basemap in place of OpenFreeMap (the frozen embed's baked images): its style for a theme, and how to re-theme
+ * it in place. Layers with `metadata: { "replay:above-field": true }` are drawn above the field, like symbols.
+ */
+export interface CustomBasemap {
+  style(key: ThemeKey): StyleSpecification;
+  theme(map: MlMap, key: ThemeKey): void;
+}
+
 export function themeKey(theme: "light" | "dark", hc: boolean): ThemeKey {
   return hc ? `${theme}-hc` : theme;
 }

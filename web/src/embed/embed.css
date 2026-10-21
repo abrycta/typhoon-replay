@@ -1,0 +1,13 @@
+/* One fixed frame (the parent shows it at 1440×900, scaled down): no inner scrolling. */
+html,
+body {
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -15,7 +15,7 @@ import { FIELDS, fieldLut, type FieldLayer as FieldLayerId } from "@/shared/lib/
 import type { StormTrack, TrackHour } from "@/shared/model/types";
 
 import type { PlayerClock } from "../player";
-import { BASEMAP_STYLE, fallbackStyle, themeBasemap, type ThemeKey, tokenColor } from "./basemap";
+import { BASEMAP_STYLE, type CustomBasemap, fallbackStyle, themeBasemap, type ThemeKey, tokenColor } from "./basemap";
 import { FieldLayer } from "./field-layer";
 
 export interface MapView {
@@ -44,6 +44,12 @@ export interface ReplayMapProps {
   interactive?: boolean;
   className?: string;
   onUnavailable?: (reason: string) => void;
+  /** Replaces the OpenFreeMap basemap (the frozen embed); no fallback switching then. */
+  basemap?: CustomBasemap;
+  /** MapLibre pixelRatio (the embed is shown scaled down); default devicePixelRatio. */
+  pixelRatio?: number;
+  /** Called once, on the first idle map after the overlays and the current frame are drawn. */
+  onRendered?: () => void;
 }
 
 function trackLine(hours: readonly TrackHour[]): [number, number][] {
@@ -100,6 +106,7 @@ export default function ReplayMap(props: ReplayMapProps) {
   const mapRef = useRef<MlMap | null>(null);
   const fieldRef = useRef<FieldLayer | null>(null);
   const fallbackRef = useRef(false);
+  const renderedRef = useRef(false);
   const [styleVersion, setStyleVersion] = useState(0);
   const latest = useRef(props);
   useEffect(() => {
@@ -114,7 +121,8 @@ export default function ReplayMap(props: ReplayMapProps) {
     try {
       map = new MaplibreMap({
         container: el,
-        style: BASEMAP_STYLE,
+        style: props.basemap?.style(themeKey) ?? BASEMAP_STYLE,
+        pixelRatio: props.pixelRatio,
         center: view ? [view.lon, view.lat] : [125, 12],
         zoom: view?.zoom ?? 4,
         interactive,
@@ -143,7 +151,7 @@ export default function ReplayMap(props: ReplayMapProps) {
     // Fall back to the bundled coastline when the tile host fails before the style loads.
     let loaded = false;
     const switchToFallback = () => {
-      if (loaded || fallbackRef.current) return;
+      if (loaded || fallbackRef.current || latest.current.basemap) return;
       fallbackRef.current = true;
       map.setStyle(fallbackStyle(latest.current.themeKey));
     };
@@ -177,8 +185,11 @@ export default function ReplayMap(props: ReplayMapProps) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleVersion) return;
-    themeBasemap(map, themeKey, fallbackRef.current);
-    const firstSymbol = map.getStyle().layers?.find((l) => l.type === "symbol")?.id;
+    if (props.basemap) props.basemap.theme(map, themeKey);
+    else themeBasemap(map, themeKey, fallbackRef.current);
+    const firstSymbol = map
+      .getStyle()
+      .layers?.find((l) => l.type === "symbol" || (l.metadata as Record<string, unknown> | undefined)?.["replay:above-field"])?.id;
     if (!map.getLayer("era5-field")) {
       const fl = new FieldLayer("era5-field");
       fieldRef.current = fl;
@@ -226,6 +237,15 @@ export default function ReplayMap(props: ReplayMapProps) {
       if (b) map.fitBounds(b, { padding: 24, animate: false, maxZoom: 6 });
     }
     map.triggerRepaint();
+    if (latest.current.onRendered && !renderedRef.current) {
+      const check = () => {
+        if (renderedRef.current || !map.loaded() || (latest.current.header && !fieldRef.current?.hasFrame)) return;
+        renderedRef.current = true;
+        map.off("idle", check);
+        latest.current.onRendered?.();
+      };
+      map.on("idle", check);
+    }
     // view only seeds the first fit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleVersion, track, themeKey, showTrack]);

@@ -107,9 +107,15 @@ export function usePlaceShard(url: string | undefined) {
   return useQuery({ queryKey: ["place-shard", url], queryFn: () => loadPlaceShard(url as string), enabled: !!url, ...STATIC });
 }
 
-/** Opens the storm's frames (WebP preferred, else .tyf) in a worker for as long as the component is mounted. */
-export function useFrameStore(dataset: ResolvedDataset | undefined, detail: StormDetail | undefined, focus = 0) {
-  const source = useMemo(() => (dataset && detail ? frameSource(detail.sid, detail.frames, stormRoot(dataset, detail.sid)) : undefined), [dataset, detail]);
+/**
+ * Opens the storm's frames (WebP preferred, else .tyf) in a worker for as long as the component is mounted.
+ * A `preset` store (the frozen embed's packed frame) is used as it is: no worker, no requests.
+ */
+export function useFrameStore(dataset: ResolvedDataset | undefined, detail: StormDetail | undefined, focus = 0, preset?: FrameStore) {
+  const source = useMemo(
+    () => (!preset && dataset && detail ? frameSource(detail.sid, detail.frames, stormRoot(dataset, detail.sid)) : undefined),
+    [dataset, detail, preset],
+  );
   const key = sourceKey(source);
   const [store, setStore] = useState<FrameStore | undefined>();
   useEffect(() => {
@@ -126,8 +132,9 @@ export function useFrameStore(dataset: ResolvedDataset | undefined, detail: Stor
     // store.prioritise().
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  const snap = useSyncExternalStore(store?.subscribe ?? noopSubscribe, store?.getSnapshot ?? emptySnapshot);
-  return { store, snap };
+  const active = preset ?? store;
+  const snap = useSyncExternalStore(active?.subscribe ?? noopSubscribe, active?.getSnapshot ?? emptySnapshot);
+  return { store: active, snap };
 }
 
 const noopSubscribe = () => () => {};

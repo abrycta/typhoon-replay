@@ -59,6 +59,14 @@ export default defineConfig({
     sourcemap: true,
     target: "es2023",
     chunkSizeWarningLimit: 1100, // maplibre-gl is one ~1 MB chunk, loaded only with a map
+    // The frozen embed krtmtthw.dev frames is a second page of the same build, so it shares the app's hashed
+    // chunks (React, Akari, MapLibre): served at /embed/storm/<sid> (src/embed, scripts/build-embed.mjs).
+    rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        embed: fileURLToPath(new URL("./embed/storm/2013306N07162.html", import.meta.url)),
+      },
+    },
   },
   test: {
     include: ["src/**/*.test.{ts,tsx}"],

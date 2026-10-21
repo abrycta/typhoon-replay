@@ -2,7 +2,7 @@ import { Alert, AlertDescription, AlertTitle, Skeleton, useLang } from "@abrycta
 import { useLingui } from "@lingui/react/macro";
 import { lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { bestWind, hourAt, maxNear, type ResolvedDataset, useFrameStore, useStormTrack } from "@/data";
+import { bestWind, type FrameStore, hourAt, maxNear, type ResolvedDataset, useFrameStore, useStormTrack } from "@/data";
 import type { FieldLayer } from "@/shared/lib/fields";
 import { formatDateTime, fromUrlHour, isoToUnix, type TimeZoneChoice, toUrlHour } from "@/shared/lib/time";
 import type { SpeedUnit } from "@/shared/lib/units";
@@ -16,7 +16,7 @@ import { FieldLegend } from "./FieldLegend";
 import { IntensityPanel } from "./IntensityPanel";
 import { useFieldLabels } from "./labels";
 import { LayerPanel } from "./LayerPanel";
-import { themeKey } from "./map/basemap";
+import { type CustomBasemap, themeKey } from "./map/basemap";
 import { PlayerControls } from "./PlayerControls";
 import { type Speed, usePlayerClock } from "./player";
 import { StaticTrack } from "./StaticTrack";
@@ -45,6 +45,17 @@ export interface ReplayLeader {
   addReadyCheck(fn: (pos: number) => boolean): () => void;
 }
 
+/**
+ * The frozen embed (src/embed): one hour, its frame already in `store`, a baked basemap and a still map. The
+ * player stays visible but inert and the timeline table is left out.
+ */
+export interface FrozenReplay {
+  store: FrameStore;
+  basemap: CustomBasemap;
+  pixelRatio?: number;
+  onRendered?: () => void;
+}
+
 export interface StormReplayProps {
   detail: StormDetail;
   dataset: ResolvedDataset;
@@ -63,9 +74,10 @@ export interface StormReplayProps {
   autoplay?: boolean;
   loop?: boolean;
   mapClassName?: string;
+  frozen?: FrozenReplay;
 }
 
-export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTable = true, leader, leaderOffset = 0, mapOverlay, compact, autoplay, loop, mapClassName }: StormReplayProps) {
+export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTable = true, leader, leaderOffset = 0, mapOverlay, compact, autoplay, loop, mapClassName, frozen }: StormReplayProps) {
   const { t } = useLingui();
   const { lang } = useLang();
   const fieldLabels = useFieldLabels();
@@ -74,7 +86,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const hc = useHighContrast();
   const track = useStormTrack(detail.sid);
   const initialT = fromUrlHour(url.t);
-  const { store, snap } = useFrameStore(dataset, detail);
+  const { store, snap } = useFrameStore(dataset, detail, 0, frozen?.store);
   const header = snap.header;
   const descId = useId();
   const [webglError, setWebglError] = useState<string>();
@@ -128,7 +140,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
 
   // Keep the URL's time in step while paused (scrubs, steps, jumps), never on every playing frame.
   useEffect(() => {
-    if (state.playing || compact) return;
+    if (state.playing || compact || frozen) return;
     const time = times[state.index];
     if (time === undefined) return;
     const next = toUrlHour(time);
@@ -218,15 +230,18 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                   showTrack={url.track}
                   themeKey={themeKey(theme, hc)}
                   view={parseView(url.v)}
-                  onViewChange={compact ? undefined : (v) => onUrl({ v: `${v.lon},${v.lat},${v.zoom}` })}
-                  interactive={!compact}
+                  onViewChange={compact || frozen ? undefined : (v) => onUrl({ v: `${v.lon},${v.lat},${v.zoom}` })}
+                  interactive={!compact && !frozen}
+                  basemap={frozen?.basemap}
+                  pixelRatio={frozen?.pixelRatio}
+                  onRendered={frozen?.onRendered}
                   onUnavailable={setWebglError}
                   era5Centre={era5Centre}
                 />
               </Suspense>
             )}
             {webglError ? null : <CentreOffsetNote reading={offset} bestTrackKt={bw?.kt} />}
-            {hasFrames && progress < 100 && !snap.error ? (
+            {hasFrames && progress < 100 && !snap.error && !frozen ? (
               <div className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-2 py-0.5 font-mono text-[11px] text-muted-foreground" aria-hidden="true">
                 {t`frames ${progress}%`}
               </div>
@@ -249,6 +264,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             </Alert>
           ) : null}
           {leader ? null : (
+          <div className="contents" inert={!!frozen}>
           <PlayerControls
             clock={clock}
             state={state}
@@ -263,6 +279,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             }}
             compact={compact}
           />
+          </div>
           )}
         </div>
         {compact ? null : (
@@ -295,7 +312,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
           </div>
         )}
       </div>
-      {showTable && !compact ? (
+      {showTable && !compact && !frozen ? (
         <section aria-labelledby="timeline-h" className="grid gap-2">
           <h2 id="timeline-h" className="text-lg font-semibold">
             {t`Timeline`}

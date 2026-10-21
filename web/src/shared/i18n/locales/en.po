@@ -42,12 +42,12 @@ msgstr "{0} kt"
 
 #. placeholder {0}: jtwc.maxWindKt.toFixed(0)
 #. placeholder {1}: ktToMs(jtwc.maxWindKt).toFixed(0)
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "{0} kt ({1} m/s) JTWC 1-min"
 msgstr "{0} kt ({1} m/s) JTWC 1-min"
 
 #. placeholder {0}: jma.maxWindKt.toFixed(0)
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "{0} kt JMA 10-min"
 msgstr "{0} kt JMA 10-min"
 
@@ -392,6 +392,7 @@ msgstr "Both {kt} kt into Japan, {ya} and {yb}"
 msgid "Both {kt} kt into the Philippines, {ya} and {yb}"
 msgstr "Both {kt} kt into the Philippines, {ya} and {yb}"
 
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Breadcrumb"
 msgstr "Breadcrumb"
@@ -490,6 +491,7 @@ msgstr "Conformance"
 msgid "Contract"
 msgstr "Contract"
 
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
 msgstr "Copy link to this hour"
@@ -586,6 +588,7 @@ msgstr "ERA5 centre: where the reanalysis has the storm, marked when it is {LARG
 msgid "ERA5 field near the centre"
 msgstr "ERA5 field near the centre"
 
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "ERA5 field replay"
 msgstr "ERA5 field replay"
@@ -750,6 +753,7 @@ msgid "home"
 msgstr "home"
 
 #: src/app/Shell.tsx
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Home"
 msgstr "Home"
@@ -820,7 +824,7 @@ msgstr "interpolated ({0}–{1})"
 msgid "Japan"
 msgstr "Japan"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "Japan {dates}"
 msgstr "Japan {dates}"
 
@@ -878,7 +882,7 @@ msgstr "Landfall"
 msgid "Landfall in Japan"
 msgstr "Landfall in Japan"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfall in Japan {dates}"
 msgstr "landfall in Japan {dates}"
 
@@ -891,7 +895,7 @@ msgstr "Landfall in Japan at {0}"
 msgid "Landfall in the Philippines"
 msgstr "Landfall in the Philippines"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfall in the Philippines {dates}"
 msgstr "landfall in the Philippines {dates}"
 
@@ -921,12 +925,12 @@ msgid "Landfalls"
 msgstr "Landfalls"
 
 #. placeholder {0}: g.count
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfalls in Japan {dates} ({0})"
 msgstr "landfalls in Japan {dates} ({0})"
 
 #. placeholder {0}: g.count
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "landfalls in the Philippines {dates} ({0})"
 msgstr "landfalls in the Philippines {dates} ({0})"
 
@@ -1207,6 +1211,10 @@ msgstr "Only answer so far"
 msgid "Open the full replay"
 msgstr "Open the full replay"
 
+#: src/embed/EmbedReplay.tsx
+msgid "Open the live app"
+msgstr "Open the live app"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
 msgstr "OpenAPI 3.1, one spec, checked for breaking changes in CI"
@@ -1231,7 +1239,7 @@ msgstr "Pause both"
 msgid "Pause replay"
 msgstr "Pause replay"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "peak"
 msgstr "peak"
 
@@ -1259,7 +1267,7 @@ msgstr "Philippines"
 msgid "Philippines · Japan · since 1940"
 msgstr "Philippines · Japan · since 1940"
 
-#: src/routes/storm.$sid.tsx
+#: src/features/replay/StormHeading.tsx
 msgid "Philippines {dates}"
 msgstr "Philippines {dates}"
 
@@ -1511,6 +1519,7 @@ msgid "Storm name or year"
 msgstr "Storm name or year"
 
 #: src/app/Shell.tsx
+#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 #: src/routes/storms.tsx
 msgid "Storms"
