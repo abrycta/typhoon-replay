@@ -11,7 +11,12 @@
       "p95StormsListMs": 2.8,
       "coldStartS": 100
     },
-    "node": { "stack": "Fastify 5 · Node 24", "status": "next" },
+    "node": {
+      "stack": "Hono 4.13 · TypeScript · Workers",
+      "status": "measured",
+      "scenarios": { "passed": 86, "total": 86 },
+      "generated": { "passed": 1444, "total": 1444 }
+    },
     "rust": { "stack": "Axum 0.8 · SQLx", "status": "next" },
     "go": {
       "stack": "net/http · oapi-codegen · Go 1.27",
