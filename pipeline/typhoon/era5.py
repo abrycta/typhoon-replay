@@ -177,8 +177,23 @@ class H5Index:
 _index_lock = threading.Lock()
 
 
-def h5_index(base: str, relpath: str, dsname: str) -> H5Index:
-    """Chunk byte offsets of one NCAR file (cached as JSON; the file layout never changes)."""
+def h5_index(base: str, relpath: str, dsname: str, retries: int = 4) -> H5Index:
+    """Chunk byte offsets of one NCAR file (cached as JSON; the file layout never changes).
+    Transient S3 errors (503 Slow Down) are retried; a missing file or unexpected layout is not."""
+    for k in range(retries):
+        try:
+            return _h5_index(base, relpath, dsname)
+        except LinkFailed:
+            raise
+        except Exception as e:  # 5xx while reading the file header: retry with backoff
+            if k == retries - 1:
+                raise LinkFailed(f"{base}/{relpath}: {e}") from e
+            log.warning("index of %s failed (%s), retry %d", relpath, e, k + 1)
+            time.sleep(5 * (k + 1))
+    raise AssertionError("unreachable")
+
+
+def _h5_index(base: str, relpath: str, dsname: str) -> H5Index:
     cache = ensure_dir(CACHE / "ncar-index") / (relpath.replace("/", "__") + ".json")
     url = f"{base}/{relpath}"
     if cache.exists():
