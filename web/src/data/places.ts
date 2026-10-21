@@ -5,8 +5,9 @@
 //   v<N>/places/search.json     compact search index: {columns, rows, shards?}   (falls back to the shards)
 //   v<N>/places/<shard>.json    {country, admin1, places: [...], hits: {columns, rows}, storms: {sid: [name, season]}}
 //
-// Paths inside the files are dataset-root relative ("v1/places/ph-leyte.json"); absolute URLs, root-relative
-// paths and bare file names (relative to places/) also work. Every reader is tolerant: unknown fields are
+// Paths inside the files are dataset-root relative: "v1/places/ph-leyte.json", or the content-addressed shards the
+// pipeline shares between versions, "places/ph-leyte/<hash>.json" (at the dataset root, not under v<N>/). Absolute
+// URLs, root-relative paths and bare file names (relative to v<N>/places/) also work. Every reader is tolerant: unknown fields are
 // ignored, missing optional ones are left out, and a row it cannot read is skipped rather than failing the list.
 import type { Country, PlaceSummary } from "@/shared/model/types";
 
@@ -62,7 +63,7 @@ const num = (x: unknown): number | undefined => (typeof x === "number" && Number
 export function datasetUrl(ds: ResolvedDataset, path: string, relativeTo = `${ds.root}places/`): string {
   if (/^https?:\/\//.test(path) || path.startsWith("/")) return path;
   if (/^v\d+\//.test(path)) return ds.baseUrl + path; // dataset-root relative (the pipeline's form)
-  if (path.startsWith("places/")) return ds.root + path;
+  if (path.startsWith("places/")) return ds.baseUrl + path; // shared content-addressed shard (pipeline `put_shared`)
   return relativeTo + path;
 }
 
@@ -177,7 +178,7 @@ export async function loadPlaceIndex(ds: ResolvedDataset, f: Fetch = fetch): Pro
   } catch {
     listing = undefined;
   }
-  const fromSearch = await loadSearchFile(ds, datasetUrl(ds, listing?.search ?? "places/search.json"), f);
+  const fromSearch = await loadSearchFile(ds, listing?.search ? datasetUrl(ds, listing.search) : `${ds.root}places/search.json`, f);
   if (fromSearch) return fromSearch;
   if (!listing?.shards.length) return [];
   const shards = await fetchAll<unknown>(

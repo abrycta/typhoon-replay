@@ -14,8 +14,9 @@ Layout (relative to the dataset root; every path is immutable once published):
     v<N>/storms/<sid>/<sid>.s<k>.tyf    replay frames, 7-day segments (only storms with frames)
     v<N>/storms/<sid>/<sid>.s<k>.<var>.webp   the same frames as lossless WebP sprite sheets
     v<N>/places/index.json              shards with bbox and place count
-    v<N>/places/<shard>.json            places of one PH province / JP prefecture + their storm exposure
-    v<N>/places/<shard>.geojson         display geometry (<= 1,500 vertices per place)
+    v<N>/places/search.json             compact search index for "My town" (one row per place)
+    places/<shard>/<hash>.json          places of one PH province / JP prefecture + their storm exposure (shared)
+    places/<shard>/<hash>.geojson       display geometry (<= 1,500 vertices per place) (shared)
     v<N>/tables/*.parquet               contract-shaped tables (typhoon.tables; loaded by typhoon.dbload)
 
 Incremental versions: when `--previous-index` is given, a storm whose files are byte-identical to the
@@ -534,7 +535,8 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
                  out_root: Path, refs: dict[str, dict[str, Any]]) -> None:
     pdir = ensure_dir(vdir / "places")
     names = st.set_index("sid")[["name", "season"]]
-    shards = []
+    shards: list[dict[str, Any]] = []
+    search_rows: list[list[Any]] = []
     exb = ex.merge(pl[["place_id", "shard"]], on="place_id")
     summaries = stats.place_summaries(ex, st.set_index("sid"))
     for shard, g in pl.groupby("shard", sort=True):
@@ -571,6 +573,11 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
              "properties": {"name": r.name, "nameJa": r.name_ja if isinstance(r.name_ja, str) else None, "kind": r.kind},
              "geometry": json.loads(shapely.to_geojson(shapely.from_wkb(r.geom_display_wkb)))} for r in g.itertuples()]}
         geo_path = put_shared(out_root, f"places/{shard}", dumps(fc), "geojson", refs)
+        search_rows += [[r.place_id, r.kind, r.name, r.name_ja if isinstance(r.name_ja, str) else None, r.admin1,
+                         r.admin1_ja if isinstance(r.admin1_ja, str) else None,
+                         r.admin2 if isinstance(r.admin2, str) else None, num(r.centroid_lon, 4), num(r.centroid_lat, 4),
+                         len(shards),
+                         (summaries.get(r.place_id) or {}).get("stormsWithin100Km")] for r in g.itertuples()]
         b = np.array([r for r in g.bbox])
         shards.append({"shard": shard, "country": g.country.iloc[0], "admin1": g.admin1.iloc[0],
                        "admin2": g.admin2.iloc[0] if isinstance(g.admin2.iloc[0], str) else None,
@@ -579,7 +586,13 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
                        "path": shard_path, "geojson": geo_path})
     (pdir / "index.json").write_bytes(dumps({
         "schema": SCHEMA, "note": "Shard files are content-addressed and shared by data versions; paths are "
-                                  "relative to the dataset root.", "shards": shards}))
+                                  "relative to the dataset root.", "shards": shards,
+        "search": f"{base_v}places/search.json"}))
+    # The search box needs names and centroids only; without this file the app fetches every shard (~9 MB).
+    (pdir / "search.json").write_bytes(dumps({
+        "schema": "typhoon-replay/places-search@1", "columns": ["id", "kind", "name", "nameJa", "admin1", "admin1Ja", "admin2", "lon", "lat",
+                                      "shard", "storms100"],
+        "shards": [x["path"] for x in shards], "rows": search_rows}))
 
 
 def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[str, Any],

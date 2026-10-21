@@ -27,8 +27,8 @@ If the primary host fails (HTTP error, CORS, or an HTML page), the next base URL
 | `frames/<sid>/<hash>.tyf` (or a storm-relative `frames.tyf`, `.tyf.gz`) | TYF1 frame file | optional: only some storms have one |
 | `v<N>/storms/<sid>/og.png` | 1200×630 share image | no (`summary.ogImage` names it) |
 | `v<N>/places/index.json` | `{shards: [{shard, country, admin1, admin2?, places, hits, bbox, path, geojson}], search?}` (pipeline `write_places`) | for "My town" |
-| `v<N>/places/search.json` | compact place search index (below); **assumption**: the pipeline does not write it yet | no (falls back to the shards) |
-| `v<N>/places/<shard>.json` | places of one PH province / JP prefecture and their storm exposure (below) | for "My town" |
+| `v<N>/places/search.json` | compact place search index (below); the pipeline writes it from the next data version on | no (falls back to the shards) |
+| `places/<shard>/<hash>.json` | places of one PH province / JP prefecture and their storm exposure (below); content-addressed at the dataset root, shared by versions (`path` in `places/index.json`) | for "My town" |
 
 `<sid>` is the IBTrACS SID (`^[0-9]{7}[NS][0-9]{5}$`). Every version directory holds every storm's folder (index rows' `path` is always `v<N>/storms/<sid>/`).
 
@@ -51,7 +51,7 @@ Field names follow the API contract (`contracts/openapi`) wherever the concept e
 No visitor page calls the API: place search and storms-near-a-place are answered from these files.
 
 - **Place shard** (`places/<shard>.json`, as `dataset.write_places` on m1-pipeline writes it): `{country, admin1, admin2?, places: [{id, kind, name, nameJa?, admin1, admin1Ja?, admin2?, centroid, bbox, summary?}], hits: {columns, rows}, storms: {sid: [name, season]}}`. `hits.columns` are `place, sid, km, at, w50…w500, g500, h50…h500`: `place` indexes `places`, `at` is unix seconds, `w<r>`/`h<r>` are the best-track wind (kt) and hours within each radius. The app filters `km <= radius` and takes `w<radius>`, `h<radius>`; it reads columns by name, accepts object rows, ISO times and place ids, and skips rows it cannot read.
-- **Search index** (`places/search.json`, or the path `places/index.json` names in `search`): `{columns: ["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"], shards: ["v1/places/ph-leyte.json", …], rows: [[…], …]}`, `shard` an index into `shards` (a path also works), `storms100` = `summary.stormsWithin100Km` (ranking only). For ~3,500 places this is about 250 kB raw, ~60 kB gzip. **Asked of the pipeline**; until it exists the app builds the same index by fetching every shard (correct, but ~130 requests and the full exposure tables).
+- **Search index** (`places/search.json`, or the path `places/index.json` names in `search`): `{columns: ["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"], shards: ["v1/places/ph-leyte.json", …], rows: [[…], …]}`, `shard` an index into `shards` (a path also works), `storms100` = `summary.stormsWithin100Km` (ranking only). For ~3,500 places this is about 250 kB raw, ~60 kB gzip. Written by the pipeline (`write_places`); for data versions without it the app builds the same index by fetching every shard (correct, but ~130 requests and the full exposure tables).
 - Paths in these files are dataset-root relative (`v1/places/…`); absolute URLs and bare file names (relative to `places/`) also work.
 - The fixture's 10 places (contract seed) are written by `scripts/make-place-fixtures.mjs` from the fixture tracks, with distances to the centroid instead of the boundary.
 

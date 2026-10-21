@@ -93,7 +93,8 @@ describe("static place index", () => {
 
   it("resolves dataset paths in every form the files use", () => {
     expect(datasetUrl(ds, "v1/places/ph-leyte.json")).toBe("/fixtures/v1/places/ph-leyte.json");
-    expect(datasetUrl(ds, "places/search.json")).toBe("/fixtures/v1/places/search.json");
+    // The pipeline's shared, content-addressed shards live at the dataset root (places/index.json says so).
+    expect(datasetUrl(ds, "places/ph-leyte/87d888b95d5453f7.json")).toBe("/fixtures/places/ph-leyte/87d888b95d5453f7.json");
     expect(datasetUrl(ds, "ph-leyte.json")).toBe("/fixtures/v1/places/ph-leyte.json");
     expect(datasetUrl(ds, "https://cdn.example/p.json")).toBe("https://cdn.example/p.json");
   });
