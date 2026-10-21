@@ -358,8 +358,8 @@ msgid "Country"
 msgstr "国"
 
 #: src/app/Shell.tsx
-msgid "Data served statically · API in four languages → <0>Under the hood</0>"
-msgstr "データは静的配信 · API は 4 つの言語で → <0>しくみ</0>"
+msgid "Data served statically · API in four languages → <0>Tech</0>"
+msgstr "データは静的配信 · API は 4 つの言語で → <0>技術</0>"
 
 #: src/routes/about.tsx
 msgid "Data sources"
@@ -1139,6 +1139,12 @@ msgstr "強い順（最大風速）"
 msgid "Tacloban, Naha, 那覇…"
 msgstr "タクロバン、那覇、Naha…"
 
+#: src/app/Shell.tsx
+#: src/features/under-the-hood/UnderTheHood.tsx
+#: src/routes/under-the-hood.tsx
+msgid "Tech"
+msgstr "技術"
+
 #. placeholder {0}: res.retryAfterS ?? 20
 #: src/features/under-the-hood/Explorer.tsx
 msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
@@ -1166,8 +1172,8 @@ msgid "The replay continues with the best track only. ({0})"
 msgstr "ベストトラックのみでリプレイを続けます。（{0}）"
 
 #: src/routes/about.tsx
-msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them."
-msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードして WebGL で描画します。地名検索（「わが町」）も静的な地名索引を使ってブラウザ内で動きます。これとは別に、1 つの API 契約を 4 つの言語（Java、Node、Rust、Go）で実装しており、「しくみ」ページで競わせています。ほかのページはこれらに依存しません。"
+msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Tech page races them. No other page depends on them."
+msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードして WebGL で描画します。地名検索（「わが町」）も静的な地名索引を使ってブラウザ内で動きます。これとは別に、1 つの API 契約を 4 つの言語（Java、Node、Rust、Go）で実装しており、「技術」ページで競わせています。ほかのページはこれらに依存しません。"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "The storm catalogue could not be loaded"
@@ -1276,12 +1282,6 @@ msgstr "わが町を襲った台風"
 #: src/routes/storms.tsx
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "フィリピンと日本に上陸、または接近した台風。"
-
-#: src/app/Shell.tsx
-#: src/features/under-the-hood/UnderTheHood.tsx
-#: src/routes/under-the-hood.tsx
-msgid "Under the hood"
-msgstr "しくみ"
 
 #: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm"

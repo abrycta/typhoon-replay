@@ -8,6 +8,6 @@ export const Route = createFileRoute("/under-the-hood")({ component: UnderTheHoo
 
 function UnderTheHoodPage() {
   const { t } = useLingui();
-  useDocumentTitle(t`Under the hood`);
+  useDocumentTitle(t`Tech`);
   return <UnderTheHood />;
 }

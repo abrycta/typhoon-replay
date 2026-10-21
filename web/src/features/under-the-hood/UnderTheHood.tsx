@@ -14,7 +14,7 @@ import { useRace } from "./use-race";
 const DEFAULT_LABELS: Record<BackendId, string> = { java: "Java", node: "Node", rust: "Rust", go: "Go" };
 
 /**
- * "Under the hood": the one page that talks to the API. Race the same question on all four backends, explore one
+ * "Tech" (route /under-the-hood): the one page that talks to the API. Race the same question on all four backends, explore one
  * endpoint, and read the conformance figures. Opening the page wakes the Java backend with one idle-time ping.
  */
 export function UnderTheHood() {
@@ -49,7 +49,7 @@ export function UnderTheHood() {
   return (
     <div className="mx-auto grid max-w-[1080px] gap-14 px-4 py-10">
       <section className="grid gap-3">
-        <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Under the hood`}</p>
+        <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Tech`}</p>
         <h1 className="font-heading text-[clamp(30px,5vw,44px)] leading-[1.15] font-semibold text-balance">{t`One API, four languages`}</h1>
         <p className="max-w-[66ch] text-muted-foreground">
           {t`Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree.`}

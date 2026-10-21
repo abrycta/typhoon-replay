@@ -64,16 +64,16 @@ test("My town works from static data with /api blocked", async ({ page }) => {
   expect(api).toEqual([]);
 });
 
-test("the header has no backend selector; the footer links to Under the hood", async ({ page }) => {
+test("the header has no backend selector; the footer links to Tech", async ({ page }) => {
   for (const path of ["/", "/town", "/about"]) {
     await page.goto(path);
     await expect(page.getByRole("banner")).not.toContainText(/Served by|Java|Mock/);
     await expect(page.getByTestId("backend-switch")).toHaveCount(0);
     const footer = page.getByRole("contentinfo");
     await expect(footer).not.toContainText("X-Backend-Impl");
-    await expect(footer.getByTestId("footer-hook")).toHaveText("Data served statically · API in four languages → Under the hood");
+    await expect(footer.getByTestId("footer-hook")).toHaveText("Data served statically · API in four languages → Tech");
   }
-  await page.getByRole("contentinfo").getByRole("link", { name: "Under the hood" }).click();
+  await page.getByRole("contentinfo").getByRole("link", { name: "Tech" }).click();
   await expect(page).toHaveURL(/\/under-the-hood$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("One API, four languages");
 });
@@ -240,8 +240,9 @@ test("Japanese: nav, page and footer", async ({ page }) => {
   await page.goto("/under-the-hood?lang=ja");
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("1 つの API、4 つの言語");
-  await expect(page.getByRole("navigation", { name: "メイン" }).getByRole("link", { name: "しくみ" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByTestId("footer-hook")).toHaveText("データは静的配信 · API は 4 つの言語で → しくみ");
+  await expect(page.getByRole("navigation", { name: "メイン" }).getByRole("link", { name: "技術" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByTestId("footer-hook")).toHaveText("データは静的配信 · API は 4 つの言語で → 技術");
+  await expect(page).toHaveTitle("技術 · Replay");
   await page.getByRole("button", { name: "4 つすべてで実行" }).click();
   await expect(page.getByTestId("lane-rust-state")).toHaveText("未デプロイ");
   await expect(page.getByTestId("lane-java-state")).toHaveText("稼働中");

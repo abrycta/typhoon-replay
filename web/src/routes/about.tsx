@@ -46,7 +46,7 @@ function About() {
             <Trans>
               The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn
               with WebGL. Place search ("hit my town") also runs in your browser, over a static place index. Separately, one API contract is
-              implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them.
+              implemented in four languages (Java, Node, Rust, Go); the Tech page races them. No other page depends on them.
             </Trans>
           </p>
         </section>

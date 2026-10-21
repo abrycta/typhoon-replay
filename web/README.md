@@ -43,7 +43,7 @@ src/
 
 ## Conformance figures
 
-The Under the hood page's conformance table is `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). Today it is edited by hand from the Java CI run (99/99 scenario tests, 2,150/2,150 Schemathesis cases, p95 storms list 2.8 ms locally, cold start ≈100 s on Render free). The plan for CI:
+The Tech page's (/under-the-hood) conformance table is `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). Today it is edited by hand from the Java CI run (99/99 scenario tests, 2,150/2,150 Schemathesis cases, p95 storms list 2.8 ms locally, cold start ≈100 s on Render free). The plan for CI:
 
 1. Each backend's workflow uploads a `conformance-<impl>.json` artifact on `main` with the same per-backend shape (`scenarios`, `generated`, `p95StormsListMs`, `coldStartS`, `status: "measured"`).
 2. A small job merges the latest artifact of every backend into this file, sets `updatedAt`, and opens a PR (or commits to `main` when only numbers changed), so the next deploy carries the figures.

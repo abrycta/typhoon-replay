@@ -358,8 +358,8 @@ msgid "Country"
 msgstr "Country"
 
 #: src/app/Shell.tsx
-msgid "Data served statically · API in four languages → <0>Under the hood</0>"
-msgstr "Data served statically · API in four languages → <0>Under the hood</0>"
+msgid "Data served statically · API in four languages → <0>Tech</0>"
+msgstr "Data served statically · API in four languages → <0>Tech</0>"
 
 #: src/routes/about.tsx
 msgid "Data sources"
@@ -1139,6 +1139,12 @@ msgstr "Strongest first (peak wind)"
 msgid "Tacloban, Naha, 那覇…"
 msgstr "Tacloban, Naha, 那覇…"
 
+#: src/app/Shell.tsx
+#: src/features/under-the-hood/UnderTheHood.tsx
+#: src/routes/under-the-hood.tsx
+msgid "Tech"
+msgstr "Tech"
+
 #. placeholder {0}: res.retryAfterS ?? 20
 #: src/features/under-the-hood/Explorer.tsx
 msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
@@ -1166,8 +1172,8 @@ msgid "The replay continues with the best track only. ({0})"
 msgstr "The replay continues with the best track only. ({0})"
 
 #: src/routes/about.tsx
-msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them."
-msgstr "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Under the hood page races them. No other page depends on them."
+msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Tech page races them. No other page depends on them."
+msgstr "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Tech page races them. No other page depends on them."
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "The storm catalogue could not be loaded"
@@ -1276,12 +1282,6 @@ msgstr "Typhoons that hit my town"
 #: src/routes/storms.tsx
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
-
-#: src/app/Shell.tsx
-#: src/features/under-the-hood/UnderTheHood.tsx
-#: src/routes/under-the-hood.tsx
-msgid "Under the hood"
-msgstr "Under the hood"
 
 #: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm"

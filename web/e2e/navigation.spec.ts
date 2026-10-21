@@ -8,7 +8,7 @@ const PAGES = [
   { name: "storms", path: "/storms", current: "Storms" },
   { name: "compare", path: `/compare?a=${HAIYAN}&b=2021346N05145`, current: "Compare" },
   { name: "town", path: "/town", current: "My town" },
-  { name: "under the hood", path: "/under-the-hood", current: "Under the hood" },
+  { name: "under the hood", path: "/under-the-hood", current: "Tech" },
   { name: "about", path: "/about", current: "About" },
   { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}`, current: "Storms" },
   { name: "404", path: "/no/such/page", current: undefined },
@@ -52,6 +52,17 @@ for (const p of PAGES) {
       await expect(page).toHaveURL(/\/$/);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Replay any typhoon, hour by hour");
     }
+  });
+}
+
+// At 390 px the six nav links fit on one line in both languages, so the Header is as tall as the other apps' (~121 px).
+for (const lang of ["en", "ja"]) {
+  test(`390 px (${lang}): the nav is one line`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto(`/about?lang=${lang}`);
+    const tops = await page.locator("[data-slot=app-header-nav] a").evaluateAll((as) => new Set(as.map((a) => Math.round(a.getBoundingClientRect().top))).size);
+    expect(tops).toBe(1);
+    expect((await page.locator("header[data-akari-header]").boundingBox())!.height).toBeLessThan(125);
   });
 }
 

@@ -39,7 +39,7 @@ export function Shell({ children }: { children: ReactNode }) {
             { href: "/compare", label: t`Compare`, current: path.startsWith("/compare") },
             { href: "/town", label: t`My town`, current: path.startsWith("/town") },
             { href: "/about", label: t`About`, current: path.startsWith("/about") },
-            { href: "/under-the-hood", label: t`Under the hood`, current: path.startsWith("/under-the-hood") },
+            { href: "/under-the-hood", label: t`Tech`, current: path.startsWith("/under-the-hood") },
           ]}
           portfolioLink
           languages
@@ -55,7 +55,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <Trans>
                   Data served statically · API in four languages →{" "}
                   <Link to="/under-the-hood" className="underline underline-offset-4 hover:text-foreground">
-                    Under the hood
+                    Tech
                   </Link>
                 </Trans>
               </span>
