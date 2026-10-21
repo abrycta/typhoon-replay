@@ -33,6 +33,7 @@ import io
 import json
 import logging
 import math
+import random
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -225,6 +226,8 @@ def honesty(fields: dict[str, np.ndarray], nw_lat: np.ndarray, nw_lon: np.ndarra
 # ----------------------------------------------------------------------------- per storm
 
 FIELD_QUALITY = 80
+FIELD_QUALITIES = (FIELD_QUALITY, 90, 97)  # tried in order per variable
+MAX_FIELD_CODE_ERROR = 40
 TILE_STRIDE = 96
 EXACT_STEP_H, EXACT_STRIDE = 3, 2
 UV = (Enc("u", "m/s", "linear", 0.6, -76.2, "10 m eastward wind (analysis); -76.2..76.2"),
@@ -305,11 +308,16 @@ def write_frames(sid: str, codes: dict[str, np.ndarray], hours: np.ndarray, nw_l
     fvars = []
     for n in FIELD_VARS:
         s, cols, rows = sheet(codes[n], TILE_STRIDE)
-        data = encode_webp(s, FIELD_QUALITY)
-        back = unsheet(data, T, era5.N, era5.N, cols, TILE_STRIDE)
-        err = np.abs(back.astype(int) - codes[n].astype(int))[codes[n] != NODATA]
+        # Start at FIELD_QUALITY; a field with sharp edges can exceed the error bound, so step up until it fits.
+        for q in FIELD_QUALITIES:
+            data = encode_webp(s, q)
+            back = unsheet(data, T, era5.N, era5.N, cols, TILE_STRIDE)
+            err = np.abs(back.astype(int) - codes[n].astype(int))[codes[n] != NODATA]
+            max_err = int(err.max()) if err.size else 0
+            if max_err <= MAX_FIELD_CODE_ERROR:
+                break
         fvars.append(dict(var_meta(ENCODINGS[n]), **_named(out, data, f"field.{n}.webp"),
-                          maxCodeError=int(err.max()) if err.size else 0))
+                          quality=q, maxCodeError=max_err))
     files["field"] = {"kind": "webp-lossy", "quality": FIELD_QUALITY, "stepHours": 1, "frames": T, "cols": cols,
                       "rows": rows, "tileWidth": era5.N, "tileHeight": era5.N, "tileStride": TILE_STRIDE,
                       "resDeg": 0.25, "vars": fvars,
@@ -421,7 +429,7 @@ def validate_storm(d: Path) -> None:
         if sha256(data) != f["sha256"] or not f["file"].startswith(f["sha256"][:16]) or len(data) >= MAX_FILE_BYTES:
             raise ValueError(f"{d.name}: {f['file']} does not match its manifest entry")
     for f in files["field"]["vars"]:
-        if f["maxCodeError"] > 40:
+        if f["maxCodeError"] > MAX_FIELD_CODE_ERROR:
             raise ValueError(f"{d.name}: lossy {f['name']} off by {f['maxCodeError']} codes")
     if "tyf" in files:
         h, q = parse_tyf((d / files["tyf"]["file"]).read_bytes())
@@ -439,24 +447,32 @@ def validate_storm(d: Path) -> None:
                 raise ValueError(f"{d.name}: exact {f['name']} differs from tyf")
 
 
-def upload_storm(d: Path) -> None:
-    """Push one storm's content-addressed frame files to frames/<sid>/ (retrying concurrent-commit conflicts).
-    They are invisible to the app until a summary.json of a published version references them."""
-    from huggingface_hub import HfApi
+UPLOAD_EVERY = 40  # storms per Hugging Face commit; per-storm commits from 16 jobs hit the Hub's commit rate limit
+
+
+def upload_storms(dirs: list[Path]) -> None:
+    """Push several storms' content-addressed frame files to frames/<sid>/ in one commit (retrying conflicts and
+    rate limits). They are invisible to the app until a summary.json of a published version references them."""
+    if not dirs:
+        return
+    from huggingface_hub import CommitOperationAdd, HfApi
 
     from .config import HF_REPO
     from .publish import token
 
-    for k in range(5):
+    ops = [CommitOperationAdd(path_in_repo=f"frames/{d.name}/{f.name}", path_or_fileobj=str(f))
+           for d in dirs for f in sorted(d.iterdir()) if f.suffix in (".tyf", ".webp")]
+    for k in range(6):
         try:
-            HfApi(token=token()).upload_folder(
-                repo_id=HF_REPO, repo_type="dataset", folder_path=str(d), path_in_repo=f"frames/{d.name}",
-                allow_patterns=["*.tyf", "*.webp"], commit_message=f"frames for {d.name}")
+            HfApi(token=token()).create_commit(
+                repo_id=HF_REPO, repo_type="dataset", operations=ops,
+                commit_message=f"frames for {len(dirs)} storms ({dirs[0].name} .. {dirs[-1].name})")
+            log.info("uploaded frames for %d storms (%d files)", len(dirs), len(ops))
             return
         except Exception as e:  # noqa: BLE001  concurrent batch commits can conflict: retry
-            log.warning("upload of %s failed (%s), retry %d", d.name, e, k + 1)
-            time.sleep(10 * (k + 1))
-    raise RuntimeError(f"could not upload {d.name}")
+            log.warning("upload of %d storms failed (%s), retry %d", len(dirs), e, k + 1)
+            time.sleep(30 * (k + 1) + random.uniform(0, 30))
+    raise RuntimeError(f"could not upload frames for {[d.name for d in dirs]}")
 
 
 def read_list(path: Path) -> list[str]:
@@ -491,6 +507,7 @@ def main(argv: list[str] | None = None) -> None:
         sids += json.loads(a.plan.read_text())[str(a.batch)]
     st = catalog.load("storms").set_index("sid")
     hr = catalog.load("hourly")
+    pending: list[Path] = []
     for n, sid in enumerate(sids, 1):
         if sid not in st.index:
             log.error("%s is not in the catalogue; skipped", sid)
@@ -511,12 +528,16 @@ def main(argv: list[str] | None = None) -> None:
         man.write(OUT / sid / "provenance.json")
         validate_storm(OUT / sid)
         if a.upload:
-            upload_storm(OUT / sid)
+            pending.append(OUT / sid)
+            if len(pending) >= UPLOAD_EVERY:
+                upload_storms(pending)
+                pending = []
         h = m["era5VsBestTrack"]
         log.info("[%d/%d] %s %s: %d frames in %.0f s, %.0f MB read, ratio %s (%s), served %s", n, len(sids), sid,
                  st.loc[sid, "name"], m["frames"], time.time() - t0,
                  sum(p.bytes for p in man.items.values()) / 1e6, h["headlineRatio"], h["headlineAgency"],
                  {k: list(v) for k, v in m["servedBy"].items()})
+    upload_storms(pending)
 
 
 if __name__ == "__main__":

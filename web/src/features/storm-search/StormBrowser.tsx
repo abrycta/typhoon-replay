@@ -14,10 +14,10 @@ import {
 } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { type CatalogFilter, type CatalogSort, decades, DEFAULT_SORT, filterStorms, seasons, sortStorms, useStormIndex } from "@/data";
-import type { Country } from "@/shared/model/types";
+import type { Country, StormSummary } from "@/shared/model/types";
 
 import { StormList } from "./StormList";
 
@@ -140,7 +140,8 @@ export function StormBrowser({ filter, onFilter }: StormBrowserProps) {
           ))}
         </div>
       ) : results.length ? (
-        <StormList storms={results} label={t`Storms, ${order}`} />
+        // Keyed by the filter so a new search starts again from the first page.
+        <PagedStormList key={JSON.stringify(filter)} storms={results} label={t`Storms, ${order}`} />
       ) : (
         <Empty>
           <EmptyHeader>
@@ -149,6 +150,25 @@ export function StormBrowser({ filter, onFilter }: StormBrowserProps) {
           </EmptyHeader>
         </Empty>
       )}
+    </div>
+  );
+}
+
+const PAGE = 60;
+
+/** The full catalogue has about 2,000 storms: render a page at a time instead of every card at once. */
+function PagedStormList({ storms, label }: { storms: readonly StormSummary[]; label: string }) {
+  const { t } = useLingui();
+  const [shown, setShown] = useState(PAGE);
+  const rest = storms.length - shown;
+  return (
+    <div className="grid gap-4">
+      <StormList storms={storms.slice(0, shown)} label={label} />
+      {rest > 0 ? (
+        <Button variant="outline" className="justify-self-center" onClick={() => setShown((n) => n + PAGE)}>
+          {t`Show ${Math.min(PAGE, rest)} more`}
+        </Button>
+      ) : null}
     </div>
   );
 }

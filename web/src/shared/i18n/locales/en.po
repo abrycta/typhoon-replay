@@ -749,10 +749,6 @@ msgstr "n/a"
 msgid "Name"
 msgstr "Name"
 
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "next"
-msgstr "next"
-
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Name, A–Z (unnamed last)"
 msgstr "Name, A–Z (unnamed last)"
@@ -760,6 +756,10 @@ msgstr "Name, A–Z (unnamed last)"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
 msgstr "Newest first"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "next"
+msgstr "next"
 
 #: src/features/replay/StormReplay.tsx
 msgid "no"
@@ -837,6 +837,10 @@ msgstr "Observed fixes only"
 msgid "Off"
 msgstr "Off"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Oldest first"
+msgstr "Oldest first"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "One API, four languages"
 msgstr "One API, four languages"
@@ -848,10 +852,6 @@ msgstr "One conformance suite runs against every backend"
 #: src/features/under-the-hood/Race.tsx
 msgid "Only answer so far"
 msgstr "Only answer so far"
-
-#: src/features/storm-search/StormBrowser.tsx
-msgid "Oldest first"
-msgstr "Oldest first"
 
 #: src/routes/index.tsx
 msgid "Open the full replay"
@@ -1059,6 +1059,11 @@ msgstr "Second storm"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Send"
 msgstr "Send"
+
+#. placeholder {0}: Math.min(PAGE, rest)
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Show {0} more"
+msgstr "Show {0} more"
 
 #: src/routes/compare.tsx
 msgid "Side by side"
@@ -1291,10 +1296,6 @@ msgstr "Unnamed storm · {designation} · {month}"
 #: src/features/storm-search/StormList.tsx
 msgid "Unnamed storm · {month}"
 msgstr "Unnamed storm · {month}"
-
-#: src/features/backend-switch/health-label.ts
-msgid "up"
-msgstr "up"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Value"

@@ -749,10 +749,6 @@ msgstr "なし"
 msgid "Name"
 msgstr "名前"
 
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "next"
-msgstr "次に対応"
-
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Name, A–Z (unnamed last)"
 msgstr "名前順 A–Z（名称なしは最後）"
@@ -760,6 +756,10 @@ msgstr "名前順 A–Z（名称なしは最後）"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
 msgstr "新しい順"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "next"
+msgstr "次に対応"
 
 #: src/features/replay/StormReplay.tsx
 msgid "no"
@@ -837,6 +837,10 @@ msgstr "観測値のみ"
 msgid "Off"
 msgstr "オフ"
 
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Oldest first"
+msgstr "古い順"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "One API, four languages"
 msgstr "1 つの API、4 つの言語"
@@ -848,10 +852,6 @@ msgstr "1 つの適合性テストをすべてのバックエンドに実行"
 #: src/features/under-the-hood/Race.tsx
 msgid "Only answer so far"
 msgstr "現時点で唯一の応答"
-
-#: src/features/storm-search/StormBrowser.tsx
-msgid "Oldest first"
-msgstr "古い順"
 
 #: src/routes/index.tsx
 msgid "Open the full replay"
@@ -1059,6 +1059,11 @@ msgstr "2つ目の台風"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Send"
 msgstr "送信"
+
+#. placeholder {0}: Math.min(PAGE, rest)
+#: src/features/storm-search/StormBrowser.tsx
+msgid "Show {0} more"
+msgstr "さらに{0}件を表示"
 
 #: src/routes/compare.tsx
 msgid "Side by side"
@@ -1291,10 +1296,6 @@ msgstr "名称なし · {designation} · {month}"
 #: src/features/storm-search/StormList.tsx
 msgid "Unnamed storm · {month}"
 msgstr "名称なし · {month}"
-
-#: src/features/backend-switch/health-label.ts
-msgid "up"
-msgstr "稼働中"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Value"
