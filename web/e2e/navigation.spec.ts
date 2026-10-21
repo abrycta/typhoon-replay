@@ -60,8 +60,9 @@ for (const lang of ["en", "ja"]) {
   test(`390 px (${lang}): the nav is one line`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await page.goto(`/about?lang=${lang}`);
-    const tops = await page.locator("[data-slot=app-header-nav] a").evaluateAll((as) => new Set(as.map((a) => Math.round(a.getBoundingClientRect().top))).size);
-    expect(tops).toBe(1);
+    await page.evaluate(() => document.fonts.ready); // measure with DM Mono, not the fallback
+    const links = await page.locator("[data-slot=app-header-nav] a").evaluateAll((as) => as.map((a) => [a.textContent, Math.round(a.getBoundingClientRect().top), Math.round(a.getBoundingClientRect().width)]));
+    expect(new Set(links.map((l) => l[1])).size, JSON.stringify(links)).toBe(1);
     expect((await page.locator("header[data-akari-header]").boundingBox())!.height).toBeLessThan(125);
   });
 }
