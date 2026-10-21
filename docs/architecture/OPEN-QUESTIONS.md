@@ -16,6 +16,28 @@ As of 2026-10-21. Each item says who decides or how to verify it. See [SYSTEM-AR
 7. **Frames hosting:** Pages vs a Hugging Face dataset (SPIKE.md: about 5.7 GB WebP for all storms; Pages' total-size limit is unverified).
 8. **Alerts scope for v1:** email only, and which trigger (forecast track within N km of a saved place, or observed wind ≥ X kt)?
 
+9. **Static-mode flag and the nightly Render bandwidth job** (SYSTEM-ARCHITECTURE-RESEARCH §7.1; edge/README.md
+   "Static mode"). The edge side is built: `STATIC_MODE=true` serves cached answers only and never contacts Render, and
+   the proxy already reads an optional KV flag. Not built, pending these choices (2026-10-21):
+   - **Why it matters more now:** Render has a card on file since 2026-10-21, so going over the 5 GB/month no longer
+     suspends the backends: it bills (US$0.15/GB). The guard is now a cost guard, not an uptime guard.
+   - **Usage source (verified 2026-10-21):** `GET https://api.render.com/v1/metrics/bandwidth?resource=<srv-id>&startTime=<1st of month>`
+     returns hourly MB per service (today's Java total so far this month: 0.19 MB). The job sums every service in the
+     workspace. Unverified: that this matches the figure Render bills.
+   - **Flag, option 1: env var + redeploy.** No new resource. The job edits `STATIC_MODE` and runs
+     `wrangler pages deploy`. Catch: `wrangler.jsonc` is the source of truth and `deploy.yml` redeploys `main` on every
+     push, which would silently reset the flag to `"false"` unless the job commits the change to `main` (a bot commit
+     each time it flips).
+   - **Flag, option 2 (recommended): a KV namespace bound as `EDGE_FLAGS`.** The job writes `static_mode` and the next
+     deploy can't undo it. It creates one new Cloudflare resource on the free plan (100k reads, 1k writes per day per
+     account, shared with any other project's KV use). The proxy reads it at most once a minute per isolate, so the
+     reads stay well inside the quota, but they count, and a KV error must leave static mode off (it does today).
+   - **Threshold and reset:** 70% of 5 GB (3.5 GB) as planned, or lower now that overage bills; clear on the 1st.
+   - **Secrets the job needs in GitHub Actions:** a Render API key (read-only use) and a Cloudflare token scoped to
+     KV writes (option 2) or Pages deploys (option 1). Neither is a repo secret yet.
+   - **Where:** a small scheduled workflow (daily), separate from `refresh.yml`/`backfill.yml` (their `data-publish`
+     concurrency group would queue it behind multi-hour runs).
+
 ## B. To verify by hand or with a quick experiment
 
 **Render**
