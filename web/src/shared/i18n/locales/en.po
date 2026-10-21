@@ -93,10 +93,6 @@ msgstr "{0}× JMA"
 msgid "{0}× JTWC"
 msgstr "{0}× JTWC"
 
-#: src/app/Shell.tsx
-msgid "{AUTHOR}'s portfolio"
-msgstr "{AUTHOR}'s portfolio"
-
 #: src/features/storm-search/StormBrowser.tsx
 #: src/routes/index.tsx
 msgid "{d}s"
@@ -196,8 +192,8 @@ msgid "About"
 msgstr "About"
 
 #: src/routes/about.tsx
-msgid "About Typhoon Replay"
-msgstr "About Typhoon Replay"
+msgid "About Replay"
+msgstr "About Replay"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "Affected places"
@@ -1271,10 +1267,6 @@ msgstr "Type at least two letters."
 #: src/shared/ui/use-storm-name.ts
 msgid "Typhoon No. {number}"
 msgstr "Typhoon No. {number}"
-
-#: src/routes/storm.$sid.tsx
-msgid "Typhoon replay"
-msgstr "Typhoon replay"
 
 #: src/routes/index.tsx
 #: src/routes/town.tsx

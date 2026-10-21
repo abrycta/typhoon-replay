@@ -1,6 +1,6 @@
 # web/
 
-The Typhoon Replay app: **Stack A, a static-first SPA** (`docs/architecture/DECISIONS.md`). Vite 8, React 19, TypeScript strict, TanStack Router (file routes, typed search params as URL state) and Query, the Akari design system (`@abrycta/akari`), Lingui (EN/JA), MapLibre 6 with a hand-written WebGL2 field and particle layer.
+The Replay app (https://replay.krtmtthw.dev): **Stack A, a static-first SPA** (`docs/architecture/DECISIONS.md`). Vite 8, React 19, TypeScript strict, TanStack Router (file routes, typed search params as URL state) and Query, the Akari design system (`@abrycta/akari`), Lingui (EN/JA), MapLibre 6 with a hand-written WebGL2 field and particle layer.
 
 ## Run
 

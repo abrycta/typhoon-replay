@@ -7,10 +7,10 @@ import { expect, test } from "./fixtures";
 
 // Theme and contrast are shared across *.krtmtthw.dev through first-party cookies on krtmtthw.dev (Akari's
 // theme store + theme-init.js). .dev is HSTS-preloaded, so instead of a host mapping the browser asks for
-// https://typhoon.krtmtthw.dev/ and Playwright answers from the local preview, adding the production CSP
+// https://replay.krtmtthw.dev/ and Playwright answers from the local preview, adding the production CSP
 // from public/_headers. Cookies for the parent domain then behave exactly as in production.
 const PORT = Number(process.env.E2E_PORT ?? 4317);
-const ORIGIN = "https://typhoon.krtmtthw.dev";
+const ORIGIN = "https://replay.krtmtthw.dev";
 const CSP = /Content-Security-Policy: (.+)/.exec(
   readFileSync(resolve(import.meta.dirname, "../public/_headers"), "utf8"),
 )![1];
@@ -55,7 +55,7 @@ const read = (page: Page, key: "__csp" | "__beforeApp") =>
   page.evaluate((k) => (window as unknown as Record<string, unknown>)[k], key);
 
 test.describe("shared theme cookie (krtmtthw.dev)", () => {
-  // fixme: locally the proxied https://typhoon.krtmtthw.dev load stalls (HSTS / plain-HTTP upstream); verified against the live sites instead.
+  // fixme: locally the proxied https://replay.krtmtthw.dev load stalls (HSTS / plain-HTTP upstream); verified against the live sites instead.
   test.fixme();
   // Every request is proxied through Playwright, so page loads are slower than usual.
   test.describe.configure({ timeout: 150_000 });

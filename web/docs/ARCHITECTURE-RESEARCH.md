@@ -1,4 +1,4 @@
-# Typhoon Replay frontend: architecture research
+# Replay frontend: architecture research
 
 Status: research only, for the owner to choose from. Nothing here is implemented.
 Checked: 2026-10-21. I took versions from the npm registry (`latest` tag) and the sources linked inline. Anything I inferred rather than found in documentation says so.

@@ -1,8 +1,7 @@
-import { AppShell, ContrastToggle, Header, LangSwitch, Logo, ThemeToggle, useLang } from "@abrycta/akari/react";
+import { AppShell, Header, useLang } from "@abrycta/akari/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Link, useLocation } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
+import { createLink, Link, useLocation } from "@tanstack/react-router";
+import { type ComponentProps, type ReactNode, useEffect } from "react";
 
 import { Attribution, DataAsOf } from "@/features/dataset-info";
 import { buildInfo, formatBuildInfo } from "@/shared/lib/build-info";
@@ -18,82 +17,34 @@ function useGlobalParams() {
   }, [search.lang, setLang]);
 }
 
-/** Back to the author's portfolio, in the same tab. The visible text is the host; screen readers also hear whose site it is. */
-function PortfolioLink({ className }: { className?: string }) {
-  const { t } = useLingui();
-  return (
-    <a href={PORTFOLIO_URL} className={className} data-testid="portfolio-link">
-      <ArrowLeftIcon aria-hidden="true" className="size-3.5" />
-      {PORTFOLIO_HOST}
-      <span className="sr-only"> ({t`${AUTHOR}'s portfolio`})</span>
-    </a>
-  );
-}
-
-const NAV_LINK = "rounded-sm px-1 py-0.5 whitespace-nowrap hover:text-foreground [&.active]:text-foreground [&.active]:underline underline-offset-4";
-const PORTFOLIO_LINK = "items-center gap-1 rounded-sm px-1 py-0.5 text-xs whitespace-nowrap text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
+/**
+ * The anchor behind Akari's Header links: TanStack's <Link> marks every matching link aria-current="page"
+ * (the brand link too) and adds an "active" class, so the Header's own `current` flag wins here: exactly one nav item is current.
+ */
+const HeaderAnchor = createLink(({ current, ...props }: ComponentProps<"a"> & { current?: "page" }) => <a {...props} aria-current={current} />);
 
 export function Shell({ children }: { children: ReactNode }) {
   const { t } = useLingui();
   useGlobalParams();
-  // TanStack's <Link> sets aria-current="page" and the "active" class on the current section.
-  const links = (
-    <>
-      <Link to="/" activeOptions={{ exact: true }} className={NAV_LINK} data-testid="nav-home">
-        {t`Home`}
-      </Link>
-      <Link to="/storms" className={NAV_LINK}>
-        {t`Storms`}
-      </Link>
-      <Link to="/compare" className={NAV_LINK}>
-        {t`Compare`}
-      </Link>
-      <Link to="/town" className={NAV_LINK}>
-        {t`My town`}
-      </Link>
-      <Link to="/about" className={NAV_LINK}>
-        {t`About`}
-      </Link>
-      <Link to="/under-the-hood" className={NAV_LINK}>
-        {t`Under the hood`}
-      </Link>
-    </>
-  );
+  const path = useLocation({ select: (l) => l.pathname });
   return (
     <AppShell
       header={
-        <>
-          <Header
-            brand={
-              <>
-                {/* Accessible name "Typhoon Replay home": the visible wordmark plus a screen-reader suffix (label-in-name). */}
-                <Link to="/" activeOptions={{ exact: true }} className="rounded-sm" data-testid="brand-home">
-                  <Logo name="Typhoon Replay" glyph="嵐" size="sm" />
-                  <span className="sr-only"> {t({ message: "home", context: "brand link suffix" })}</span>
-                </Link>
-                {/* A labelled <nav> of our own (Akari's children slot renders an unlabelled one). Below md the row underneath takes over. */}
-                <nav aria-label={t`Main`} className="hidden items-center gap-4 text-sm text-muted-foreground md:flex">
-                  {links}
-                </nav>
-              </>
-            }
-            actions={
-              <>
-                <PortfolioLink className={`${PORTFOLIO_LINK} hidden md:inline-flex`} />
-                <ThemeToggle variant="compact" />
-                <ContrastToggle />
-                <LangSwitch />
-              </>
-            }
-          />
-          {/* Akari's header row does not wrap its nav, so on small screens the links get their own row. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-2 md:hidden">
-            <nav aria-label={t`Main`} className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              {links}
-            </nav>
-            <PortfolioLink className={`${PORTFOLIO_LINK} inline-flex`} />
-          </div>
-        </>
+        <Header
+          brand={{ name: "Replay", glyph: "嵐", href: "/", srSuffix: t({ message: "home", context: "brand link suffix" }) }}
+          navLabel={t`Main`}
+          nav={[
+            { href: "/", label: t`Home`, current: path === "/" },
+            { href: "/storms", label: t`Storms`, current: path.startsWith("/storms") || path.startsWith("/storm/") },
+            { href: "/compare", label: t`Compare`, current: path.startsWith("/compare") },
+            { href: "/town", label: t`My town`, current: path.startsWith("/town") },
+            { href: "/about", label: t`About`, current: path.startsWith("/about") },
+            { href: "/under-the-hood", label: t`Under the hood`, current: path.startsWith("/under-the-hood") },
+          ]}
+          portfolioLink
+          languages
+          renderLink={({ href, "aria-current": current, ...p }) => <HeaderAnchor to={href} activeProps={{}} current={current} {...p} />}
+        />
       }
       footer={
         <footer className="border-t border-border">

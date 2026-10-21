@@ -6,7 +6,7 @@ import { useEffect } from "react";
 export function NotFound() {
   const { t } = useLingui();
   useEffect(() => {
-    document.title = `${t`Not found`} · Typhoon Replay`;
+    document.title = `${t`Not found`} · Replay`;
   }, [t]);
   return (
     <Page eyebrow="404" title={t`This page blew away`} lede={t`There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet.`}>

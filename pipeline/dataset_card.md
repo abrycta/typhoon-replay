@@ -2,7 +2,7 @@
 license: other
 license_name: mixed-attribution
 license_link: https://huggingface.co/datasets/permission-alluring/typhoon-replay/blob/main/README.md#licences
-pretty_name: Typhoon Replay
+pretty_name: Replay
 language:
 - en
 - ja
@@ -20,10 +20,10 @@ configs:
 {{CONFIGS}}
 ---
 
-# Typhoon Replay
+# Replay
 
 Western North Pacific typhoons that affected the **Philippines or Japan since 1940**, prepared for the
-[Typhoon Replay](https://github.com/abrycta/typhoon-replay) web app: a storm catalogue with best tracks,
+[Replay](https://replay.krtmtthw.dev) web app ([source](https://github.com/abrycta/typhoon-replay)): a storm catalogue with best tracks,
 landfalls, PAGASA and JMA names, "typhoons that hit my town" exposure for every Philippine city or
 municipality and every Japanese municipality, and hour-by-hour ERA5 wind, gust, pressure and rain fields
 that follow each storm.
@@ -100,7 +100,7 @@ ARCO-ERA5 on Google Cloud for months NCAR has not published yet. `manifest.json`
 
 For each place and storm whose hourly centre came within 500 km of the place boundary: closest approach
 (km, and when), hours within 50/100/200/300/500 km, and the best-track sustained wind and gust (kt) while
-the centre was within each radius. This is what the Typhoon Replay API serves at
+the centre was within each radius. This is what the Replay API serves at
 `GET /v1/places/{placeId}/storms`.
 
 ## Sources and licences {#licences}

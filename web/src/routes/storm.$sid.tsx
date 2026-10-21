@@ -107,7 +107,9 @@ function StormPage() {
   const navigate = Route.useNavigate();
   const d = useStormDetail(sid);
   const stormName = useStormName();
-  useDocumentTitle(d.data ? `${stormName(d.data)} ${d.data.season}` : undefined);
+  // An unnamed storm's name already carries its start month and year ("Unnamed storm · Feb 1940"): no second year.
+  const titled = (x: NonNullable<typeof d.data>) => (stormLabel(x).kind === "unnamed" && x.startedAt ? stormName(x) : `${stormName(x)} ${x.season}`);
+  useDocumentTitle(d.data ? titled(d.data) : undefined);
   const onUrl = useCallback(
     (patch: Partial<ReplayUrlState>) => void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false }),
     [navigate],
@@ -149,10 +151,10 @@ function StormPage() {
 
   return (
     <div className="mx-auto grid max-w-[1120px] gap-8 px-4 py-8 md:py-12">
-      <StormBreadcrumb current={`${stormName(s)} ${s.season}`} />
+      <StormBreadcrumb current={titled(s)} />
       <header className="-mt-4 grid gap-2">
         <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">
-          {t`Typhoon replay`} · {s.season} · {s.sid}
+          Replay · {s.season} · {s.sid}
         </p>
         <h1 className="font-heading text-[clamp(28px,4vw,40px)] leading-tight font-semibold">
           <StormName s={s} />

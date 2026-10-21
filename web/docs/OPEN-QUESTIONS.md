@@ -1,4 +1,4 @@
-# Typhoon Replay frontend: open questions
+# Replay frontend: open questions
 
 These are questions the frontend cannot settle by itself. Each one names who decides and gives the default the research assumes, so work can start before it is answered.
 See [ARCHITECTURE-RESEARCH.md](./ARCHITECTURE-RESEARCH.md) for the reasoning.

@@ -10,23 +10,28 @@ const PAGES = [
   { name: "town", path: "/town", current: "My town" },
   { name: "under the hood", path: "/under-the-hood", current: "Under the hood" },
   { name: "about", path: "/about", current: "About" },
-  { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}`, current: undefined },
+  { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}`, current: "Storms" },
   { name: "404", path: "/no/such/page", current: undefined },
 ];
 
 for (const p of PAGES) {
   test(`${p.name}: brand and Home go to /, portfolio links to krtmtthw.dev`, async ({ page }) => {
     await page.goto(p.path);
+    // Akari's unified Header, exactly once (a hand-rolled header would fail here).
+    await expect(page.locator("header[data-akari-header]")).toHaveCount(1);
     const header = page.getByRole("banner");
-    const nav = page.getByRole("navigation", { name: "Main" });
+    await expect(header).toHaveAttribute("data-akari-header", "");
+    const nav = header.getByRole("navigation", { name: "Main" });
     await expect(nav).toBeVisible();
 
-    const brand = header.getByRole("link", { name: "Typhoon Replay home" });
+    const brand = header.getByRole("link", { name: "Replay home" });
     await expect(brand).toHaveAttribute("href", "/");
     await expect(nav.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/");
 
-    // aria-current marks exactly the active section (none on storm pages and the 404).
+    // aria-current marks exactly the active section (storm pages count as Storms; none on the 404), and only in the
+    // nav: the brand link never gets a second one from the router.
     const current = nav.locator('[aria-current="page"]');
+    await expect(header.locator('[aria-current="page"]')).toHaveCount(p.current ? 1 : 0);
     if (p.current) {
       await expect(current).toHaveCount(1);
       await expect(current).toHaveText(p.current);
@@ -37,7 +42,7 @@ for (const p of PAGES) {
     const portfolio = header.getByRole("link", { name: /krtmtthw\.dev/ });
     await expect(portfolio).toHaveAttribute("href", PORTFOLIO);
     await expect(portfolio).not.toHaveAttribute("target", /.+/); // same tab
-    await expect(portfolio).toHaveAccessibleName(/Kurt Matthew Nudo's portfolio/);
+    await expect(portfolio).toHaveAccessibleName(/Kurt's portfolio/);
     const footer = page.getByRole("contentinfo");
     await expect(footer).toContainText("A project by Kurt Matthew Nudo · krtmtthw.dev");
     await expect(footer.getByRole("link", { name: "Kurt Matthew Nudo · krtmtthw.dev" })).toHaveAttribute("href", PORTFOLIO);
@@ -99,12 +104,12 @@ test("every API blocked: the town page still works and has the header nav", asyn
 test("Japanese: home, breadcrumbs and portfolio links are translated", async ({ page }) => {
   await page.goto(`/storm/${HAIYAN}?lang=ja`);
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
-  await expect(page.getByRole("link", { name: "Typhoon Replay ホーム" })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Replay ホーム" })).toHaveAttribute("href", "/");
   const crumbs = page.getByRole("navigation", { name: "パンくずリスト" });
   await expect(crumbs.getByRole("link", { name: "ホーム", exact: true })).toHaveAttribute("href", "/");
   await expect(crumbs.getByRole("link", { name: "台風", exact: true })).toHaveAttribute("href", "/storms");
   await expect(page.getByRole("link", { name: "台風の一覧に戻る" })).toBeVisible();
-  await expect(page.getByRole("banner").getByRole("link", { name: /Kurt Matthew Nudo のポートフォリオ/ })).toHaveAttribute("href", PORTFOLIO);
+  await expect(page.getByRole("banner").getByRole("link", { name: /Kurtのポートフォリオ/ })).toHaveAttribute("href", PORTFOLIO);
   await expect(page.getByRole("contentinfo")).toContainText("制作: Kurt Matthew Nudo · krtmtthw.dev");
 });
 
@@ -139,7 +144,7 @@ test.describe("360 px", () => {
       await page.waitForLoadState("networkidle");
       const nav = page.getByRole("navigation", { name: lang === "ja" ? "メイン" : "Main" });
       await expect(nav.getByRole("link", { name: lang === "ja" ? "ホーム" : "Home", exact: true })).toBeVisible();
-      await expect(page.getByTestId("portfolio-link").locator("visible=true")).toHaveAttribute("href", PORTFOLIO);
+      await expect(page.getByRole("banner").getByRole("link", { name: /krtmtthw\.dev/ })).toBeVisible();
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
     });

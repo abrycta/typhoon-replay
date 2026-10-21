@@ -15,7 +15,7 @@ import { join, resolve } from "node:path";
 const web = resolve(import.meta.dirname, "..");
 const dist = join(web, "dist");
 const config = JSON.parse(readFileSync(join(web, "public/config.json"), "utf8"));
-const site = (process.env.SITE_URL ?? config.siteUrl ?? "https://typhoon.krtmtthw.dev").replace(/\/$/, "");
+const site = (process.env.SITE_URL ?? config.siteUrl ?? "https://replay.krtmtthw.dev").replace(/\/$/, "");
 const slash = (s) => (s.endsWith("/") ? s : `${s}/`);
 
 async function getJson(url) {
@@ -57,7 +57,7 @@ function describe(s) {
   const peak = s.peakWindKt ? `, peak ${Math.round(s.peakWindKt)} kt (${(s.peakWindAgency ?? "").toUpperCase()})` : "";
   const land = s.landfallCountries?.length ? `, landfall in ${s.landfallCountries.map((c) => (c === "PH" ? "the Philippines" : "Japan")).join(" and ")}` : "";
   return {
-    title: `${name} ${s.season} · Typhoon Replay`,
+    title: `${name} ${s.season} · Replay`,
     text: `Replay ${name}, ${day(s.startedAt)} to ${day(s.endedAt)}${peak}${land}: hour by hour wind, rain and pressure from ERA5 beside the best track.`,
   };
 }
@@ -68,7 +68,7 @@ function headTags({ title, text, url, image }) {
     `<meta name="description" content="${esc(text)}" />`,
     `<link rel="canonical" href="${esc(url)}" />`,
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="Typhoon Replay" />`,
+    `<meta property="og:site_name" content="Replay" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(text)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
@@ -91,12 +91,12 @@ const template = readFileSync(join(dist, "index.html"), "utf8");
 const { storms, root, source } = await loadIndex();
 
 const home = {
-  title: "Typhoon Replay",
+  title: "Replay",
   text: "Replay any typhoon that hit the Philippines or Japan, hour by hour: ERA5 wind, rain and pressure beside the official best track.",
   url: `${site}/`,
   image: `${site}/og-card.png`,
 };
-writeFileSync(join(dist, "index.html"), stamp(template, headTags(home), "Typhoon Replay needs JavaScript for the interactive replay."));
+writeFileSync(join(dist, "index.html"), stamp(template, headTags(home), "Replay needs JavaScript for the interactive replay."));
 
 mkdirSync(join(dist, "storm"), { recursive: true });
 for (const s of storms) {

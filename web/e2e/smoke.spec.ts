@@ -3,6 +3,11 @@ import { expect, HAIYAN, PEAK, RAI, test, waitForReplay } from "./fixtures";
 test("home: featured Haiyan replay, search and browse", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Replay any typhoon, hour by hour");
+  // Akari's unified Header (the same menu bar as every *.krtmtthw.dev app), with exactly one current nav item.
+  await expect(page.locator("header[data-akari-header]")).toHaveCount(1);
+  await expect(page.getByRole("banner").getByRole("link", { name: "Replay home" })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("navigation", { name: "Main" }).locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(page).toHaveTitle("Replay");
   await expect(page.getByLabel("Featured replay")).toBeVisible();
   await expect(page.getByTestId("replay-map").first()).toBeVisible();
   await expect(page.getByTestId("data-as-of")).toContainText("sample data");
@@ -97,15 +102,20 @@ test("errors: unknown storm and unknown page show the 404", async ({ page }) => 
 
 test("about lists sources and licences; Japanese UI", async ({ page }) => {
   await page.goto("/about?lang=ja");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Typhoon Replay について");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Replay について");
   await expect(page.getByRole("link", { name: /IBTrACS/ })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
 });
 
 test("share shell carries Open Graph tags for crawlers", async ({ request }) => {
   const html = await (await request.get(`/storm/${HAIYAN}`)).text();
-  expect(html).toContain('<meta property="og:title" content="Haiyan (Yolanda) 2013 · Typhoon Replay"');
-  expect(html).toContain(`<link rel="canonical" href="https://typhoon.krtmtthw.dev/storm/${HAIYAN}"`);
+  expect(html).toContain('<meta property="og:title" content="Haiyan (Yolanda) 2013 · Replay"');
+  expect(html).toContain('<meta property="og:site_name" content="Replay"');
+  expect(html).toContain(`<link rel="canonical" href="https://replay.krtmtthw.dev/storm/${HAIYAN}"`);
+  expect(html).toContain(`<meta property="og:url" content="https://replay.krtmtthw.dev/storm/${HAIYAN}"`);
+  const home = await (await request.get("/")).text();
+  expect(home).toContain("<title>Replay</title>");
+  expect(home).toContain('<meta property="og:image" content="https://replay.krtmtthw.dev/og-card.png"');
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain(`/storm/${HAIYAN}</loc>`);
 });

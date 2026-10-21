@@ -11,7 +11,7 @@ function About() {
   const { t } = useLingui();
   useDocumentTitle(t`About`);
   return (
-    <Page eyebrow={t`About`} title={t`About Typhoon Replay`} lede={t`Where the data comes from, what it can and cannot tell you, and the licences that apply.`}>
+    <Page eyebrow={t`About`} title={t`About Replay`} lede={t`Where the data comes from, what it can and cannot tell you, and the licences that apply.`}>
       <div className="grid max-w-[68ch] gap-8">
         <section className="grid gap-2" aria-labelledby="h-data">
           <h2 id="h-data" className="text-xl font-semibold">

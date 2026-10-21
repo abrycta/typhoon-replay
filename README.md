@@ -1,4 +1,4 @@
-# Typhoon Replay
+# Replay
 
 Replay any typhoon that hit the Philippines or Japan, hour by hour: track,
 reanalysis wind and rain fields, and the towns it affected.
@@ -11,7 +11,7 @@ each pull request gets its own preview URL.
 
 | Path | What it is |
 |---|---|
-| `web/` | The frontend (Vite + React + TanStack, Akari), live at https://typhoon.krtmtthw.dev (see `web/README.md`) |
+| `web/` | The frontend (Vite + React + TanStack, Akari), live at https://replay.krtmtthw.dev (see `web/README.md`) |
 | `contracts/` | The shared API contract (OpenAPI 3.1), database migrations and seed, conformance suite and mocks (see `contracts/README.md`) |
 | `api/{java,node,rust,go}/` | The four interchangeable backends (research docs so far) |
 | `pipeline/` | Python data pipeline: IBTrACS catalogue, places and exposure, ERA5 replay frames, Hugging Face publishing |

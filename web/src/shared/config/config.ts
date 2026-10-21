@@ -25,7 +25,7 @@ const Data = z.object({
 });
 
 export const AppConfig = z.object({
-  siteUrl: z._default(z.string(), "https://typhoon.krtmtthw.dev"),
+  siteUrl: z._default(z.string(), "https://replay.krtmtthw.dev"),
   data: Data,
   backends: z.array(Backend).check(z.minLength(1)),
   defaultBackend: z._default(BackendId, "java"),
