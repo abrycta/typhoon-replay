@@ -40,7 +40,7 @@
             "java": {
               "impl": "java",
               "implVersion": "0.1.0",
-              "contractVersion": "1.0.0",
+              "contractVersion": "2.0.1",
               "schemaVersion": "20261021000500",
               "datasetVersion": 1,
               "commit": "617f6ce",
@@ -60,7 +60,7 @@
               "openapi": "3.1.0",
               "info": {
                 "title": "Typhoon Replay API",
-                "version": "1.0.0"
+                "version": "2.0.1"
               },
               "paths": {}
             }

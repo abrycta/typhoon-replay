@@ -51,9 +51,23 @@ ajv.addSchema({ $id: 'openapi', components: closeObjects(spec.components) });
 const ref = (schema) => (schema?.$ref?.startsWith('#/') ? { $ref: `openapi${schema.$ref}` } : { $id: undefined, ...closeObjects(schema), $defs: undefined });
 const problems = [];
 let checked = 0;
+// Examples that state the contract version must state this one: Prism serves them as the mock's answers, and the
+// conformance suite (IMPL=mock) expects X-Contract-Version and meta to match info.version.
+const version = spec.info.version;
+function checkVersion(where, value) {
+  if (!value || typeof value !== 'object') return;
+  if (typeof value.contractVersion === 'string' && value.contractVersion !== version) {
+    problems.push(`${where}/contractVersion: ${value.contractVersion}, but the contract is ${version}`);
+  }
+  if (typeof value.openapi === 'string' && typeof value.info?.version === 'string' && value.info.version !== version) {
+    problems.push(`${where}/info/version: ${value.info.version}, but the contract is ${version}`);
+  }
+}
 function check(where, schema, value) {
   if (!schema || value === undefined) return;
   checked++;
+  checkVersion(where, value);
+  if (/header X-Contract-Version/i.test(where) && value !== version) problems.push(`${where}: ${value}, but the contract is ${version}`);
   const validate = ajv.compile(schema.$ref ? ref(schema) : { ...closeObjects(rewrite(schema)) });
   if (!validate(value)) {
     for (const e of validate.errors ?? []) {

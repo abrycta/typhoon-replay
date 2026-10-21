@@ -1031,7 +1031,7 @@ export interface components {
         "X-Backend-Version": string;
         /**
          * @description The contract version (this document's `info.version`) the backend implements.
-         * @example 1.0.0
+         * @example 2.0.1
          */
         "X-Contract-Version": string;
         /**
@@ -1221,7 +1221,7 @@ export interface operations {
                      *       "openapi": "3.1.0",
                      *       "info": {
                      *         "title": "Typhoon Replay API",
-                     *         "version": "1.0.0"
+                     *         "version": "2.0.1"
                      *       },
                      *       "paths": {}
                      *     }
