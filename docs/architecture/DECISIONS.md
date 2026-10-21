@@ -39,6 +39,47 @@ The first whole-catalogue build (2,058 storms with frames) failed its dataset ch
 - **Budgets in the dataset check:** 25 MiB for any file (hosting cap); 2.5 MB raw for `index.json` (the browse catalogue, ~185 kB gzip); **1 MB raw for every other file fetched before a page can draw**: `manifest.json`, `places/index.json`, each storm's `summary.json` and `track.json`. JSON gzips about 8×, so 1 MB is ~125 kB transferred and well under 50 ms to parse on a mid-range phone; today the largest is a 105 kB `track.json`.
 - **Backfill `reuse_run` input:** a publish that fails after its frames job succeeded can be redone from that run's artifacts (the prepared catalogue and the `frames.json` files, kept 7 days) without rebuilding frames. The data-quality gates, the dataset check and the upload verification still run.
 
+## Update 2026-10-22: hosting the Go, Node and Rust backends (free tiers only)
+
+System option A planned four Render services that sleep. Render's free plan gives **750 instance hours per
+workspace per month, shared by every free service**; running out suspends all of them (the live Java backend
+included) until the next month, and outbound bandwidth is 5 GB/month shared (an overage bills the card on file).
+Four Render services could need up to 4 × 744 h. So only Java and Go use Render; Node and Rust run on Cloudflare
+Workers, which consume no Render hours.
+
+| Backend | Hosting | Database access | Why |
+|---|---|---|---|
+| Java | Render free web service (unchanged) | JDBC, Neon pooled URL | Already live |
+| Go | **Render free web service, sleeps after 15 min** | Neon serverless SQL over HTTP (`api/go/internal/neon`) | Measured on Workers first (TinyGo 0.43 → wasm, workers-go): it passed conformance, but starting a Go instance cost **15–55 ms CPU at p50** per request against the free plan's 10 ms ("a Worker that consistently hits the limit has its execution terminated"). A shared instance per isolate does not help: requests land on fresh isolates. Native Go on Render has no such limit and keeps the recorded stack (Go 1.27, net/http, oapi-codegen). |
+| Node | **Cloudflare Worker** `replay-api-node` (workers.dev + service binding from the edge) | Neon serverless HTTP | Fastify 5 cannot run on Workers: its boot generates code from strings (`EvalError: Code generation from strings disallowed`, measured with `nodejs_compat`). The Node backend takes the closest contract-first stack that fits (decided by its build, recorded in `api/node/`). |
+| Rust | **Cloudflare Worker** `replay-api-rust` (workers-rs, wasm) | Neon serverless HTTP via the Workers fetch API | Axum 0.8 routers run on workers-rs; SQLx needs Tokio sockets, which Workers lack, so queries go over Neon's HTTP endpoint. |
+
+**Neon over HTTP, not Hyperdrive** (for the Workers backends and Go): one HTTPS request per transaction
+(`POST https://{host}/sql`, read-only batch with `SET LOCAL statement_timeout = 5000`), no connection held between
+requests. Hyperdrive (free: 100k queries/day) keeps a pool of origin connections, and open connections stop Neon's
+compute from scaling to zero; an always-on 0.25 CU compute is ~186 CU-h/month against the free 100. CI runs the same
+protocol against PostGIS through Neon's open-source proxy (`ghcr.io/timowilhelm/local-neon-http-proxy`, by digest).
+
+**Edge routing.** One entry per backend, additive: its origin in `BACKEND_ORIGINS` (Pages vars in `wrangler.jsonc`),
+plus, for a Worker, a service binding `API_{IMPL}` to `replay-api-{impl}` (Pages `services`). The proxy sends that
+origin's requests through the binding (`edge/src/proxy.ts`, `upstreamFetch`): no public hop, and no same-account
+`workers.dev` fetch restriction. Caching, stale-if-error, compression and the per-IP limit stay at the edge for every
+backend.
+
+**Worker conventions** (Node, Rust): name `replay-api-{impl}` on `https://replay-api-{impl}.krtmtthw.workers.dev`;
+secrets `DATABASE_URL` (Neon pooled URL) and `TR_EDGE_SECRET` set with `wrangler secret put`, never in files;
+vars `TR_SITE_ORIGIN`, `TR_TEST_HOOKS` ("0" in production), `TR_RATE_LIMIT_PER_MINUTE`, `TR_COMMIT`; optional
+`NEON_HTTP_URL` for local runs; a rate limiting binding `RATE_LIMITER` (free; namespace ids 1002 node, 1003 rust);
+Workers Logs on. Check CPU per request after deploying (Workers analytics `cpuTimeP50`): the free plan allows 10 ms.
+
+**Budget.** Render hours, estimated from CPU samples: Java ran ~6.3 h in its first ~44 h live, a busy development
+period. Two sleeping services at that rate are ~2 × 105 h ≈ 210 h/month (28 % of 750); worst case, both awake
+around the clock, is 2 × 744 = 1,488 h, which would suspend both around day 15. Guards: edge caching (catalogue
+answers pinned to the dataset version), `stale-if-error`, no keep-alive pingers, and `.github/workflows/budget.yml`,
+a daily read of Render hours and bandwidth, Cloudflare requests (100k/day shared by Workers and Pages Functions) and
+Neon usage that opens an issue when a meter passes 70 % or is projected past 100 %. Neon's usage needs a
+`NEON_API_KEY` secret and `NEON_PROJECT_ID` variable (not set yet).
+
 ## Frozen showcase policy
 
 Once a backend is built (Java now; Go, Node and Rust as they land) it is **pinned and only receives security fixes**, so the "Under the hood" race always compares the same code.

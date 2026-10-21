@@ -77,6 +77,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   if (!METHODS.has(request.method)) return fail("method-not-allowed");
 
   const settings = readSettings(env);
+  activeBindings = settings.bindings;
   const rate = await checkRate(env, settings, clientIp(request));
   if (!rate.ok) return fail("rate-limited", { retryAfter: rate.retryAfterS });
 
@@ -219,10 +220,19 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
 type FetchResult = { kind: "response"; response: Response } | { kind: "error"; error: unknown };
 type OriginResult = FetchResult | { kind: "timeout" };
 
+/** Origin -> service binding of the current environment (stable per isolate: Env objects are). */
+let activeBindings: Map<string, Fetcher> = new Map();
+
+/** fetch() to a backend: through its service binding when it has one (Workers backends), else over the network. */
+function upstreamFetch(input: string | URL, init: RequestInit): Promise<Response> {
+  const binding = activeBindings.get(new URL(input).origin);
+  return binding ? binding.fetch(input.toString(), init) : fetch(input, init);
+}
+
 function fetchWithTimeout(input: string | URL, init: RequestInit, ms: number): Promise<Response> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
-  return fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+  return upstreamFetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
 }
 
 /** Fetch with a deadline for the response headers; the body (e.g. an SSE stream) is not limited. */
@@ -234,7 +244,7 @@ async function raceOrigin(target: URL, init: RequestInit, ms: number, abortOnTim
     if (abortOnTimeout) ctrl.abort();
   }, ms);
   try {
-    const response = await fetch(target, { ...init, signal: ctrl.signal });
+    const response = await upstreamFetch(target, { ...init, signal: ctrl.signal });
     return timedOut ? { kind: "timeout" } : { kind: "response", response };
   } catch (error) {
     return timedOut ? { kind: "timeout" } : { kind: "error", error };

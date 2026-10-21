@@ -30,6 +30,15 @@ export interface Env {
   EDGE_FLAGS?: KVNamespace;
   /** Pages secret shared with the backends (`TR_EDGE_SECRET`), sent as `X-Edge-Secret` so they trust `X-Forwarded-For`. */
   EDGE_SECRET?: string;
+  /**
+   * Optional service bindings to backends that run as Workers (wrangler.jsonc `services`, e.g. API_NODE ->
+   * replay-api-node). When an impl has both an origin in BACKEND_ORIGINS and a binding, requests to that origin go
+   * through the binding: no public hop, and no same-account workers.dev fetch restriction.
+   */
+  API_JAVA?: Fetcher;
+  API_NODE?: Fetcher;
+  API_RUST?: Fetcher;
+  API_GO?: Fetcher;
 }
 
 export interface Settings {
@@ -41,6 +50,8 @@ export interface Settings {
   ratePerMinute: number;
   rateBurst: number;
   edgeSecret?: string;
+  /** Origin -> service binding, for the impls that have one (see Env.API_*). */
+  bindings: Map<string, Fetcher>;
 }
 
 const TRUE = new Set(["1", "true", "yes", "on"]);
@@ -85,8 +96,15 @@ let memo: { key: unknown; settings: Settings } | undefined;
 export function readSettings(env: Env): Settings {
   // Env objects are stable per isolate, so parse once.
   if (memo?.key === env) return memo.settings;
+  const origins = parseOrigins(env.BACKEND_ORIGINS);
+  const bindings = new Map<string, Fetcher>();
+  for (const [impl, origin] of origins) {
+    const binding = (env as Record<string, unknown>)[`API_${impl.toUpperCase()}`] as Fetcher | undefined;
+    if (binding && typeof binding.fetch === "function") bindings.set(origin, binding);
+  }
   const settings: Settings = {
-    origins: parseOrigins(env.BACKEND_ORIGINS),
+    origins,
+    bindings,
     staticMode: truthy(env.STATIC_MODE),
     originTimeoutMs: num(env.ORIGIN_TIMEOUT_MS, 8000, 100, 100_000),
     staleTimeoutMs: num(env.STALE_TIMEOUT_MS, 1500, 50, 30_000),

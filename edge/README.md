@@ -20,6 +20,13 @@ the build together with the Function.
 
 ## Routing
 
+**Adding a backend** (one entry each, docs/architecture/DECISIONS.md "Hosting the Go, Node and Rust backends"): put
+its origin in `BACKEND_ORIGINS` in `wrangler.jsonc`. A backend that runs as a Worker also gets a service binding,
+`{"binding": "API_{IMPL}", "service": "replay-api-{impl}"}` under `services`; the proxy then sends requests for that
+origin through the binding (`upstreamFetch` in `edge/src/proxy.ts`) instead of the network. Deploy the Worker
+before adding its binding.
+
+
 - `/api/{impl}/v1/...`, `/api/{impl}/healthz` and `/api/{impl}/readyz` go to `{origin}/v1/...`, `/healthz` and `/readyz`.
   The method, body, query string and the safe request headers are kept. Any other path is a 404, so the proxy
   can't be used to reach other hosts or paths.

@@ -23,6 +23,19 @@ describe("routing and path rewrite", () => {
     expect(res.headers.get("X-Edge-Route")).toBe("java");
   });
 
+  it("reaches a Workers backend through its service binding (API_{IMPL}) instead of the network", async () => {
+    const seen: string[] = [];
+    const binding = { fetch: async (input: RequestInfo | URL) => (seen.push(String(input)), json({ via: "binding" })) } as unknown as Fetcher;
+    const { res } = await h.call("/api/node/v1/meta", {}, {
+      BACKEND_ORIGINS: JSON.stringify({ java: ORIGIN, node: "https://replay-api-node.example.workers.dev" }),
+      API_NODE: binding,
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ via: "binding" });
+    expect(seen).toEqual(["https://replay-api-node.example.workers.dev/v1/meta"]);
+    expect(h.calls).toHaveLength(0);
+  });
+
   it("maps /healthz and /readyz to the backend root", async () => {
     await h.call("/api/java/healthz");
     await h.call("/api/java/readyz");
