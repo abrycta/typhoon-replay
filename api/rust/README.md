@@ -35,8 +35,8 @@ cargo run -p codegen && cargo fmt --all                   # regenerate the contr
 `serve-local.sh` expects Neon's SQL-over-HTTP proxy for a plain PostGIS (`NEON_HTTP_URL`, default
 `http://localhost:4444/sql`; the image is pinned by digest in `.github/workflows/rust.yml`). Then
 `BASE_URL=http://localhost:8090 IMPL=rust npm --prefix contracts run conformance`. CI (`rust.yml`) runs the full
-scenario suite, Schemathesis and, on `main`, `wrangler deploy` plus the dataset-independent scenarios against the
-deployed Worker.
+scenario suite, Schemathesis and, on `main`, `wrangler deploy` then the shared live checks against the
+deployed Worker (`live.yml`).
 
 ## Configuration
 
