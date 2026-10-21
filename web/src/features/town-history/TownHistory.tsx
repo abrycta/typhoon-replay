@@ -4,9 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { EXPOSURE_RADII, type ExposureRadiusKm, exposureWithin, type PlaceEntry, searchPlaces, usePlaceIndex, usePlaceShard, useStormIndex } from "@/data";
-import { stormTitle } from "@/shared/lib/names";
 import { formatDate } from "@/shared/lib/time";
 import type { StormSummary } from "@/shared/model/types";
+import { useStormName } from "@/shared/ui/use-storm-name";
 
 export interface TownUrl {
   q?: string;
@@ -36,6 +36,7 @@ function placeLabel(p: PlaceEntry, lang: "en" | "ja") {
 export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<TownUrl>) => void }) {
   const { t } = useLingui();
   const { lang } = useLang();
+  const stormName = useStormName();
   const [text, setText] = useState(url.q ?? "");
   const q = text.trim();
   const debounced = useDebounced(q, 300);
@@ -116,15 +117,17 @@ export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<T
           ) : hits?.length ? (
             <ol className="grid gap-2" data-testid="town-hits">
               {hits.map((h) => {
-                const s: Pick<StormSummary, "name" | "localNames" | "season" | "landfallCountries"> = bySid.get(h.sid) ?? {
-                  name: h.name ?? h.sid,
+                const s: Pick<StormSummary, "sid" | "name" | "localNames" | "season" | "landfallCountries" | "startedAt" | "designation"> = bySid.get(h.sid) ?? {
+                  sid: h.sid,
+                  name: h.name ?? "",
+                  startedAt: "",
                   season: h.season ?? Number(h.sid.slice(0, 4)),
                   landfallCountries: [],
                 };
                 return (
                   <li key={h.sid} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-sm border border-border p-3">
                     <Link to="/storm/$sid" params={{ sid: h.sid }} className="font-semibold underline-offset-4 hover:underline">
-                      {stormTitle(s, lang)} {s.season}
+                      {stormName(s)} {s.season}
                     </Link>
                     <span className="text-sm tabular-nums text-muted-foreground">
                       {t`${h.closestApproachKm.toFixed(0)} km away on ${formatDate(h.closestApproachAt, lang)}`}

@@ -7,11 +7,13 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/storm-name.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "(JMA number)"
 msgstr "(JMA number)"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/storm-name.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "(PAGASA name)"
 msgstr "(PAGASA name)"
 
@@ -70,7 +72,7 @@ msgstr "{0} places found"
 msgid "{0} storms."
 msgstr "{0} storms."
 
-#. placeholder {0}: stormTitle(d.data, lang)
+#. placeholder {0}: stormName(d.data)
 #. placeholder {1}: d.data.season
 #: src/routes/index.tsx
 msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
@@ -720,10 +722,9 @@ msgstr "Lowest sea-level pressure"
 msgid "Main"
 msgstr "Main"
 
-#. placeholder {0}: detail.name
 #: src/features/replay/StormReplay.tsx
-msgid "Map of {0}'s track with the ERA5 field ({layerName}) at {timeLabel}"
-msgstr "Map of {0}'s track with the ERA5 field ({layerName}) at {timeLabel}"
+msgid "Map of {stormName}'s track with the ERA5 field ({layerName}) at {timeLabel}"
+msgstr "Map of {stormName}'s track with the ERA5 field ({layerName}) at {timeLabel}"
 
 #: src/routes/about.tsx
 msgid "Map rendering: MapLibre GL JS (BSD-3-Clause). Particle technique after mapbox/webgl-wind (ISC)."
@@ -1266,7 +1267,8 @@ msgstr "Type"
 msgid "Type at least two letters."
 msgstr "Type at least two letters."
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/storm-name.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "Typhoon No. {number}"
 msgstr "Typhoon No. {number}"
 
@@ -1289,11 +1291,15 @@ msgstr "Typhoons that made landfall in, or passed close to, the Philippines and 
 msgid "Under the hood"
 msgstr "Under the hood"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/use-storm-name.ts
+msgid "Unnamed storm"
+msgstr "Unnamed storm"
+
+#: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm · {designation} · {month}"
 msgstr "Unnamed storm · {designation} · {month}"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm · {month}"
 msgstr "Unnamed storm · {month}"
 

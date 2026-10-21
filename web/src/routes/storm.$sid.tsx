@@ -20,10 +20,12 @@ import { NotFound } from "@/app/errors";
 import { DataError, useStormDetail } from "@/data";
 import { type ReplayUrlState, StormReplay } from "@/features/replay";
 import { AffectedPlaces } from "@/features/storm-places";
-import { stormTitle } from "@/shared/lib/names";
 import { landfallSummary } from "@/shared/lib/landfalls";
 import { formatDate } from "@/shared/lib/time";
 import { ktToMs } from "@/shared/lib/units";
+import { stormLabel } from "@/shared/lib/names";
+import { StormName } from "@/shared/ui/storm-name";
+import { useStormName } from "@/shared/ui/use-storm-name";
 import { useDocumentTitle } from "@/shared/ui/use-title";
 
 import { replayDefaults, replaySearch } from "./-search";
@@ -104,7 +106,8 @@ function StormPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const d = useStormDetail(sid);
-  useDocumentTitle(d.data ? `${stormTitle(d.data, lang)} ${d.data.season}` : undefined);
+  const stormName = useStormName();
+  useDocumentTitle(d.data ? `${stormName(d.data)} ${d.data.season}` : undefined);
   const onUrl = useCallback(
     (patch: Partial<ReplayUrlState>) => void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false }),
     [navigate],
@@ -146,16 +149,15 @@ function StormPage() {
 
   return (
     <div className="mx-auto grid max-w-[1120px] gap-8 px-4 py-8 md:py-12">
-      <StormBreadcrumb current={`${stormTitle(s, lang)} ${s.season}`} />
+      <StormBreadcrumb current={`${stormName(s)} ${s.season}`} />
       <header className="-mt-4 grid gap-2">
         <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">
           {t`Typhoon replay`} · {s.season} · {s.sid}
         </p>
         <h1 className="font-heading text-[clamp(28px,4vw,40px)] leading-tight font-semibold">
-          {s.name}
-          {s.localNames?.ph ? <span className="text-muted-foreground"> ({s.localNames.ph})</span> : null}
+          <StormName s={s} />
         </h1>
-        {s.localNames?.ja ? (
+        {s.localNames?.ja && stormLabel(s).kind !== "jma" ? (
           <p lang="ja" className="text-muted-foreground">
             {s.localNames.ja}
           </p>

@@ -1,12 +1,12 @@
-import { Label, NativeSelect, NativeSelectOption, Skeleton, useLang } from "@abrycta/akari/react";
+import { Label, NativeSelect, NativeSelectOption, Skeleton } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { type ReactNode, useCallback, useState } from "react";
 
 import { type ResolvedDataset, useStormDetail, useStormIndex } from "@/data";
 import type { FieldLayer } from "@/shared/lib/fields";
-import { stormTitle } from "@/shared/lib/names";
 import type { SpeedUnit } from "@/shared/lib/units";
 import type { StormDetail } from "@/shared/model/types";
+import { useStormName } from "@/shared/ui/use-storm-name";
 
 /** The route supplies the replay (features never import each other). */
 export type RenderReplay = (p: { detail: StormDetail; dataset: ResolvedDataset; layer: FieldLayer | "none"; units: SpeedUnit; syncIndex: number; onIndex: (i: number) => void }) => ReactNode;
@@ -22,7 +22,7 @@ export interface CompareUrl {
 
 function Picker({ id, label, value, onChange }: { id: string; label: string; value?: string; onChange: (sid: string) => void }) {
   const { t } = useLingui();
-  const { lang } = useLang();
+  const stormName = useStormName();
   const index = useStormIndex();
   return (
     <div className="grid gap-1.5">
@@ -31,7 +31,7 @@ function Picker({ id, label, value, onChange }: { id: string; label: string; val
         <NativeSelectOption value="">{t`Choose a storm`}</NativeSelectOption>
         {(index.data ?? []).map((s) => (
           <NativeSelectOption key={s.sid} value={s.sid}>
-            {stormTitle(s, lang)} {s.season}
+            {stormName(s)} {s.season}
             {s.replayAvailable ? "" : ` (${t`track only`})`}
           </NativeSelectOption>
         ))}
@@ -42,7 +42,7 @@ function Picker({ id, label, value, onChange }: { id: string; label: string; val
 
 function Side({ sid, url, index, onIndex, label, render }: { sid?: string; url: CompareUrl; index: number; onIndex: (i: number) => void; label: string; render: RenderReplay }) {
   const { t } = useLingui();
-  const { lang } = useLang();
+  const stormName = useStormName();
   const d = useStormDetail(sid);
   if (!sid) return <div className="grid aspect-[4/3] place-items-center rounded-sm border border-dashed border-border text-sm text-muted-foreground">{t`Pick a storm`}</div>;
   if (d.error) return <p className="text-sm text-destructive">{t`Could not load ${sid}.`}</p>;
@@ -50,7 +50,7 @@ function Side({ sid, url, index, onIndex, label, render }: { sid?: string; url: 
   return (
     <section aria-label={label} className="grid gap-2">
       <h2 className="font-heading text-xl font-semibold">
-        {stormTitle(d.data, lang)} <span className="font-mono text-base text-muted-foreground">{d.data.season}</span>
+        {stormName(d.data)} <span className="font-mono text-base text-muted-foreground">{d.data.season}</span>
       </h2>
       {render({ detail: d.data, dataset: d.dataset, layer: url.layer, units: url.units, syncIndex: index, onIndex })}
     </section>

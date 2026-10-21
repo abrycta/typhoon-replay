@@ -2,9 +2,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useLang 
 import { useLingui } from "@lingui/react/macro";
 import type { ReactNode } from "react";
 
-import { stormTitle } from "@/shared/lib/names";
 import { formatDate } from "@/shared/lib/time";
 import type { LocalNames } from "@/shared/model/types";
+import { type NamedStorm, useStormName } from "@/shared/ui/use-storm-name";
 
 import type { QuestionId } from "./catalogue";
 
@@ -15,6 +15,7 @@ const arr = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
 const num = (x: unknown): number | undefined => (typeof x === "number" && Number.isFinite(x) ? x : undefined);
 const str = (x: unknown): string | undefined => (typeof x === "string" ? x : undefined);
 const dash = "–";
+const named = (s: O): NamedStorm => ({ sid: str(s.sid), name: str(s.name) ?? "", localNames: obj(s.localNames) as LocalNames, startedAt: str(s.startedAt), designation: str(s.designation) });
 
 const SHOW = 10;
 
@@ -49,6 +50,7 @@ function Grid({ head, rows, numeric = [] }: { head: string[]; rows: ReactNode[][
 export function ResultTable({ question, body }: { question: QuestionId; body: unknown }) {
   const { t } = useLingui();
   const { lang } = useLang();
+  const stormName = useStormName();
   const b = obj(body);
 
   if (question === "town") {
@@ -56,7 +58,7 @@ export function ResultTable({ question, body }: { question: QuestionId; body: un
     const rows = items.slice(0, SHOW).map((x) => {
       const h = obj(x);
       const s = obj(h.storm);
-      const title = stormTitle({ name: str(s.name) ?? dash, localNames: obj(s.localNames) as LocalNames }, lang);
+      const title = stormName(named(s));
       return [title, num(s.season) ?? dash, num(h.closestApproachKm)?.toFixed(0) ?? dash, num(h.maxWindKtWithinRadius)?.toFixed(0) ?? dash, num(h.hoursWithinRadius) ?? dash];
     });
     return (
@@ -71,7 +73,7 @@ export function ResultTable({ question, body }: { question: QuestionId; body: un
     const peak = obj(b.peak);
     const landfalls = arr(b.landfalls).map(obj);
     const rows: ReactNode[][] = [
-      [t`Name`, stormTitle({ name: str(b.name) ?? dash, localNames: obj(b.localNames) as LocalNames }, lang)],
+      [t`Name`, stormName(named(b))],
       [t`Season`, num(b.season) ?? dash],
       [t`Peak wind`, num(peak.windKt) !== undefined ? `${num(peak.windKt)} kt (${(str(peak.agency) ?? "").toUpperCase()})` : dash],
       [t`Lowest pressure`, num(peak.pressureHpa) !== undefined ? `${num(peak.pressureHpa)} hPa` : dash],

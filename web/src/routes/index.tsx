@@ -1,4 +1,4 @@
-import { Button, Input, Label, Skeleton, useLang } from "@abrycta/akari/react";
+import { Button, Input, Label, Skeleton } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -6,7 +6,7 @@ import { useState } from "react";
 import { decades, sortStorms, useStormDetail, useStormIndex } from "@/data";
 import { StormReplay } from "@/features/replay";
 import { StormList } from "@/features/storm-search";
-import { stormTitle } from "@/shared/lib/names";
+import { useStormName } from "@/shared/ui/use-storm-name";
 import { useDocumentTitle } from "@/shared/ui/use-title";
 
 const FEATURED_SID = "2013306N07162"; // Haiyan / Yolanda
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({ component: Home });
 
 function Featured() {
   const { t } = useLingui();
-  const { lang } = useLang();
+  const stormName = useStormName();
   const d = useStormDetail(FEATURED_SID);
   if (!d.data || !d.dataset) return <Skeleton className="aspect-[4/3] w-full sm:aspect-[16/10]" />;
   return (
@@ -30,7 +30,7 @@ function Featured() {
         loop
       />
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>{t`${stormTitle(d.data, lang)}, ${d.data.season}: ERA5 10 m wind (reanalysis context) and the best track.`}</span>
+        <span>{t`${stormName(d.data)}, ${d.data.season}: ERA5 10 m wind (reanalysis context) and the best track.`}</span>
         <Button asChild size="sm">
           <Link to="/storm/$sid" params={{ sid: FEATURED_SID }}>
             {t`Open the full replay`}

@@ -8,6 +8,7 @@ import { formatDateTime, fromUrlHour, isoToUnix, type TimeZoneChoice, toUrlHour 
 import type { SpeedUnit } from "@/shared/lib/units";
 import type { StormDetail } from "@/shared/model/types";
 import { useHighContrast, useMapTheme, usePrefersReducedMotion } from "@/shared/ui/hooks";
+import { useStormName } from "@/shared/ui/use-storm-name";
 
 import { FieldLegend } from "./FieldLegend";
 import { IntensityPanel } from "./IntensityPanel";
@@ -161,7 +162,8 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
 
   const progress = detail.frames ? Math.round((snap.loadedFrames / detail.frames.frames) * 100) : 100;
   const layerName = layer === "none" ? t`no` : fieldLabels[layer].long;
-  const mapLabel = t`Map of ${detail.name}'s track with the ERA5 field (${layerName}) at ${timeLabel}`;
+  const stormName = useStormName()(detail);
+  const mapLabel = t`Map of ${stormName}'s track with the ERA5 field (${layerName}) at ${timeLabel}`;
 
   return (
     <div className="grid gap-4" data-testid="storm-replay" data-frame-ready={hasFrames ? String(!!store?.has(state.index)) : undefined}>

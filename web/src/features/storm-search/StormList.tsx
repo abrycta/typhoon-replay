@@ -3,50 +3,9 @@ import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 
 import { stormLabel } from "@/shared/lib/names";
-import { formatDate, formatMonth } from "@/shared/lib/time";
+import { formatDate } from "@/shared/lib/time";
 import type { StormSummary } from "@/shared/model/types";
-
-/**
- * The card's heading: the international name, else a local name marked as such, else an honest
- * description ("Unnamed storm · 03W · Feb 1940"). Never a bare "Unnamed".
- */
-function StormName({ s }: { s: StormSummary }) {
-  const { t } = useLingui();
-  const { lang } = useLang();
-  const label = stormLabel(s);
-  const note = "font-normal text-sm text-muted-foreground";
-  const gap = lang === "ja" ? "" : " "; // the Japanese marker opens with a full-width bracket
-  switch (label.kind) {
-    case "international":
-      return (
-        <>
-          {label.name}
-          {s.localNames?.ph ? <span className="font-normal text-muted-foreground"> ({s.localNames.ph})</span> : null}
-        </>
-      );
-    case "pagasa":
-      return (
-        <>
-          {label.name}
-          <span className={note}>{gap}{t`(PAGASA name)`}</span>
-        </>
-      );
-    case "jma": {
-      const { number } = label;
-      return (
-        <>
-          {lang === "ja" ? <span lang="ja">{label.ja}</span> : t`Typhoon No. ${number}`}
-          <span className={note}>{gap}{t`(JMA number)`}</span>
-        </>
-      );
-    }
-    case "unnamed": {
-      const { designation } = label;
-      const month = formatMonth(label.startedAt, lang);
-      return <>{designation ? t`Unnamed storm · ${designation} · ${month}` : t`Unnamed storm · ${month}`}</>;
-    }
-  }
-}
+import { StormName } from "@/shared/ui/storm-name";
 
 export function StormCard({ s }: { s: StormSummary }) {
   const { t } = useLingui();

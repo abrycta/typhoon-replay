@@ -7,11 +7,13 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: ja\n"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/storm-name.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "(JMA number)"
 msgstr "（気象庁の番号）"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/storm-name.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "(PAGASA name)"
 msgstr "（PAGASA の現地名）"
 
@@ -70,7 +72,7 @@ msgstr "{0} 件の地点"
 msgid "{0} storms."
 msgstr "{0} 件の台風。"
 
-#. placeholder {0}: stormTitle(d.data, lang)
+#. placeholder {0}: stormName(d.data)
 #. placeholder {1}: d.data.season
 #: src/routes/index.tsx
 msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
@@ -720,10 +722,9 @@ msgstr "最低海面気圧"
 msgid "Main"
 msgstr "メイン"
 
-#. placeholder {0}: detail.name
 #: src/features/replay/StormReplay.tsx
-msgid "Map of {0}'s track with the ERA5 field ({layerName}) at {timeLabel}"
-msgstr "{timeLabel} の {0} の経路と ERA5 の場（{layerName}）の地図"
+msgid "Map of {stormName}'s track with the ERA5 field ({layerName}) at {timeLabel}"
+msgstr "{timeLabel} の {stormName} の経路と ERA5 の場（{layerName}）の地図"
 
 #: src/routes/about.tsx
 msgid "Map rendering: MapLibre GL JS (BSD-3-Clause). Particle technique after mapbox/webgl-wind (ISC)."
@@ -1266,7 +1267,8 @@ msgstr "種別"
 msgid "Type at least two letters."
 msgstr "2文字以上入力してください。"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/storm-name.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "Typhoon No. {number}"
 msgstr "台風第{number}号"
 
@@ -1289,11 +1291,15 @@ msgstr "フィリピンと日本に上陸、または接近した台風。"
 msgid "Under the hood"
 msgstr "しくみ"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/use-storm-name.ts
+msgid "Unnamed storm"
+msgstr "名称なし"
+
+#: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm · {designation} · {month}"
 msgstr "名称なし · {designation} · {month}"
 
-#: src/features/storm-search/StormList.tsx
+#: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm · {month}"
 msgstr "名称なし · {month}"
 
