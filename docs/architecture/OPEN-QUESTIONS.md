@@ -16,27 +16,39 @@ As of 2026-10-21. Each item says who decides or how to verify it. See [SYSTEM-AR
 7. **Frames hosting:** Pages vs a Hugging Face dataset (SPIKE.md: about 5.7 GB WebP for all storms; Pages' total-size limit is unverified).
 8. **Alerts scope for v1:** email only, and which trigger (forecast track within N km of a saved place, or observed wind ≥ X kt)?
 
-9. **Static-mode flag and the nightly Render bandwidth job** (SYSTEM-ARCHITECTURE-RESEARCH §7.1; edge/README.md
-   "Static mode"). The edge side is built: `STATIC_MODE=true` serves cached answers only and never contacts Render, and
-   the proxy already reads an optional KV flag. Not built, pending these choices (2026-10-21):
-   - **Why it matters more now:** Render has a card on file since 2026-10-21, so going over the 5 GB/month no longer
-     suspends the backends: it bills (US$0.15/GB). The guard is now a cost guard, not an uptime guard.
-   - **Usage source (verified 2026-10-21):** `GET https://api.render.com/v1/metrics/bandwidth?resource=<srv-id>&startTime=<1st of month>`
-     returns hourly MB per service (today's Java total so far this month: 0.19 MB). The job sums every service in the
-     workspace. Unverified: that this matches the figure Render bills.
-   - **Flag, option 1: env var + redeploy.** No new resource. The job edits `STATIC_MODE` and runs
-     `wrangler pages deploy`. Catch: `wrangler.jsonc` is the source of truth and `deploy.yml` redeploys `main` on every
-     push, which would silently reset the flag to `"false"` unless the job commits the change to `main` (a bot commit
-     each time it flips).
-   - **Flag, option 2 (recommended): a KV namespace bound as `EDGE_FLAGS`.** The job writes `static_mode` and the next
-     deploy can't undo it. It creates one new Cloudflare resource on the free plan (100k reads, 1k writes per day per
-     account, shared with any other project's KV use). The proxy reads it at most once a minute per isolate, so the
-     reads stay well inside the quota, but they count, and a KV error must leave static mode off (it does today).
-   - **Threshold and reset:** 70% of 5 GB (3.5 GB) as planned, or lower now that overage bills; clear on the 1st.
-   - **Secrets the job needs in GitHub Actions:** a Render API key (read-only use) and a Cloudflare token scoped to
-     KV writes (option 2) or Pages deploys (option 1). Neither is a repo secret yet.
-   - **Where:** a small scheduled workflow (daily), separate from `refresh.yml`/`backfill.yml` (their `data-publish`
-     concurrency group would queue it behind multi-hour runs).
+9. **Render bandwidth: resolved 2026-10-21, option 3: keep the backends live, no static-mode job.** Kurt's decision.
+   Render bills overage now that a card is on file (US$0.15/GB beyond 5 GB/month), so the guard is about cost. Usage
+   was 0.19 MB this month (`GET /v1/metrics/bandwidth`, hourly MB per service). Rather than a scheduled job that
+   switches the site to cached-only answers (and a KV namespace or bot commits to hold the flag), the bytes Render
+   sends are kept down:
+   - **Compression.** The Java backend already gzips JSON over 1 KB (`server.compression`), and Render's own
+     Cloudflare front gzips the rest. Production Workers already asked for it: 50 cache misses through the edge
+     (`/v1/storms?limit=51…100`) cost Render ≈ 0.18 MB, about 3.6 KB each, against ≈ 20 KB each uncompressed. The proxy
+     now sends `Accept-Encoding: br, gzip` itself (workerd in `wrangler pages dev` sends none) and stores cache
+     entries decoded. Brotli from Java would need a native library (Tomcat has no Brotli encoder), and Render's front
+     answers gzip even to `br`, so it is not done.
+   - **Dataset pin** (edge/README.md). Catalogue entries stay fresh at the edge while the backend keeps confirming
+     their dataset version (one origin answer per 5 minutes per data centre covers every entry), instead of one
+     revalidation per URL every 5 minutes. The staleness bound after a publish is unchanged (300 s); 404s stay ≤ 60 s;
+     `/v1/meta` (60 s) and `/healthz` (never cached) still reach the live backend, so "Under the hood" still proves it
+     is up.
+   - **Payloads** were already compact JSON with only contract fields; nothing to trim without a contract change.
+
+   Bytes Render sends per request (measured 2026-10-21 with curl against the Render origin; headers as curl counts
+   them):
+
+   | Endpoint | Uncompressed | gzip (a cache miss, before and after) | Revalidation (304) | Pinned hit (after) |
+   |---|---|---|---|---|
+   | `/v1/storms?limit=50` | 13,095 + 787 | 2,113 + 811 | 0 + 613 | 0 |
+   | `/v1/storms/{sid}` | 1,293 + 659 | 674 + 683 | 0 + 613 | 0 |
+   | `/v1/storms/{sid}/track` | 10,313 + 649 | 1,179 + 673 | 0 + 613 | 0 |
+   | `/v1/places/search?q=tacloban` | 160 + 659 | 159 + 683 | 0 + 613 | 0 |
+   | `/v1/meta` (never pinned) | 169 + 629 | 145 + 653 | plain GET each 60 s | unchanged |
+
+   Through the edge, 5–6 minutes after the first request: before, each URL was a `STALE` answer plus a 304 from
+   Render; after, one URL revalidates and the others are `HIT`s with no origin request.
+   **`STATIC_MODE` stays** as a manual emergency switch (set it in `wrangler.jsonc` and push; edge/README.md
+   "Static mode"). No KV namespace, no scheduled job, no new secrets.
 
 ## B. To verify by hand or with a quick experiment
 
@@ -44,7 +56,7 @@ As of 2026-10-21. Each item says who decides or how to verify it. See [SYSTEM-AR
 1. Does an open SSE stream count as "inbound traffic" for the 15-minute spin-down?
 2. Is there a hard request/stream timeout on free web services?
 3. Do free web services deploy prebuilt images from GHCR, and do those builds count against the 500 build minutes?
-4. The free RAM/CPU (512 MB / 0.1 CPU). The 5 GB outbound bandwidth is confirmed (new plans 2026-04-23, legacy auto-migration 2026-08-01). Still unverified: whether the Render API exposes bandwidth usage for the 70% guardrail, and whether bandwidth is counted at the HTTP or TLS/TCP level (this affects the SSE heartbeat cost).
+4. The free RAM/CPU (512 MB / 0.1 CPU). The 5 GB outbound bandwidth is confirmed (new plans 2026-04-23, legacy auto-migration 2026-08-01). The Render API exposes usage (`GET /v1/metrics/bandwidth`, hourly MB per service; verified 2026-10-21). Still unverified: whether bandwidth is counted at the HTTP or TLS/TCP level (this affects the SSE heartbeat cost).
 5. Whether multiple free services in one workspace is within the terms (no stated limit found).
 
 **Neon**
@@ -80,7 +92,7 @@ As of 2026-10-21. Each item says who decides or how to verify it. See [SYSTEM-AR
 
 ## C. Risks to watch
 
-- **Render's 5 GB/month outbound bandwidth** is shared and silent. When it is exceeded, all four backends are down until the 1st of the month. Add a monthly bandwidth check (Render API) to the nightly job.
+- **Render's 5 GB/month outbound bandwidth** is shared by every service in the workspace, and with a card on file an overage bills (US$0.15/GB). Kept down by gzip and the edge cache (A.9); check `GET /v1/metrics/bandwidth` now and then, and use `STATIC_MODE` by hand in an emergency.
 - **Cold starts of about 60 s,** and longer for the JVM. Mitigations: edge cache, static fallback index, the "waking up" UX.
 - **Expand/contract migrations:** four independently deployed backends read the same schema, so a careless rename breaks the laggards. CI should run the conformance suite of *every* backend against each new migration.
 - **Generator 3.1 gaps** may push one backend toward code-first. Allowed, but only behind the two-way oasdiff gate.

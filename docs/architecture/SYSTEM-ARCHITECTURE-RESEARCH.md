@@ -491,7 +491,7 @@ Verified: Hobby = 5 GB included; overage $0.15/GB, but only with a card on file.
   - Schemathesis or load tests aimed at production (forbidden; the nightly production check is a fixed read-only list of ≈ 30 requests ≈ 100 KB/night ≈ 3 MB/month);
   - SSE left open in background tabs (handled by close-on-hidden);
   - anyone exposing hourly tracks or GeoJSON polygons through the API.
-- **Guardrail:** the nightly job reads Render's bandwidth usage (Render API/metrics; endpoint unverified) and, at 70%, sets a proxy flag (an env var or a single KV key) that switches the SPA to "static mode": the cached / static fallback only, no live stream. It clears on the 1st.
+- **Guardrail (decided 2026-10-21, OPEN-QUESTIONS A.9):** no nightly static-mode job. The backends stay live; egress is kept down by gzip from Render to the edge and by the edge cache, whose catalogue entries stay fresh while the dataset version is unchanged (the dataset pin, edge/README.md). The proxy's `STATIC_MODE` flag remains as a manual emergency switch. Usage can be read from Render's API (`GET /v1/metrics/bandwidth`, hourly MB per service).
 
 ### 7.2 Email options, and the "buy a domain" decision
 
