@@ -3,11 +3,14 @@ import { useLingui } from "@lingui/react/macro";
 import { type ErrorComponentProps, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { markNotFound } from "./not-found-state";
+
 export function NotFound() {
   const { t } = useLingui();
   useEffect(() => {
     document.title = `${t`Not found`} · Replay`;
   }, [t]);
+  useEffect(markNotFound, []);
   return (
     <Page eyebrow="404" title={t`This page blew away`} lede={t`There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet.`}>
       <div className="flex flex-wrap gap-3">

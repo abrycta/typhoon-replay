@@ -10,8 +10,9 @@ const PAGES = [
   { name: "town", path: "/town", current: "My town" },
   { name: "under the hood", path: "/under-the-hood", current: "Tech" },
   { name: "about", path: "/about", current: "About" },
-  { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}`, current: "Storms" },
+  { name: "storm", path: `/storm/${HAIYAN}?t=${PEAK}`, current: "Storms", aria: "true" },
   { name: "404", path: "/no/such/page", current: undefined },
+  { name: "unknown storm", path: "/storm/1999001N00000", current: undefined },
 ];
 
 for (const p of PAGES) {
@@ -23,21 +24,22 @@ for (const p of PAGES) {
     await expect(header).toHaveAttribute("data-akari-header", "");
     const nav = header.getByRole("navigation", { name: "Main" });
     await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link")).toHaveText(["Home", "Storms", "Compare", "My town", "Tech", "About"]);
 
     const brand = header.getByRole("link", { name: "Replay home" });
     await expect(brand).toHaveAttribute("href", "/");
     await expect(nav.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/");
 
-    // aria-current marks exactly the active section (storm pages count as Storms; none on the 404), and only in the
-    // nav: the brand link never gets a second one from the router.
-    const current = nav.locator('[aria-current="page"]');
-    await expect(header.locator('[aria-current="page"]')).toHaveCount(p.current ? 1 : 0);
+    // Akari marks at most one nav item (data-current: the dot): the exact page is aria-current="page", a storm page
+    // marks its section Storms with "true", 404s mark nothing. No other link on the page says "current page" (the
+    // brand and the footer links never get one from the router).
+    const current = header.locator("[data-current]");
+    await expect(current).toHaveCount(p.current ? 1 : 0);
     if (p.current) {
-      await expect(current).toHaveCount(1);
       await expect(current).toHaveText(p.current);
-    } else {
-      await expect(current).toHaveCount(0);
+      await expect(current).toHaveAttribute("aria-current", p.aria ?? "page");
     }
+    await expect(page.locator('a[aria-current="page"]')).toHaveCount(p.current && !p.aria ? 1 : 0);
 
     const portfolio = header.getByRole("link", { name: /krtmtthw\.dev/ });
     await expect(portfolio).toHaveAttribute("href", PORTFOLIO);

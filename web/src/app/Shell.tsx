@@ -1,12 +1,14 @@
 import { AppShell, Header, useLang } from "@abrycta/akari/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { createLink, Link, useLocation } from "@tanstack/react-router";
+import { createLink, useLocation } from "@tanstack/react-router";
 import { type ComponentProps, type ReactNode, useEffect } from "react";
 
 import { Attribution, DataAsOf } from "@/features/dataset-info";
 import { buildInfo, formatBuildInfo } from "@/shared/lib/build-info";
 import { isLocale } from "@/shared/i18n/i18n";
 import { AUTHOR, PORTFOLIO_HOST, PORTFOLIO_URL } from "@/shared/lib/site";
+
+import { useIsNotFound } from "./not-found-state";
 
 /** `?lang=` works on any page (share links). */
 function useGlobalParams() {
@@ -19,14 +21,18 @@ function useGlobalParams() {
 
 /**
  * The anchor behind Akari's Header links: TanStack's <Link> marks every matching link aria-current="page"
- * (the brand link too) and adds an "active" class, so the Header's own `current` flag wins here: exactly one nav item is current.
+ * (the brand link too) and adds an "active" class, so Akari's own resolution wins here: at most one nav item is current.
  */
-const HeaderAnchor = createLink(({ current, ...props }: ComponentProps<"a"> & { current?: "page" }) => <a {...props} aria-current={current} />);
+const HeaderAnchor = createLink(({ current, ...props }: ComponentProps<"a"> & { current?: "page" | "true" | "location" }) => <a {...props} aria-current={current} />);
+
+/** Footer links: no automatic aria-current from the router (the Header is the only nav that says "current page"). */
+const FooterLink = createLink((props: ComponentProps<"a">) => <a {...props} aria-current={undefined} />);
 
 export function Shell({ children }: { children: ReactNode }) {
   const { t } = useLingui();
   useGlobalParams();
-  const path = useLocation({ select: (l) => l.pathname });
+  const pathname = useLocation({ select: (l) => l.pathname });
+  const notFound = useIsNotFound();
   return (
     <AppShell
       header={
@@ -34,13 +40,14 @@ export function Shell({ children }: { children: ReactNode }) {
           brand={{ name: "Replay", glyph: "嵐", href: "/", srSuffix: t({ message: "home", context: "brand link suffix" }) }}
           navLabel={t`Main`}
           nav={[
-            { href: "/", label: t`Home`, current: path === "/" },
-            { href: "/storms", label: t`Storms`, current: path.startsWith("/storms") || path.startsWith("/storm/") },
-            { href: "/compare", label: t`Compare`, current: path.startsWith("/compare") },
-            { href: "/town", label: t`My town`, current: path.startsWith("/town") },
-            { href: "/about", label: t`About`, current: path.startsWith("/about") },
-            { href: "/under-the-hood", label: t`Tech`, current: path.startsWith("/under-the-hood") },
+            { href: "/", label: t`Home` },
+            { href: "/storms", label: t`Storms`, also: ["/storm/"] },
+            { href: "/compare", label: t`Compare` },
+            { href: "/town", label: t`My town` },
+            { href: "/under-the-hood", label: t`Tech` },
+            { href: "/about", label: t`About` },
           ]}
+          location={{ pathname: notFound ? "/404" : pathname }}
           portfolioLink
           languages
           renderLink={({ href, "aria-current": current, ...p }) => <HeaderAnchor to={href} activeProps={{}} current={current} {...p} />}
@@ -54,18 +61,18 @@ export function Shell({ children }: { children: ReactNode }) {
               <span data-testid="footer-hook">
                 <Trans>
                   Data served statically · API in four languages →{" "}
-                  <Link to="/under-the-hood" className="underline underline-offset-4 hover:text-foreground">
+                  <FooterLink to="/under-the-hood" activeProps={{}} className="underline underline-offset-4 hover:text-foreground">
                     Tech
-                  </Link>
+                  </FooterLink>
                 </Trans>
               </span>
               <span>{formatBuildInfo(buildInfo)}</span>
             </div>
             <p>
               <Attribution />{" "}
-              <Link to="/about" className="underline underline-offset-4">
+              <FooterLink to="/about" activeProps={{}} className="underline underline-offset-4">
                 {t`Sources and licences`}
-              </Link>
+              </FooterLink>
             </p>
             <p>
               <Trans>
