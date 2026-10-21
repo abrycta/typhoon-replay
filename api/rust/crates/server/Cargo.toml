@@ -1,0 +1,22 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+description = "Replay API, Rust implementation: Axum 0.8 on Cloudflare Workers (workers-rs), Neon serverless SQL over HTTP"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+contract = { path = "../contract" }
+worker = { version = "=0.8.7", features = ["http", "axum"] }
+axum = { version = "=0.8.9", default-features = false }
+tower-service = "=0.3.3"
+http = "=1.5.0"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["raw_value"] }
+chrono = { version = "=0.4.45", default-features = false, features = ["serde", "alloc"] }
+sha2 = "=0.11.1"
+base64 = "=0.23.1"
+futures-util = { version = "=0.3.34", default-features = false }

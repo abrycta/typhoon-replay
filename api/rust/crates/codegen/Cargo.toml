@@ -1,0 +1,13 @@
+[package]
+name = "codegen"
+version = "0.0.0"
+edition.workspace = true
+publish.workspace = true
+
+# Host-only: regenerates crates/contract/src/generated.rs from contracts/dist/openapi.json with typify.
+[dependencies]
+typify = "=0.8.0"
+schemars = "=0.8.22"
+serde_json = "=1.0.154"
+syn = { version = "=2.0.119", features = ["full"] }
+prettyplease = "=0.2.37"

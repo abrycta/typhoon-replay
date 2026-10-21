@@ -1,0 +1,13 @@
+{
+  "name": "replay-api-rust",
+  "private": true,
+  "description": "Wrangler for the Rust Worker (build, local workerd, deploy). The Rust code is built by worker-build.",
+  "scripts": {
+    "build": "cd crates/server && worker-build --release && node ../../scripts/check-size.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.3"
+  }
+}

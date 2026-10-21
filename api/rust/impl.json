@@ -1,0 +1,8 @@
+{
+  "impl": "rust",
+  "implVersion": "0.1.0",
+  "contract": ">=2.0.0 <3.0.0",
+  "claimedContract": "2.0.2",
+  "minSchemaVersion": "20261021000500",
+  "stack": "Rust 1.99.1 → wasm on Cloudflare Workers (workers-rs 0.8.7), Axum 0.8.9, contract-first: typify 0.8 types from the contract, Neon serverless HTTP via the Workers fetch API"
+}

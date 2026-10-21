@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/contract", "crates/codegen", "crates/server"]
+default-members = ["crates/contract", "crates/server"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.99.1"
+license = "MIT"
+publish = false
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "s"
