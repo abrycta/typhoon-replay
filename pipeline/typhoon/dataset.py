@@ -492,7 +492,7 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         index_rows.append(omit({
             "sid": sid, "name": s["name"], "localNames": local_names(s), "designation": catalog.designation(s.atcf_id),
             "season": int(s.season), "basin": s.basin, "startedAt": iso(s.started_at), "endedAt": iso(s.ended_at), "peakWindKt": num(s.peak_wind_kt),
-            "peakWindAgency": s.peak_wind_agency if isinstance(s.peak_wind_agency, str) else None,
+            "peakWindAgency": s.peak_wind_agency if isinstance(s.peak_wind_agency, str) else None, "peakAt": iso(s.peak_at),
             "minPressureHpa": num(s.min_pressure_hpa), "landfallCountries": list(s.landfall_countries),
             "replayAvailable": bool(fr), "frameCount": fr["frames"] if fr else None,
             "saffirSimpson": st_stats.get(sid, {}).get("saffirSimpson"), "ace": st_stats.get(sid, {}).get("ace"),
@@ -502,8 +502,8 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     index = {
         "schema": SCHEMA, "dataVersion": version, "datasetVersion": version,
         "generatedAt": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "note": "storms: contract StormSummary + designation (JTWC number from USA_ATCF_ID, e.g. 03W), replayAvailable, "
-                "frameCount, era5Ratio, bbox; `path` is the storm "
+        "note": "storms: contract StormSummary + designation (JTWC number from USA_ATCF_ID, e.g. 03W), peakAt (time of "
+                "the peak wind, from the agency in peakWindAgency), replayAvailable, frameCount, era5Ratio, bbox; `path` is the storm "
                 "directory (dataset-root relative; may be an earlier version's when nothing changed).",
         "storms": index_rows,
         "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables.json",

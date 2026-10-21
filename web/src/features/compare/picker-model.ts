@@ -99,8 +99,8 @@ export type PairReason =
   | { kind: "same-peak"; kt: number; country: Country }
   /** The two strongest landfalls in `country` since `since`. */
   | { kind: "strongest"; country: Country; since: number; ktA: number; ktB: number }
-  /** The same life span (hours from first to last fix). */
-  | { kind: "same-length"; hours: number }
+  /** The same life span (hours from first to last fix); `peaksApart`: hours between their peaks, counted from formation (index `peakAt`, data v4). */
+  | { kind: "same-length"; hours: number; peaksApart?: number }
   /** Different peaks; `longer` lived `hours` longer. */
   | { kind: "peaks"; ktA?: number; ktB?: number; longer?: "a" | "b"; hours: number };
 
@@ -112,6 +112,7 @@ export interface SuggestedPair {
 }
 
 const lifeHours = (s: StormSummary) => Math.round((Date.parse(s.endedAt) - Date.parse(s.startedAt)) / 3_600_000);
+const hoursToPeak = (s: StormSummary) => (s.peakAt && Date.parse(s.peakAt) ? Math.round((Date.parse(s.peakAt) - Date.parse(s.startedAt)) / 3_600_000) : undefined);
 const shared = (a: StormSummary, b: StormSummary) => a.landfallCountries.find((c) => b.landfallCountries.includes(c));
 
 function strongestSince(storms: readonly StormSummary[], country: Country, since: number): StormSummary[] {
@@ -134,7 +135,11 @@ export function pairReason(a: StormSummary, b: StormSummary, storms: readonly St
   }
   const la = lifeHours(a);
   const lb = lifeHours(b);
-  if (la === lb) return { kind: "same-length", hours: la };
+  if (la === lb) {
+    const pa = hoursToPeak(a);
+    const pb = hoursToPeak(b);
+    return pa !== undefined && pb !== undefined && pa !== pb ? { kind: "same-length", hours: la, peaksApart: Math.abs(pa - pb) } : { kind: "same-length", hours: la };
+  }
   return { kind: "peaks", ktA: a.peakWindKt, ktB: b.peakWindKt, longer: la > lb ? "a" : "b", hours: Math.abs(la - lb) };
 }
 

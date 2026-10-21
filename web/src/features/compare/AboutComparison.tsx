@@ -1,84 +1,123 @@
-import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon } from "lucide-react";
 
 import type { StormDetail } from "@/shared/model/types";
 
-/** What a storm's data lacks, in words (empty when nothing is missing). */
-function useMissing() {
+import type { Alignment } from "./align";
+import { agencyWinds, type Gap, gapsOf } from "./data-notes";
+
+function useGapText() {
   const { t } = useLingui();
-  return (d: StormDetail): string[] => {
-    const out: string[] = [];
-    const jtwc = d.intensity.find((i) => i.agency === "jtwc" && i.maxWindKt !== undefined);
-    const jma = d.intensity.find((i) => i.agency === "jma" && (i.maxWindKt !== undefined || i.minPressureHpa !== undefined));
-    if (!jtwc && !jma) out.push(t`no best-track wind`);
-    else if (!jtwc) out.push(t`no JTWC wind (JMA's 10-minute wind is shown)`);
-    if (!jma) out.push(d.season < 1951 ? t`no JMA data (JMA's best track starts in 1951)` : t`no JMA data`);
-    if (!d.intensity.some((i) => i.minPressureHpa !== undefined)) out.push(t`no central pressure`);
-    if (!d.frames) out.push(t`no ERA5 field replay (track only)`);
-    return out;
-  };
+  return (g: Gap) =>
+    g === "no-wind"
+      ? t`no wind estimate`
+      : g === "no-jtwc"
+        ? t`no JTWC wind`
+        : g === "no-jma"
+          ? t`no JMA data`
+          : g === "no-pressure"
+            ? t`no pressure`
+            : t`no ERA5 maps`;
 }
 
-/** The data notes: one line under the maps, the rest in a collapsible panel. */
-export function AboutComparison({ storms }: { storms: { name: string; detail: StormDetail }[] }) {
+const linkCls = "text-ak-text-link underline underline-offset-2";
+
+/** Under the data cards: what the maps show, how to read the line-up, and what this pair's data lacks. */
+export function AboutComparison({ storms, alignment }: { storms: { name: string; detail: StormDetail; landfallPlace?: string }[]; alignment: Alignment }) {
   const { t } = useLingui();
-  const missing = useMissing();
-  const both = storms.find(({ detail }) => detail.intensity.some((i) => i.agency === "jtwc" && i.maxWindKt) && detail.intensity.some((i) => i.agency === "jma" && i.maxWindKt));
+  const gapText = useGapText();
+  const gaps = storms.map((s) => ({ name: s.name, gaps: gapsOf(s.detail) })).filter((s) => s.gaps.length);
+  const both = storms.find((s) => ["jtwc", "jma"].every((a) => agencyWinds(s.detail).some((w) => w.agency === a)));
   const example = both
     ? (() => {
+        const w = agencyWinds(both.detail);
         const name = both.name;
-        const j = both.detail.intensity.find((i) => i.agency === "jtwc")!.maxWindKt;
-        const m = both.detail.intensity.find((i) => i.agency === "jma")!.maxWindKt;
+        const j = w.find((x) => x.agency === "jtwc")!.kt;
+        const m = w.find((x) => x.agency === "jma")!.kt;
         return t`${name}: ${j} kt JTWC, ${m} kt JMA`;
       })()
     : undefined;
-  const old = storms.some(({ detail }) => detail.season < 1970);
+  const old = storms.some((s) => s.detail.season < 1966);
+  const [a, b] = storms;
+  const lineUp =
+    alignment === "landfall" && a?.landfallPlace && b?.landfallPlace && b
+      ? (() => {
+          const [na, pa, nb, pb] = [a.name, a.landfallPlace, b.name, b.landfallPlace];
+          return t`hour 0 is ${na} at ${pa} and ${nb} at ${pb}.`;
+        })()
+      : alignment === "landfall"
+        ? t`hour 0 is each storm's first landfall.`
+        : alignment === "peak"
+          ? t`hour 0 is each storm at its strongest best-track wind.`
+          : t`hour 0 is each storm's first track point.`;
+  const lineUpHead = alignment === "landfall" ? t`Lined up at first landfall:` : alignment === "peak" ? t`Lined up at peak wind:` : t`Lined up at formation:`;
+
   return (
-    <Collapsible className="grid max-w-[90ch] gap-2 text-sm" data-testid="about-comparison">
-      <p className="text-muted-foreground">
-        {t`Intensity on the cards and the timeline is the IBTrACS best track; the maps are ERA5 reanalysis, hourly, on a grid of about 28 km.`}{" "}
-        <CollapsibleTrigger asChild>
-          <Button variant="link" size="sm" className="h-auto p-0 align-baseline [&[data-state=open]>svg]:rotate-180">
-            {t`About this comparison`}
-            <ChevronDownIcon aria-hidden="true" />
-          </Button>
-        </CollapsibleTrigger>
+    <section aria-labelledby="about-cmp-h" className="grid gap-3.5 rounded-md border border-border bg-card px-4 py-4 text-card-foreground sm:px-6 sm:py-5" data-testid="about-comparison">
+      <h2 id="about-cmp-h" className="font-heading text-xl font-semibold">
+        {t`About this comparison`}
+      </h2>
+      <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+        <div className="grid content-start gap-2">
+          <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{t`What you're seeing`}</h3>
+          <p className="text-sm leading-relaxed">
+            <b className="font-semibold">{t`The line:`}</b> {t`each storm's official best track (IBTrACS), with dots at the observed fixes and the hours between interpolated.`}
+          </p>
+          <p className="text-sm leading-relaxed">
+            <b className="font-semibold">{t`The colours:`}</b>{" "}
+            {t`ERA5 reanalysis, a global weather model's hourly rebuild of wind, gust, rain and sea-level pressure on a grid of about 28 km. It can place a storm tens of km off the track and smooths the eye wall, so use it for size and timing, not peak strength. Both maps use the same colour scale.`}
+          </p>
+        </div>
+        <div className="grid content-start gap-2">
+          <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{t`How to read it`}</h3>
+          <p className="text-sm leading-relaxed">
+            <b className="font-semibold">{lineUpHead}</b> {lineUp} {t`Outside its own life a storm shows "not yet formed" or "ended".`}
+          </p>
+          <p className="text-sm leading-relaxed">
+            <b className="font-semibold">{t`Wind speeds depend on the agency.`}</b>{" "}
+            {example ? t`JTWC averages over 1 minute; JMA over 10 minutes, which reads lower (${example}).` : t`JTWC averages over 1 minute; JMA over 10 minutes, which reads lower.`}{" "}
+            {t`The cards and the timeline use JTWC when it reported, else JMA. 1 kt = 0.514 m/s.`}
+          </p>
+          {old ? (
+            <p className="text-sm leading-relaxed">
+              <b className="font-semibold">{t`Older storms are rougher.`}</b>{" "}
+              {t`Before weather satellites (the 1960s), positions and winds come from ships, land stations and aircraft, so tracks are sparser and weak storms may be missing.`}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-[13px]" data-testid="pair-gaps">
+        <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{t`Gaps for this pair`}</span>
+        {gaps.length ? (
+          gaps.map((s) => {
+            const name = s.name;
+            const list = s.gaps.map(gapText).join(", ");
+            return (
+              <span key={name} className="rounded-full border border-border bg-muted px-2.5 py-1 text-foreground" data-testid="gap-chip">
+                {t`${name}: ${list}`}
+              </span>
+            );
+          })
+        ) : (
+          <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-foreground" data-testid="gap-chip">
+            {t`None: both have pressure, JTWC and JMA winds and ERA5 maps`}
+          </span>
+        )}
+      </div>
+      <p className="text-[13px] text-muted-foreground">
+        {t`Sources:`}{" "}
+        <a className={linkCls} href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noreferrer">
+          {t`IBTrACS v04r01 (NOAA National Centers for Environmental Information)`}
+        </a>
+        {" · "}
+        <a className={linkCls} href="https://doi.org/10.24381/cds.adbb2d47" target="_blank" rel="noreferrer">
+          {t`ERA5 (Copernicus Climate Change Service, CC BY 4.0)`}
+        </a>
+        {" · "}
+        <Link to="/about" className={linkCls}>
+          {t`More about the data`}
+        </Link>
       </p>
-      <CollapsibleContent>
-        <ul className="grid list-disc gap-1.5 pl-5 text-muted-foreground">
-          <li>
-            {t`Best-track wind is JTWC's 1-minute mean when JTWC reported one, else JMA's 10-minute mean, which reads lower.`}
-            {example ? ` (${example})` : ""} {t`Pressure is the lowest central pressure in hPa.`}
-          </li>
-          <li>{t`The maps show ERA5 wind, gust, rain (mm/h) and sea-level pressure (hPa). Reanalysis smooths the eye wall, so its winds are well below the best track: use it for size and timing, not peak strength.`}</li>
-          <li>{t`Time steps: best-track fixes are 3- or 6-hourly and the hours between are interpolated; ERA5 frames are hourly. Wind is in knots (kt) here; 1 kt = 0.514 m/s.`}</li>
-          <li>{t`Lining up: 0 h is the moment you choose for both storms (first track point, peak wind or first landfall). The timeline runs from the earliest start to the latest end, so outside its own life a storm shows "not yet formed" or "ended".`}</li>
-          <li className={old ? "font-medium text-foreground" : undefined}>
-            {t`Before weather satellites (the 1960s), tracks come from ships, land stations and aircraft, so positions and winds are rougher and weak storms may be missing.`}
-          </li>
-          {storms.map(({ name, detail }) => {
-            const m = missing(detail);
-            const list = m.join("; ");
-            return <li key={detail.sid}>{m.length ? t`${name}: ${list}.` : t`${name}: all fields present.`}</li>;
-          })}
-          <li>
-            {t`Sources:`}{" "}
-            <a className="underline underline-offset-2" href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noreferrer">
-              {t`IBTrACS v04r01 (NOAA NCEI)`}
-            </a>
-            {", "}
-            <a className="underline underline-offset-2" href="https://doi.org/10.24381/cds.adbb2d47" target="_blank" rel="noreferrer">
-              {t`ERA5 (Copernicus Climate Change Service, CC BY 4.0)`}
-            </a>
-            {". "}
-            <Link to="/about" className="underline underline-offset-2">
-              {t`More about the data`}
-            </Link>
-          </li>
-        </ul>
-      </CollapsibleContent>
-    </Collapsible>
+    </section>
   );
 }

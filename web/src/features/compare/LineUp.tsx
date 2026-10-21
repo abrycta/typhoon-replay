@@ -263,8 +263,8 @@ export function LineUp({
           })}
           <span className="pointer-events-none absolute -inset-y-1 border-l-[1.5px] border-dashed border-foreground/50" style={{ left: `${pct(zero)}%` }} aria-hidden="true" />
           <div ref={headRef} className="pointer-events-none absolute -top-1.5 -bottom-2.5" style={{ left: `${pct(index)}%` }} aria-hidden="true">
-            <span className="absolute inset-y-0 -ml-px border-l-2" style={{ borderColor: "var(--ak-accent)" }} />
-            <span className="absolute -bottom-1 -ml-[7px] size-3.5 rounded-full border-2 border-card" style={{ background: "var(--ak-accent)", boxShadow: "0 0 0 1px var(--ak-accent)" }} />
+            <span className="absolute inset-y-0 -ml-px border-l-2" style={{ borderColor: "var(--ak-text)" }} />
+            <span className="absolute -bottom-1 -ml-[7px] size-3.5 rounded-full border-2 border-card" style={{ background: "var(--ak-text)", boxShadow: "0 0 0 1px var(--ak-text)" }} />
           </div>
         </div>
       </div>
@@ -293,7 +293,7 @@ export function LineUp({
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        <output className="mx-1 font-mono text-sm tabular-nums" style={{ color: "var(--ak-text-accent)" }} data-testid="shared-hour">
+        <output className="mx-1 font-mono text-sm tabular-nums text-foreground" data-testid="shared-hour">
           {relLabel(rel)}
         </output>
         <span className="sr-only" aria-live="polite">

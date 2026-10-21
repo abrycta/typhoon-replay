@@ -22,8 +22,10 @@ function useReason() {
           : t`Japan's strongest since ${since}: ${ktA} kt and ${ktB} kt`;
       }
       case "same-length": {
-        const { hours } = r;
-        return t`Same ${hours} h life, ${ya} and ${yb}, before weather satellites`;
+        const { hours, peaksApart } = r;
+        return peaksApart !== undefined
+          ? t`Same ${hours} h life, ${ya} and ${yb}, but peaks ${peaksApart} h apart`
+          : t`Same ${hours} h life, ${ya} and ${yb}, before weather satellites`;
       }
       case "peaks": {
         const { hours } = r;

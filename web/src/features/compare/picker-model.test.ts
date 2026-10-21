@@ -55,5 +55,9 @@ describe("suggested pairs", () => {
     const mk = s("2018250N12170", "Mangkhut", 2018, { peakWindKt: 155, landfallCountries: ["PH"], endedAt: "2018-06-11T12:00:00Z" });
     expect(pairReason(HAIYAN, mk, [HAIYAN, GONI, mk])).toEqual({ kind: "peaks", ktA: 170, ktB: 155, longer: "b", hours: 48 });
     expect(pairReason(s("x", "Gertrude", 1948), s("y", "Faye", 1949), [])).toEqual({ kind: "same-length", hours: 204 });
+    // With the index's peak times (data v4): hours from formation to peak differ by 48 h.
+    const g = s("x", "Gertrude", 1948, { peakAt: "1948-06-03T00:00:00Z" });
+    const f = s("y", "Faye", 1949, { peakAt: "1949-06-05T00:00:00Z" });
+    expect(pairReason(g, f, [])).toEqual({ kind: "same-length", hours: 204, peaksApart: 48 });
   });
 });

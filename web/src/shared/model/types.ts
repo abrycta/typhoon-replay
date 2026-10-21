@@ -21,6 +21,8 @@ export interface StormSummary {
   endedAt: string;
   peakWindKt?: number;
   peakWindAgency?: Agency;
+  /** Static index from data v4: ISO time of the peak wind (summary `peak.at`). */
+  peakAt?: string;
   minPressureHpa?: number;
   landfallCountries: Country[];
   /** JTWC tropical cyclone number from IBTrACS USA_ATCF_ID ("03W"); static index from data v2, optional. */
@@ -187,7 +189,7 @@ export interface ReanalysisCheck {
   typhoonHoursMedianRatioToJma?: number;
 }
 
-export interface StormDetail extends Omit<StormSummary, "peakWindKt" | "peakWindAgency" | "minPressureHpa"> {
+export interface StormDetail extends Omit<StormSummary, "peakWindKt" | "peakWindAgency" | "peakAt" | "minPressureHpa"> {
   atcfId?: string;
   durationHours?: number;
   fixCount?: number;

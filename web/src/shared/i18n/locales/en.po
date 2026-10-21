@@ -123,6 +123,10 @@ msgstr "{hours} h"
 msgid "{ka} kt vs {kb} kt; {longer} lived {hours} h longer"
 msgstr "{ka} kt vs {kb} kt; {longer} lived {hours} h longer"
 
+#: src/features/compare/DataCard.tsx
+msgid "{kt} kt {agency} ({minutes}-min)"
+msgstr "{kt} kt {agency} ({minutes}-min)"
+
 #. placeholder {0}: lane.httpStatus
 #. placeholder {1}: lane.reason ?? "?"
 #. placeholder {2}: formatMs(lane.totalMs ?? 0)
@@ -195,12 +199,12 @@ msgid "{name}: {j} kt JTWC, {m} kt JMA"
 msgstr "{name}: {j} kt JTWC, {m} kt JMA"
 
 #: src/features/compare/AboutComparison.tsx
-msgid "{name}: {list}."
-msgstr "{name}: {list}."
+msgid "{name}: {list}"
+msgstr "{name}: {list}"
 
-#: src/features/compare/AboutComparison.tsx
-msgid "{name}: all fields present."
-msgstr "{name}: all fields present."
+#: src/features/compare/DataCard.tsx
+msgid "{name}'s data"
+msgstr "{name}'s data"
 
 #: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
@@ -362,9 +366,17 @@ msgstr "Backend"
 msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
 msgstr "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
 
+#: src/features/compare/DataCard.tsx
+msgid "Before aircraft reconnaissance: positions from ships and land stations"
+msgstr "Before aircraft reconnaissance: positions from ships and land stations"
+
 #: src/features/compare/AboutComparison.tsx
-msgid "Before weather satellites (the 1960s), tracks come from ships, land stations and aircraft, so positions and winds are rougher and weak storms may be missing."
-msgstr "Before weather satellites (the 1960s), tracks come from ships, land stations and aircraft, so positions and winds are rougher and weak storms may be missing."
+msgid "Before weather satellites (the 1960s), positions and winds come from ships, land stations and aircraft, so tracks are sparser and weak storms may be missing."
+msgstr "Before weather satellites (the 1960s), positions and winds come from ships, land stations and aircraft, so tracks are sparser and weak storms may be missing."
+
+#: src/features/compare/DataCard.tsx
+msgid "Before weather satellites: positions from ships, land stations and aircraft"
+msgstr "Before weather satellites: positions from ships, land stations and aircraft"
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Best track"
@@ -373,10 +385,6 @@ msgstr "Best track"
 #: src/features/replay/IntensityPanel.tsx
 msgid "Best-track intensity"
 msgstr "Best-track intensity"
-
-#: src/features/compare/AboutComparison.tsx
-msgid "Best-track wind is JTWC's 1-minute mean when JTWC reported one, else JMA's 10-minute mean, which reads lower."
-msgstr "Best-track wind is JTWC's 1-minute mean when JTWC reported one, else JMA's 10-minute mean, which reads lower."
 
 #. placeholder {0}: formatShort(hour.between[0], lang, tz)
 #. placeholder {1}: formatShort(hour.between[1], lang, tz)
@@ -425,6 +433,10 @@ msgstr "Category"
 #: src/features/replay/TimelineTable.tsx
 msgid "Centre"
 msgstr "Centre"
+
+#: src/features/compare/DataCard.tsx
+msgid "Centre {medianKm} km from the track (median); over {limit} km at {offPct}% of hours"
+msgstr "Centre {medianKm} km from the track (median); over {limit} km at {offPct}% of hours"
 
 #: src/features/compare/StormPicker.tsx
 msgid "Change storm"
@@ -538,6 +550,10 @@ msgstr "Does each backend keep the contract?"
 msgid "Duration"
 msgstr "Duration"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "each storm's official best track (IBTrACS), with dots at the observed fixes and the hours between interpolated."
+msgstr "each storm's official best track (IBTrACS), with dots at the observed fixes and the hours between interpolated."
+
 #: src/features/replay/use-compass-names.ts
 msgid "east"
 msgstr "east"
@@ -561,6 +577,10 @@ msgstr "ended {hours} h ago"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Endpoint"
 msgstr "Endpoint"
+
+#: src/features/compare/DataCard.tsx
+msgid "Era"
+msgstr "Era"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "ERA5 (Copernicus Climate Change Service, CC BY 4.0)"
@@ -601,13 +621,29 @@ msgstr "ERA5 max wind ({unit})"
 msgid "ERA5 places this storm about {km} km {dir} of the official track here."
 msgstr "ERA5 places this storm about {km} km {dir} of the official track here."
 
+#: src/features/compare/AboutComparison.tsx
+msgid "ERA5 reanalysis, a global weather model's hourly rebuild of wind, gust, rain and sea-level pressure on a grid of about 28 km. It can place a storm tens of km off the track and smooths the eye wall, so use it for size and timing, not peak strength. Both maps use the same colour scale."
+msgstr "ERA5 reanalysis, a global weather model's hourly rebuild of wind, gust, rain and sea-level pressure on a grid of about 28 km. It can place a storm tens of km off the track and smooths the eye wall, so use it for size and timing, not peak strength. Both maps use the same colour scale."
+
 #: src/features/replay/FieldLegend.tsx
 msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
 msgstr "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
 
+#: src/features/compare/DataCard.tsx
+msgid "ERA5 shows no clear centre at {p}% of hours"
+msgstr "ERA5 shows no clear centre at {p}% of hours"
+
 #: src/features/replay/CentreOffsetNote.tsx
 msgid "ERA5 shows no clear centre near the official track here."
 msgstr "ERA5 shows no clear centre near the official track here."
+
+#: src/features/compare/DataCard.tsx
+msgid "ERA5 vs track"
+msgstr "ERA5 vs track"
+
+#: src/features/compare/DataCard.tsx
+msgid "ERA5, hourly, about 28 km grid"
+msgstr "ERA5, hourly, about 28 km grid"
 
 #: src/routes/about.tsx
 msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
@@ -713,6 +749,10 @@ msgstr "From the CI run on main, {0}."
 msgid "From the lossless 3-hourly grid (0.5°)."
 msgstr "From the lossless 3-hourly grid (0.5°)."
 
+#: src/features/compare/AboutComparison.tsx
+msgid "Gaps for this pair"
+msgstr "Gaps for this pair"
+
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Generated API cases (Schemathesis)"
 msgstr "Generated API cases (Schemathesis)"
@@ -766,6 +806,22 @@ msgstr "Hosting"
 msgid "hour {n}"
 msgstr "hour {n}"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "hour 0 is {na} at {pa} and {nb} at {pb}."
+msgstr "hour 0 is {na} at {pa} and {nb} at {pb}."
+
+#: src/features/compare/AboutComparison.tsx
+msgid "hour 0 is each storm at its strongest best-track wind."
+msgstr "hour 0 is each storm at its strongest best-track wind."
+
+#: src/features/compare/AboutComparison.tsx
+msgid "hour 0 is each storm's first landfall."
+msgstr "hour 0 is each storm's first landfall."
+
+#: src/features/compare/AboutComparison.tsx
+msgid "hour 0 is each storm's first track point."
+msgstr "hour 0 is each storm's first track point."
+
 #: src/features/replay/TimelineTable.tsx
 msgid "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
 msgstr "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
@@ -779,12 +835,28 @@ msgid "How it works"
 msgstr "How it works"
 
 #: src/features/compare/AboutComparison.tsx
-msgid "IBTrACS v04r01 (NOAA NCEI)"
-msgstr "IBTrACS v04r01 (NOAA NCEI)"
+msgid "How to read it"
+msgstr "How to read it"
+
+#: src/features/compare/DataCard.tsx
+msgid "IBTrACS best track, shown hourly"
+msgstr "IBTrACS best track, shown hourly"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "IBTrACS v04r01 (NOAA National Centers for Environmental Information)"
+msgstr "IBTrACS v04r01 (NOAA National Centers for Environmental Information)"
 
 #: src/routes/about.tsx
 msgid "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
 msgstr "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
+
+#: src/features/compare/DataCard.tsx
+msgid "IBTrACS, {h}-hourly fixes, shown hourly"
+msgstr "IBTrACS, {h}-hourly fixes, shown hourly"
+
+#: src/features/compare/DataCard.tsx
+msgid "IBTrACS, {min}- to {max}-hourly fixes, shown hourly"
+msgstr "IBTrACS, {min}- to {max}-hourly fixes, shown hourly"
 
 #. placeholder {0}: agreeing.map((l) => labels[l.id]).join(", ")
 #: src/features/under-the-hood/Race.tsx
@@ -798,10 +870,6 @@ msgstr "Include unnamed storms ({unnamed}, mostly before 1980)"
 #: src/features/compare/StormPicker.tsx
 msgid "Include unnamed storms ({unnamed})"
 msgstr "Include unnamed storms ({unnamed})"
-
-#: src/features/compare/AboutComparison.tsx
-msgid "Intensity on the cards and the timeline is the IBTrACS best track; the maps are ERA5 reanalysis, hourly, on a grid of about 28 km."
-msgstr "Intensity on the cards and the timeline is the IBTrACS best track; the maps are ERA5 reanalysis, hourly, on a grid of about 28 km."
 
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
@@ -859,6 +927,14 @@ msgstr "JTWC (1-min mean)"
 #: src/features/replay/TimelineTable.tsx
 msgid "JTWC 1-min ({unit})"
 msgstr "JTWC 1-min ({unit})"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "JTWC averages over 1 minute; JMA over 10 minutes, which reads lower ({example})."
+msgstr "JTWC averages over 1 minute; JMA over 10 minutes, which reads lower ({example})."
+
+#: src/features/compare/AboutComparison.tsx
+msgid "JTWC averages over 1 minute; JMA over 10 minutes, which reads lower."
+msgstr "JTWC averages over 1 minute; JMA over 10 minutes, which reads lower."
 
 #: src/routes/about.tsx
 msgid "JTWC winds are 1-minute means; JMA and PAGASA winds are 10-minute means, so their numbers are not directly comparable. Colour scales are fixed for every storm so that storms from different decades can be compared."
@@ -951,8 +1027,16 @@ msgid "Line up by"
 msgstr "Line up by"
 
 #: src/features/compare/AboutComparison.tsx
-msgid "Lining up: 0 h is the moment you choose for both storms (first track point, peak wind or first landfall). The timeline runs from the earliest start to the latest end, so outside its own life a storm shows \"not yet formed\" or \"ended\"."
-msgstr "Lining up: 0 h is the moment you choose for both storms (first track point, peak wind or first landfall). The timeline runs from the earliest start to the latest end, so outside its own life a storm shows \"not yet formed\" or \"ended\"."
+msgid "Lined up at first landfall:"
+msgstr "Lined up at first landfall:"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Lined up at formation:"
+msgstr "Lined up at formation:"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Lined up at peak wind:"
+msgstr "Lined up at peak wind:"
 
 #: src/routes/storm.$sid.tsx
 msgid "Link copied"
@@ -1007,9 +1091,17 @@ msgstr "Map rendering: MapLibre GL JS (BSD-3-Clause). Particle technique after m
 msgid "Map unavailable"
 msgstr "Map unavailable"
 
+#: src/features/compare/DataCard.tsx
+msgid "Maps"
+msgstr "Maps"
+
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Max wind (kt)"
 msgstr "Max wind (kt)"
+
+#: src/features/compare/DataCard.tsx
+msgid "Measurement arrives with the next data update"
+msgstr "Measurement arrives with the next data update"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "More about the data"
@@ -1055,29 +1147,25 @@ msgstr "No answer (network error)."
 msgid "No best-track fix at this hour."
 msgstr "No best-track fix at this hour."
 
-#: src/features/compare/AboutComparison.tsx
-msgid "no best-track wind"
-msgstr "no best-track wind"
-
 #: src/features/replay/IntensityPanel.tsx
 msgid "no best-track wind to compare"
 msgstr "no best-track wind to compare"
 
-#: src/features/compare/AboutComparison.tsx
-msgid "no central pressure"
-msgstr "no central pressure"
-
 #: src/features/replay/IntensityPanel.tsx
 msgid "no clear centre"
 msgstr "no clear centre"
+
+#: src/features/compare/DataCard.tsx
+msgid "no clear centre at {n}%"
+msgstr "no clear centre at {n}%"
 
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
 msgstr "No covered place was within {radius} km."
 
 #: src/features/compare/AboutComparison.tsx
-msgid "no ERA5 field replay (track only)"
-msgstr "no ERA5 field replay (track only)"
+msgid "no ERA5 maps"
+msgstr "no ERA5 maps"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only."
@@ -1099,17 +1187,25 @@ msgstr "No international name · {designation}"
 msgid "no JMA data"
 msgstr "no JMA data"
 
-#: src/features/compare/AboutComparison.tsx
-msgid "no JMA data (JMA's best track starts in 1951)"
-msgstr "no JMA data (JMA's best track starts in 1951)"
+#: src/features/compare/DataCard.tsx
+msgid "no JMA record"
+msgstr "no JMA record"
+
+#: src/features/compare/DataCard.tsx
+msgid "no JMA record (before 1951)"
+msgstr "no JMA record (before 1951)"
 
 #: src/features/compare/AboutComparison.tsx
-msgid "no JTWC wind (JMA's 10-minute wind is shown)"
-msgstr "no JTWC wind (JMA's 10-minute wind is shown)"
+msgid "no JTWC wind"
+msgstr "no JTWC wind"
 
 #: src/features/compare/SlotCard.tsx
 msgid "No landfall in the Philippines or Japan"
 msgstr "No landfall in the Philippines or Japan"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "no pressure"
+msgstr "no pressure"
 
 #: src/features/compare/SlotCard.tsx
 msgid "No storm chosen yet."
@@ -1131,9 +1227,22 @@ msgstr "No storms in the archive passed this close"
 msgid "No storms match"
 msgstr "No storms match"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "no wind estimate"
+msgstr "no wind estimate"
+
+#: src/features/compare/DataCard.tsx
 #: src/features/compare/SlotCard.tsx
 msgid "No wind estimate"
 msgstr "No wind estimate"
+
+#: src/features/compare/DataCard.tsx
+msgid "None (track only)"
+msgstr "None (track only)"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "None: both have pressure, JTWC and JMA winds and ERA5 maps"
+msgstr "None: both have pressure, JTWC and JMA winds and ERA5 maps"
 
 #: src/features/replay/use-compass-names.ts
 msgid "north"
@@ -1158,6 +1267,10 @@ msgstr "Not found"
 #: src/features/replay/TimelineTable.tsx
 msgid "not loaded yet"
 msgstr "not loaded yet"
+
+#: src/features/compare/DataCard.tsx
+msgid "Not recorded"
+msgstr "Not recorded"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "not reported"
@@ -1191,6 +1304,10 @@ msgstr "Observed fixes only"
 msgid "Off"
 msgstr "Off"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "Older storms are rougher."
+msgstr "Older storms are rougher."
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Oldest first"
 msgstr "Oldest first"
@@ -1218,6 +1335,10 @@ msgstr "Open the live app"
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "OpenAPI 3.1, one spec, checked for breaking changes in CI"
 msgstr "OpenAPI 3.1, one spec, checked for breaking changes in CI"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Outside its own life a storm shows \"not yet formed\" or \"ended\"."
+msgstr "Outside its own life a storm shows \"not yet formed\" or \"ended\"."
 
 #: src/routes/about.tsx
 msgid "PAGASA local names: compiled from Wikipedia, CC BY-SA 4.0."
@@ -1253,6 +1374,7 @@ msgstr "Peak"
 msgid "peak {0} kt ({1})"
 msgstr "peak {0} kt ({1})"
 
+#: src/features/compare/DataCard.tsx
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Peak wind"
 msgstr "Peak wind"
@@ -1312,13 +1434,10 @@ msgstr "Playback speed"
 msgid "Press Send to see the response."
 msgstr "Press Send to see the response."
 
+#: src/features/compare/DataCard.tsx
 #: src/features/replay/labels.ts
 msgid "Pressure"
 msgstr "Pressure"
-
-#: src/features/compare/AboutComparison.tsx
-msgid "Pressure is the lowest central pressure in hPa."
-msgstr "Pressure is the lowest central pressure in hPa."
 
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Proof"
@@ -1399,6 +1518,10 @@ msgstr "Running…"
 #: src/features/compare/SuggestedPairs.tsx
 msgid "Same {hours} h life, {ya} and {yb}, before weather satellites"
 msgstr "Same {hours} h life, {ya} and {yb}, before weather satellites"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Same {hours} h life, {ya} and {yb}, but peaks {peaksApart} h apart"
+msgstr "Same {hours} h life, {ya} and {yb}, but peaks {peaksApart} h apart"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "Same question, four answers"
@@ -1579,13 +1702,21 @@ msgstr "The backend is waking up (about a minute on free hosting). Send again in
 msgid "The backends disagree; showing {firstLabel}'s answer."
 msgstr "The backends disagree; showing {firstLabel}'s answer."
 
+#: src/features/compare/AboutComparison.tsx
+msgid "The cards and the timeline use JTWC when it reported, else JMA. 1 kt = 0.514 m/s."
+msgstr "The cards and the timeline use JTWC when it reported, else JMA. 1 kt = 0.514 m/s."
+
+#: src/features/compare/AboutComparison.tsx
+msgid "The colours:"
+msgstr "The colours:"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "The line:"
+msgstr "The line:"
+
 #: src/features/replay/StormReplay.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
 msgstr "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
-
-#: src/features/compare/AboutComparison.tsx
-msgid "The maps show ERA5 wind, gust, rain (mm/h) and sea-level pressure (hPa). Reanalysis smooths the eye wall, so its winds are well below the best track: use it for size and timing, not peak strength."
-msgstr "The maps show ERA5 wind, gust, rain (mm/h) and sea-level pressure (hPa). Reanalysis smooths the eye wall, so its winds are well below the best track: use it for size and timing, not peak strength."
 
 #: src/app/errors.tsx
 msgid "The page failed to render. Reloading usually helps."
@@ -1652,10 +1783,6 @@ msgstr "This storm could not be loaded"
 msgid "Time"
 msgstr "Time"
 
-#: src/features/compare/AboutComparison.tsx
-msgid "Time steps: best-track fixes are 3- or 6-hourly and the hours between are interpolated; ERA5 frames are hourly. Wind is in knots (kt) here; 1 kt = 0.514 m/s."
-msgstr "Time steps: best-track fixes are 3- or 6-hourly and the hours between are interpolated; ERA5 frames are hourly. Wind is in knots (kt) here; 1 kt = 0.514 m/s."
-
 #: src/features/replay/LayerPanel.tsx
 msgid "Time zone"
 msgstr "Time zone"
@@ -1667,6 +1794,10 @@ msgstr "Timeline"
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
 msgstr "Timeline table"
+
+#: src/features/compare/DataCard.tsx
+msgid "Track"
+msgstr "Track"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Track only"
@@ -1736,9 +1867,21 @@ msgstr "Value"
 msgid "waking up"
 msgstr "waking up"
 
+#: src/features/compare/DataCard.tsx
+msgid "Weather satellites"
+msgstr "Weather satellites"
+
+#: src/features/compare/DataCard.tsx
+msgid "Weather satellites, with aircraft reconnaissance"
+msgstr "Weather satellites, with aircraft reconnaissance"
+
 #: src/features/replay/use-compass-names.ts
 msgid "west"
 msgstr "west"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "What you're seeing"
+msgstr "What you're seeing"
 
 #: src/routes/about.tsx
 msgid "Where the data comes from, what it can and cannot tell you, and the licences that apply."
@@ -1759,6 +1902,10 @@ msgstr "Wind and rain fields are ERA5 reanalysis on a grid of about 28 km. For i
 #: src/features/replay/LayerPanel.tsx
 msgid "Wind particles"
 msgstr "Wind particles"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Wind speeds depend on the agency."
+msgstr "Wind speeds depend on the agency."
 
 #: src/features/replay/LayerPanel.tsx
 msgid "Wind units"

@@ -14,6 +14,7 @@ import { type Alignment, availableAlignments, DEFAULT_ALIGNMENT, sharedTimeline,
 import { type SharedClock, useSharedClock } from "./clock";
 import { type Lane, LineUp } from "./LineUp";
 import { suggestPairs } from "./picker-model";
+import { DataCard } from "./DataCard";
 import { useCountryName } from "./labels";
 import { SlotCard } from "./SlotCard";
 import { SuggestedPairs } from "./SuggestedPairs";
@@ -165,7 +166,7 @@ export function CompareView({ url, onUrl, renderReplay, fieldControl }: { url: C
           const r = ready[k]!;
           const offset = timeline.offsets[k]!;
           return (
-            <section key={s.slot} aria-label={mapLabel(lanes[k]!.name)} className="grid content-start gap-2" data-testid={`map-${s.slot}`}>
+            <section key={s.slot} aria-label={mapLabel(lanes[k]!.name)} className="grid content-start gap-3" data-testid={`map-${s.slot}`}>
               {renderReplay({
                 detail: r.detail,
                 dataset: s.dataset,
@@ -175,11 +176,12 @@ export function CompareView({ url, onUrl, renderReplay, fieldControl }: { url: C
                 leaderOffset: offset,
                 mapOverlay: <SideOverlay clock={clock} offset={offset} hours={r.span.hours} />,
               })}
+              <DataCard slot={s.slot} name={lanes[k]!.name} detail={r.detail} />
             </section>
           );
         })}
       </div>
-      {ready.length ? <AboutComparison storms={ready.map((s) => ({ name: nameOf(s.detail), detail: s.detail }))} /> : null}
+      {ready.length ? <AboutComparison storms={ready.map((s, k) => ({ name: lanes[k]!.name, detail: s.detail, landfallPlace: lanes[k]!.landfallPlace }))} alignment={timeline.alignment} /> : null}
     </div>
   );
 }

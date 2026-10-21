@@ -1,20 +1,32 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
-import { expect, HAIYAN, RAI, test } from "./fixtures";
+import { expect, GONI, HAIYAN, RAI, test } from "./fixtures";
 
 const MANGKHUT = "2018250N12170";
 const UNNAMED = { sid: "1940032N08122", name: "Unnamed", localNames: {}, season: 1940, basin: "WP", startedAt: "1940-02-01T00:00:00Z", endedAt: "1940-02-05T00:00:00Z", landfallCountries: [] };
 
-/** The fixture index has no unnamed storm: add one, and block every API (Compare reads static data only). */
+/** Gertrude 1948 and Faye 1949 as published in data v3 (track only here), with v4's `peakAt` in their index rows. */
+const GERTRUDE = "1948240N14139";
+const FAYE = "1949192N19142";
+const OLD_PAIR = [
+  { sid: GERTRUDE, name: "Gertrude", localNames: {}, designation: "12W", season: 1948, basin: "WP", startedAt: "1948-08-26T12:00:00Z", endedAt: "1948-09-04T00:00:00Z", peakWindKt: 85, peakWindAgency: "jtwc", peakAt: "1948-08-28T12:00:00Z", landfallCountries: ["PH"], saffirSimpson: "cat2" },
+  { sid: FAYE, name: "Faye", localNames: {}, designation: "04W", season: 1949, basin: "WP", startedAt: "1949-07-10T18:00:00Z", endedAt: "1949-07-19T06:00:00Z", peakWindKt: 90, peakWindAgency: "jtwc", peakAt: "1949-07-14T18:00:00Z", landfallCountries: ["JP"], saffirSimpson: "cat2" },
+];
+
+/** The fixture index has no unnamed storm nor Kurt's 1948/1949 pair: add them, and block every API (Compare reads static data only). */
 async function setup(page: Page) {
   await page.route("**/api/**", (r) => r.abort());
   await page.route("**/fixtures/v1/index.json", async (r) => {
     const res = await r.fetch();
     const body = await res.json();
-    body.storms.push(UNNAMED);
+    body.storms.push(UNNAMED, ...OLD_PAIR);
     await r.fulfill({ response: res, json: body });
   });
+  for (const sid of [GERTRUDE, FAYE]) {
+    await page.route(`**/fixtures/v1/storms/${sid}/summary.json`, (r) => r.fulfill({ path: `e2e/data/${sid}.summary.json` }));
+    await page.route(`**/fixtures/v1/storms/${sid}/track.json`, (r) => r.fulfill({ path: `e2e/data/${sid}.track.json` }));
+  }
 }
 
 test("picker: search by PAGASA name and 台風第…号; unnamed storms only when asked", async ({ page }) => {
@@ -92,4 +104,60 @@ test("axe: compare with the picker open", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Search storms" })).toBeFocused();
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).exclude(".maplibregl-ctrl-attrib").analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(" | ")}`)).toEqual([]);
+});
+
+test("data cards and About: a modern pair with full data", async ({ page }) => {
+  await setup(page);
+  await page.goto(`/compare?a=${HAIYAN}&b=${GONI}`);
+  const a = page.getByTestId("map-A").getByTestId("data-card-A");
+  await expect(a.getByRole("heading")).toHaveText("Haiyan's data");
+  await expect(a.getByTestId("data-track")).toContainText("IBTrACS, 3-hourly fixes, shown hourly");
+  await expect(a.getByTestId("data-wind")).toContainText("170 kt JTWC (1-min) · 125 kt JMA (10-min)");
+  await expect(a.getByTestId("data-pressure")).toContainText("895 hPa");
+  await expect(a.getByTestId("data-maps")).toContainText("ERA5, hourly, about 28 km grid");
+  await expect(a.getByTestId("data-offset")).toContainText("Measurement arrives with the next data update");
+  await expect(a.getByTestId("data-era")).toContainText("Weather satellites");
+  await expect(page.getByTestId("map-B").getByTestId("data-wind")).toContainText("170 kt JTWC (1-min) · 120 kt JMA (10-min)");
+  await expect(page.getByTestId("map-B").getByTestId("data-pressure")).toContainText("884 hPa");
+  const about = page.getByTestId("about-comparison");
+  await expect(about.getByRole("heading", { name: "About this comparison" })).toBeVisible();
+  await expect(about).toContainText("Lined up at peak wind:");
+  await expect(about).toContainText("(Haiyan: 170 kt JTWC, 125 kt JMA)");
+  await expect(about).not.toContainText("Older storms");
+  await expect(about.getByTestId("gap-chip")).toHaveText(["None: both have pressure, JTWC and JMA winds and ERA5 maps"]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const results = await new AxeBuilder({ page }).include("[data-testid=about-comparison]").include("[data-testid^=data-card]").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(results.violations.map((v) => v.id)).toEqual([]);
+});
+
+test("data cards and About: Gertrude 1948 vs Faye 1949 (no JMA, no pressure); the pair's reason uses peak times", async ({ page }) => {
+  await setup(page);
+  await page.goto("/compare");
+  const pair = page.getByTestId("suggested-pair").filter({ hasText: "Gertrude 1948 vs Faye 1949" });
+  await expect(pair).toContainText("Same 204 h life, 1948 and 1949, but peaks 48 h apart");
+  await pair.click();
+  await expect(page).toHaveURL(new RegExp(`a=${GERTRUDE}`));
+  const a = page.getByTestId("data-card-A");
+  await expect(a.getByTestId("data-track")).toContainText("IBTrACS, 6-hourly fixes, shown hourly");
+  await expect(a.getByTestId("data-wind")).toContainText("85 kt JTWC (1-min) · no JMA record (before 1951)");
+  await expect(a.getByTestId("data-pressure")).toContainText("Not recorded");
+  await expect(a.getByTestId("data-era")).toContainText("Before weather satellites: positions from ships, land stations and aircraft");
+  await expect(page.getByTestId("data-card-B").getByTestId("data-wind")).toContainText("90 kt JTWC (1-min) · no JMA record (before 1951)");
+  const about = page.getByTestId("about-comparison");
+  await expect(about).toContainText("Older storms are rougher.");
+  // Track only in this fixture (the live v3 storms have ERA5 maps).
+  await expect(about.getByTestId("gap-chip")).toHaveText(["Gertrude: no pressure, no JMA data, no ERA5 maps", "Faye: no pressure, no JMA data, no ERA5 maps"]);
+});
+
+test("390 px: data cards stack under their maps, About full width, no horizontal scroll", async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/compare?a=${GERTRUDE}&b=${FAYE}`);
+  await expect(page.getByTestId("data-card-B")).toBeVisible();
+  const [mapA, cardA, mapB, about] = await Promise.all(["map-A", "data-card-A", "map-B", "about-comparison"].map((id) => page.getByTestId(id).boundingBox()));
+  expect(cardA!.y).toBeGreaterThan(mapA!.y);
+  expect(mapB!.y).toBeGreaterThan(cardA!.y + cardA!.height - 1);
+  expect(about!.width).toBeGreaterThan(340);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
 });
