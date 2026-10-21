@@ -17,7 +17,12 @@
       "scenarios": { "passed": 86, "total": 86 },
       "generated": { "passed": 1444, "total": 1444 }
     },
-    "rust": { "stack": "Axum 0.8 · SQLx", "status": "next" },
+    "rust": {
+      "stack": "Axum 0.8 · Rust 1.99 · Workers",
+      "status": "measured",
+      "scenarios": { "passed": 86, "total": 86 },
+      "generated": { "passed": 1443, "total": 1443 }
+    },
     "go": {
       "stack": "net/http · oapi-codegen · Go 1.27",
       "status": "measured",

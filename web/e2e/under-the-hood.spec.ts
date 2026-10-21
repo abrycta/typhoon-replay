@@ -224,17 +224,17 @@ test("explorer: request line, status, edge headers and JSON", async ({ page }) =
   await expect(page.getByTestId("explore-body")).toContainText('"code": "backend-not-deployed"');
 });
 
-test("conformance table: measured figures, the others next", async ({ page }) => {
+test("conformance table: every backend measured", async ({ page }) => {
   await mockLanes(page);
   await page.goto("/under-the-hood");
   const table = page.getByTestId("conformance").getByRole("table");
   await expect(table.getByRole("columnheader")).toHaveText(["Check", "Java", "Node", "Rust", "Go"]);
   const rows = table.getByRole("row");
-  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*86 \/ 86\s*next\s*86 \/ 86/);
-  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*1,444 \/ 1,444\s*next\s*1,444 \/ 1,444/);
+  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*86 \/ 86\s*86 \/ 86\s*86 \/ 86/);
+  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*1,444 \/ 1,444\s*1,443 \/ 1,443\s*1,444 \/ 1,444/);
   await expect(rows.nth(3)).toContainText("2.8 ms");
   await expect(rows.nth(4)).toContainText("≈ 100 s");
-  await expect(page.getByTestId("conformance")).toContainText("Rust: built next, against the same suite.");
+  await expect(page.getByTestId("conformance")).not.toContainText("built next");
 });
 
 test("Japanese: nav, page and footer", async ({ page }) => {
