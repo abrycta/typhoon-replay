@@ -59,7 +59,9 @@ The image: `docker build -f api/go/Dockerfile -t typhoon-replay-go .` from the r
 ## Deploy
 
 Render service `typhoon-replay-go` (free plan, Singapore, Docker, `api/go/Dockerfile`, build context the repository
-root), deploying `main` after the GitHub checks pass, for changes under `api/go/**` and `contracts/**`. Environment:
+root). Render's auto-deploy is off: `go.yml` deploys a push to `main` through the Render API
+(`scripts/render-deploy.mjs`) once its tests and conformance pass, then runs the live checks (`live.yml`). The Render
+hours guard (`budget.yml`) may suspend this service late in a month; it resumes on the 1st. Environment:
 `DATABASE_URL` and `TR_EDGE_SECRET` (secrets, set in Render, never in the repo), `TR_SITE_ORIGIN`. Health check
 `/healthz`.
 

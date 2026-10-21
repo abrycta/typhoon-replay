@@ -112,7 +112,7 @@ const json = (r: Route, body: unknown, impl: string, cache = "MISS", status = 20
 const problemReply = (r: Route, code: string, headers: Record<string, string> = {}) =>
   r.fulfill({ status: code === "unknown-backend" ? 404 : 503, contentType: PROBLEM, headers: { "X-Edge-Cache": "BYPASS", ...headers }, body: JSON.stringify(problem(code)) });
 
-/** java answers; node is waking once, then answers; rust and go are not deployed. Returns request counts. */
+/** java answers; node is waking once, then answers; rust is not deployed; go is paused this month. Returns request counts. */
 async function mockLanes(page: Page) {
   const count: Record<string, number> = {};
   let nodeCalls = 0;
@@ -121,7 +121,8 @@ async function mockLanes(page: Page) {
     const impl = url.pathname.split("/")[2]!;
     const key = `${impl} ${url.pathname}`;
     count[key] = (count[key] ?? 0) + 1;
-    if (impl === "rust" || impl === "go") return problemReply(r, "backend-not-deployed");
+    if (impl === "rust") return problemReply(r, "backend-not-deployed");
+    if (impl === "go") return problemReply(r, "backend-paused", { "Retry-After": "86400" });
     if (url.pathname.endsWith("/healthz")) return json(r, { status: "ok" }, impl);
     if (url.pathname.endsWith("/v1/meta")) return json(r, { ...META, impl }, impl, "HIT");
     if (impl === "node" && url.pathname.includes("/storms") && nodeCalls++ === 0) return problemReply(r, "backend-waking", { "Retry-After": "1" });
@@ -131,7 +132,7 @@ async function mockLanes(page: Page) {
   return count;
 }
 
-test("race: java answers, node wakes then answers the same, rust and go are not deployed", async ({ page }) => {
+test("race: java answers, node wakes then answers the same, rust is not deployed, go is paused", async ({ page }) => {
   const count = await mockLanes(page);
   await page.goto("/under-the-hood");
   // Wake-on-entry: exactly one idle-time /healthz, to Java only.
@@ -148,7 +149,8 @@ test("race: java answers, node wakes then answers the same, rust and go are not 
   await expect(page.getByTestId("lane-node-state")).toHaveText("waking up");
   await expect(page.getByTestId("lane-node-note")).toContainText("about a minute on free hosting");
   await expect(page.getByTestId("lane-rust-state")).toHaveText("not deployed yet");
-  await expect(page.getByTestId("lane-go-state")).toHaveText("not deployed yet");
+  await expect(page.getByTestId("lane-go-state")).toHaveText("paused this month");
+  await expect(page.getByTestId("lane-go-note")).toContainText("paused until next month");
   await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
   await expect(page.getByTestId("lane-java-time")).toHaveText(/^\d+ ms$/);
   // The shared result table appears with the first answer.
@@ -167,7 +169,7 @@ test("race: java answers, node wakes then answers the same, rust and go are not 
   const q = "/v1/places/PH-0831600000/storms";
   expect(count[`node /api/node${q}`]).toBe(2); // waking -> retried once
   expect(count[`rust /api/rust${q}`]).toBe(1); // not deployed -> never retried
-  expect(count[`go /api/go${q}`]).toBe(1);
+  expect(count[`go /api/go${q}`]).toBe(1); // paused -> never retried
 
   // Keyboard: Tab from the question to the button and run it with Enter.
   await page.getByLabel("Question", { exact: true }).selectOption("storm");

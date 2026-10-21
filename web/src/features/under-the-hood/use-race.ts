@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { type ApiResult, type MatchState, matchStates, sendRequest, sendUntilAwake } from "@/api";
 import type { BackendId } from "@/shared/config/config";
 
-export type LaneStatus = "idle" | "running" | "waking" | "ok" | "not-deployed" | "error";
+export type LaneStatus = "idle" | "running" | "waking" | "ok" | "not-deployed" | "paused" | "error";
 
 export interface LaneState {
   id: BackendId;
@@ -21,7 +21,7 @@ export interface LaneState {
   /** HTTP status of the final answer (0 for a network failure). */
   httpStatus?: number;
   /** Before any run: what the wake-up ping found (shown on the chip only; not an answer). */
-  hint?: "ok" | "waking" | "not-deployed";
+  hint?: "ok" | "waking" | "not-deployed" | "paused";
   /** Order in which lanes answered (1 = first). */
   answeredRank?: number;
 }

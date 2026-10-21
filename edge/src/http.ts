@@ -16,6 +16,7 @@ export const EDGE_PROBLEMS = {
   "rate-limited": [429, "Too many requests"],
   "backend-waking": [503, "Backend is waking up"],
   "backend-unavailable": [503, "Backend unavailable"],
+  "backend-paused": [503, "Backend paused this month"],
   "static-mode": [503, "API in static mode"],
   "bad-gateway": [502, "Bad gateway"],
   "gateway-timeout": [504, "Gateway timeout"],

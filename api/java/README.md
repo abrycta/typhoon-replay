@@ -112,3 +112,5 @@ security fixes, so the "Under the hood" race always compares the same code.
    root; health check path `/healthz`. Env: `DATABASE_URL`, `TR_SITE_ORIGIN=https://replay.krtmtthw.dev`, `TR_COMMIT`
    (or Render's `RENDER_GIT_COMMIT`). `PORT` is set by Render. Remove the old `TR_OAUTH_*` and `TR_ALLOWED_ORIGINS`
    variables, and the OAuth apps' Java callback URLs, after the 2.0.0 deploy.
+3. Deploys: Render's auto-deploy is off. `java.yml` deploys a push to `main` through the Render API
+   (`scripts/render-deploy.mjs`) only after the tests and conformance pass, then runs the live checks (`live.yml`).

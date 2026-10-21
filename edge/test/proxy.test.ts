@@ -469,6 +469,16 @@ describe("cold start", () => {
     expect((await problemOf(res)).code).toBe("backend-unavailable");
   });
 
+  it("a suspended Render service is backend-paused until next month, on reads and probes", async () => {
+    h.setOrigin(() => new Response("<html>This service has been suspended by its owner.</html>", { status: 503, headers: { "Content-Type": "text/html" } }));
+    for (const path of ["/api/java/healthz", "/api/java/v1/storms/2013306N07162"]) {
+      const { res } = await h.call(path);
+      expect(res.status).toBe(503);
+      expect((await problemOf(res)).code).toBe("backend-paused");
+      expect(Number(res.headers.get("Retry-After"))).toBeGreaterThan(0);
+    }
+  });
+
   it("an unreachable origin is a 502 problem", async () => {
     h.setOrigin(() => {
       throw new TypeError("connect failed");

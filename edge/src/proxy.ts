@@ -142,7 +142,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
       return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; it takes about a minute to wake" });
     }
     if (r.kind === "error") return fail("bad-gateway");
-    return done(passthrough(r.response, isSse, requestId), "BYPASS");
+    return done(await passthrough(r.response, isSse, requestId), "BYPASS");
   }
 
   // --- cacheable public read ---
@@ -164,7 +164,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
     if (r && r.kind === "response" && !isGatewayError(r.response)) {
       const fresh = await settle(cache, key, keep, r.response, settings);
       if (fresh) return done(fromEntry(fresh, request), "MISS");
-      if (r.response.status !== 304) return done(passthrough(r.response, false, requestId), "MISS");
+      if (r.response.status !== 304) return done(await passthrough(r.response, false, requestId), "MISS");
       // 304 that could not refresh the entry: fall through to the stale copy.
     }
     if (!r) {
@@ -212,7 +212,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
     void response.body?.cancel();
     return done(new Response(null, { status: 304, headers }), "MISS");
   }
-  return done(passthrough(response, false, requestId), "MISS");
+  return done(await passthrough(response, false, requestId), "MISS");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -337,14 +337,28 @@ async function retryWaking(cache: Cache, key: Request, target: URL, request: Req
   }
 }
 
+/** Render's page for a suspended service (503, "This service has been suspended by its owner."). */
+const SUSPENDED = /suspended/i;
+
+/** Seconds until the next calendar month (UTC): Render's free instance hours reset monthly. */
+export function secondsToNextMonth(now = new Date()): number {
+  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+  return Math.max(60, Math.ceil((next - now.getTime()) / 1000));
+}
+
 /**
  * Hand the origin response to the client. The body stream is passed through untouched (no buffering, so SSE
- * frames arrive as they are written). Render's own 502/503/504 pages become problem+json so the SPA can read them.
+ * frames arrive as they are written). Render's own 502/503/504 pages become problem+json so the SPA can read them:
+ * a suspended service (the budget guard pauses it when the month's free hours run low, `scripts/budget-check.mjs`)
+ * is `backend-paused` until next month; anything else is `backend-unavailable`.
  */
-function passthrough(response: Response, isSse: boolean, requestId: string): Response {
+async function passthrough(response: Response, isSse: boolean, requestId: string): Promise<Response> {
   const ct = response.headers.get("Content-Type") ?? "";
   if ([502, 503, 504].includes(response.status) && !ct.includes("json")) {
-    void response.body?.cancel();
+    const page = response.status === 503 ? (await response.text().catch(() => "")).slice(0, 4096) : (void response.body?.cancel(), "");
+    if (SUSPENDED.test(page)) {
+      return problem("backend-paused", { requestId, retryAfter: secondsToNextMonth(), detail: "this backend is paused until next month to stay within its free hosting hours" });
+    }
     return problem("backend-unavailable", { requestId, retryAfter: Number(response.headers.get("Retry-After") ?? "") || WAKE_RETRY_AFTER_S });
   }
   const headers = downstreamHeaders(response.headers);

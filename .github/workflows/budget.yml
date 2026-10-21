@@ -1,12 +1,21 @@
 # Free-tier budget check (scripts/budget-check.mjs): Render instance hours and bandwidth, Cloudflare Workers/Pages
 # Functions requests, Neon compute/egress/storage. Opens (or comments on) one issue per month when a meter passes
-# 70 % of its free limit or is projected to pass 100 %. Read-only towards the providers; it changes nothing there.
+# 70 % of its free limit or is projected to pass 100 %.
+# Render hours guard: at 85 % of the workspace's 750 free instance hours it suspends the first running service of the
+# repository variable RENDER_GUARD_SERVICES (comma-separated, in pause order; default typhoon-replay-go; services not
+# listed are never paused) and records it in an issue; the first run of the next month resumes it and closes the
+# issue. workflow_dispatch with dry_run plans the guard's actions without changing anything.
 name: Budget
 
 on:
   schedule:
     - cron: "17 2 * * *" # daily, 02:17 UTC
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Plan the Render hours guard's actions without suspending, resuming or writing issues"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -24,9 +33,16 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Read usage
+      - name: Guard logic tests (mocked APIs)
+        run: node --test scripts/budget-check.test.mjs
+
+      - name: Read usage, apply the Render hours guard
         id: usage
         env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RENDER_GUARD_SERVICES: ${{ vars.RENDER_GUARD_SERVICES || 'typhoon-replay-go' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -34,7 +50,7 @@ jobs:
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
         run: |
           set +e
-          node scripts/budget-check.mjs > report.md
+          node scripts/budget-check.mjs $DRY_RUN > report.md
           status=$?
           set -e
           cat report.md >> "$GITHUB_STEP_SUMMARY"

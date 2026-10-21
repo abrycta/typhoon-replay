@@ -57,7 +57,7 @@ before adding its binding.
 
 Problems generated at the edge use the contract's shape and `type` base. Where a contract code fits, they reuse
 it (`not-found`, `method-not-allowed`, `payload-too-large`, `rate-limited`). The proxy-only codes are
-`unknown-backend`, `backend-not-deployed`, `backend-waking`, `backend-unavailable`, `static-mode`, `bad-gateway`
+`unknown-backend`, `backend-not-deployed`, `backend-waking`, `backend-unavailable`, `backend-paused`, `static-mode`, `bad-gateway`
 and `gateway-timeout`. They are kebab-case, like the contract's codes. Clients read them as a tolerant reader.
 
 ## Edge cache
@@ -144,7 +144,9 @@ Render's free services sleep after 15 minutes and take about a minute to wake.
   with backoff for up to 90 s. It treats `backend-not-deployed`, `unknown-backend` and `static-mode` as final ("down").
 - Unsafe methods are never cut short with "waking", because the write might still happen. They wait up to 100 s
   (then 504 `gateway-timeout`).
-- Render's own HTML 502/503/504 pages become a 503 `backend-unavailable` problem.
+- Render's own HTML 502/503/504 pages become a 503 `backend-unavailable` problem, except its page for a suspended
+  service ("suspended" in the body), which becomes a 503 `backend-paused` with `Retry-After` until the next UTC
+  month: the Render hours guard (`scripts/budget-check.mjs`) suspended it. The Tech page shows "paused this month".
 - A backend that is up while its database is not (Neon resuming from scale-to-zero) answers 503 `not-ready` with
   `Retry-After`. On a cacheable miss the edge returns its own 503 `backend-waking` with that `Retry-After`, and retries
   once in the background 5 s later to fill the cache. A stale copy, when there is one, is served instead (stale-if-error).

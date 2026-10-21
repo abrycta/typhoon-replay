@@ -84,6 +84,27 @@ a daily read of Render hours and bandwidth, Cloudflare requests (100k/day shared
 Neon usage that opens an issue when a meter passes 70 % or is projected past 100 %. Neon's usage needs a
 `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable (not set yet).
 
+## Update 2026-10-22: Render hours guard, deploys after checks, live checks
+
+Approved by Kurt.
+- **Render hours guard.** `budget.yml` (daily) estimates the workspace's free instance hours. At **85 %** of 750 it
+  suspends the first running service of the repository variable `RENDER_GUARD_SERVICES` (comma-separated, in pause
+  order; default `typhoon-replay-go`; services not listed, such as the Java APIs, are never paused) and opens an
+  issue recording it. The first run of the next month resumes what the guard paused and closes the issue; services
+  suspended by hand are left alone. The 70 % alert issue stays. While Go is suspended the edge answers
+  `backend-paused` (Render's "suspended" page) and the Tech page shows "paused this month" / 「今月は一時停止中」.
+  The logic is tested with mocked APIs (`scripts/budget-check.test.mjs`, run before every check) and has a dry run
+  (`workflow_dispatch` with `dry_run`, the default for manual runs).
+- **Deploys only after checks.** Render's auto-deploy is off for `typhoon-replay-java` and `typhoon-replay-go`;
+  `java.yml` and `go.yml` deploy a push to `main` through the Render API (`scripts/render-deploy.mjs`) once their
+  tests and conformance pass. (Render's "after CI checks pass" trigger would wait on every check of the commit,
+  including the live check that itself waits for the deploy.)
+- **Live checks.** `live.yml` runs the deployed-instance subset of the conformance suite (headers, caching, problems,
+  test hooks absent) against each backend's own URL after its deploy, and weekly against every backend in
+  `BACKEND_ORIGINS`. `storms` and `places` are excluded: they assert the fixture database's exact answers, which
+  production's full catalogue cannot match; `live` needs the test hooks, off in production. A failure opens an
+  issue; a paused backend is skipped. A Worker backend calls it after `wrangler deploy` (`node.yml`, and Rust likewise).
+
 ## Frozen showcase policy
 
 Once a backend is built (Java now; Go, Node and Rust as they land) it is **pinned and only receives security fixes**, so the "Under the hood" race always compares the same code.

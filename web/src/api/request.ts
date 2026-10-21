@@ -14,6 +14,8 @@ export type ResultKind =
   | "waking"
   /** No backend behind this route (edge `backend-not-deployed` / `unknown-backend`, or a static host's HTML). */
   | "not-deployed"
+  /** The backend is paused until next month to stay within its free hosting hours (edge `backend-paused`). */
+  | "paused"
   /** Anything else: a 4xx/5xx problem, a network failure, an unexpected body. Not retried. */
   | "error";
 
@@ -53,6 +55,7 @@ export function classify(status: number, contentType: string, body: unknown): { 
   const code = typeof (body as { code?: unknown } | undefined)?.code === "string" ? (body as { code: string }).code : undefined;
   const problemCode = status >= 400 ? code : undefined;
   if (problemCode && NOT_DEPLOYED_CODES.has(problemCode)) return { kind: "not-deployed", problemCode };
+  if (problemCode === "backend-paused") return { kind: "paused", problemCode };
   if (problemCode && WAKING_CODES.has(problemCode)) return { kind: "waking", problemCode };
   if (problemCode === "static-mode") return { kind: "error", problemCode };
   // A static host answering /api/* with its SPA page: there is no API behind this address.

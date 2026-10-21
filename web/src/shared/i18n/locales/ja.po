@@ -161,6 +161,10 @@ msgid "{label} is not deployed yet. Nothing to wait for."
 msgstr "{label} はまだデプロイされていません。待つ必要はありません。"
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} is paused until next month to stay within its free hosting hours."
+msgstr "{label} は無料ホスティングの利用時間内に収めるため、来月まで一時停止中です。"
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 msgstr "{label} はスリープから起動中です（無料ホスティングで約 1 分）。このページが再試行を続けます。"
 
@@ -1360,6 +1364,10 @@ msgstr "両方を一時停止"
 msgid "Pause replay"
 msgstr "リプレイを一時停止"
 
+#: src/features/under-the-hood/Race.tsx
+msgid "paused this month"
+msgstr "今月は一時停止中"
+
 #: src/features/replay/StormHeading.tsx
 msgid "peak"
 msgstr "最盛期"
@@ -1758,6 +1766,10 @@ msgstr "このアドレスには何もありません。台風 ID が誤って�
 #: src/features/under-the-hood/Explorer.tsx
 msgid "This backend is not deployed yet."
 msgstr "このバックエンドはまだデプロイされていません。"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "This backend is paused until next month to stay within its free hosting hours."
+msgstr "このバックエンドは無料ホスティングの利用時間内に収めるため、来月まで一時停止中です。"
 
 #: src/features/replay/StormReplay.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."

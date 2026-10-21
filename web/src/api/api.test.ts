@@ -103,6 +103,8 @@ describe("response classification", () => {
     expect(classify(503, "application/problem+json", problem("backend-not-deployed")).kind).toBe("not-deployed");
     expect(classify(404, "application/problem+json", problem("unknown-backend")).kind).toBe("not-deployed");
     expect(classify(503, "application/problem+json", problem("static-mode")).kind).toBe("error");
+    expect(classify(503, "application/problem+json", problem("backend-paused")).kind).toBe("paused");
+    expect(retryDecision({ kind: "paused", status: 503 }, 0, 0)).toMatchObject({ action: "stop", outcome: "paused" });
     expect(classify(502, "text/plain", undefined).kind).toBe("waking");
     expect(classify(404, "application/problem+json", problem("not-found")).kind).toBe("error");
     expect(classify(200, "application/json", {}).kind).toBe("ok");

@@ -46,6 +46,8 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
       ? t`The backend is waking up (about a minute on free hosting). Send again in ${res.retryAfterS ?? 20} s.`
       : res?.kind === "not-deployed"
         ? t`This backend is not deployed yet.`
+        : res?.kind === "paused"
+          ? t`This backend is paused until next month to stay within its free hosting hours.`
         : res?.status === 0
           ? t`No answer (network error).`
           : "";

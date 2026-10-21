@@ -10,15 +10,16 @@ const MAX_DELAY_MS = 20_000;
 export type RetryDecision =
   | { action: "done" }
   | { action: "retry"; delayMs: number }
-  | { action: "stop"; outcome: "not-deployed" | "error"; reason: string };
+  | { action: "stop"; outcome: "not-deployed" | "paused" | "error"; reason: string };
 
 /**
  * What to do after an answer: `ok` is done; `waking` retries, honouring Retry-After (else backing off 2 s × 1.5ⁿ),
- * until `capMs` would be exceeded; `not-deployed` and errors stop at once (no retries).
+ * until `capMs` would be exceeded; `not-deployed`, `paused` and errors stop at once (no retries).
  */
 export function retryDecision(r: Pick<ApiResult, "kind" | "retryAfterS" | "detail" | "status">, elapsedMs: number, attempt: number, capMs = WAKE_CAP_MS): RetryDecision {
   if (r.kind === "ok") return { action: "done" };
   if (r.kind === "not-deployed") return { action: "stop", outcome: "not-deployed", reason: "not deployed" };
+  if (r.kind === "paused") return { action: "stop", outcome: "paused", reason: "paused this month" };
   if (r.kind === "error") return { action: "stop", outcome: "error", reason: r.detail ?? `HTTP ${r.status}` };
   const backoff = Math.min(2000 * 1.5 ** attempt, MAX_DELAY_MS);
   const delayMs = Math.min(Math.max(r.retryAfterS !== undefined ? r.retryAfterS * 1000 : backoff, MIN_DELAY_MS), MAX_DELAY_MS);
@@ -35,7 +36,7 @@ export interface WakeProgress {
 }
 
 export interface WakeOutcome {
-  outcome: "ok" | "not-deployed" | "error";
+  outcome: "ok" | "not-deployed" | "paused" | "error";
   /** The final answer. */
   last: ApiResult;
   /** Total time from the first request to the final answer. */

@@ -27,6 +27,7 @@ const CHIP: Record<LaneStatus, string> = {
   waking: "text-[var(--warning,#8a5a12)] dark:text-[var(--warning,#e2b46a)]",
   ok: "text-[var(--success,#2f6b4f)] dark:text-[var(--success,#7cc4a0)]",
   "not-deployed": "text-muted-foreground",
+  paused: "text-muted-foreground",
   error: "text-destructive",
 };
 
@@ -41,6 +42,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     waking: t`waking up`,
     ok: t`awake`,
     "not-deployed": t`not deployed yet`,
+    paused: t`paused this month`,
     error: t`error`,
   };
   // Before a run, the chip shows what the wake-up ping found (Java only); it is not an answer.
@@ -48,7 +50,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
   const waiting = lane.status === "running" || lane.status === "waking";
   const elapsed = waiting && lane.startedAt !== undefined ? now - lane.startedAt : undefined;
   const pct =
-    lane.status === "ok" || lane.status === "not-deployed" || lane.status === "error"
+    lane.status === "ok" || lane.status === "not-deployed" || lane.status === "paused" || lane.status === "error"
       ? 100
       : lane.status === "waking" && elapsed !== undefined
         ? Math.min(95, (elapsed / TYPICAL_WAKE_MS) * 100)
@@ -65,6 +67,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
           : t`${label} answered in ${formatMs(lane.totalMs ?? 0)}.`
         : lane.status === "not-deployed"
           ? t`${label} is not deployed yet. Nothing to wait for.`
+          : lane.status === "paused"
+            ? t`${label} is paused until next month to stay within its free hosting hours.`
           : lane.status === "error"
             ? lane.reason === "did not wake up in time"
               ? t`${label} did not wake up within 3 minutes.`
@@ -77,6 +81,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
                 ? t`${label} is waking up; opening this page started it.`
                 : lane.hint === "not-deployed"
                   ? t`${label} is not deployed yet.`
+                  : lane.hint === "paused"
+                    ? t`${label} is paused until next month to stay within its free hosting hours.`
                   : "";
   const time =
     lane.status === "ok" || (lane.status === "error" && lane.httpStatus) ? formatMs(lane.totalMs ?? 0) : elapsed !== undefined ? formatMs(elapsed, true) : "—";

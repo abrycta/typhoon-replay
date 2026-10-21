@@ -3,8 +3,8 @@
 #   conformance  the Worker in local workerd (wrangler dev) against PostGIS 18 with the migrations and seed, reached
 #                through Neon's open-source SQL-over-HTTP proxy; Vitest scenarios (SSE heartbeat and a no-hooks
 #                instance included) and Schemathesis, like java.yml
-#   deploy       main only, after conformance: wrangler deploy (free plan), then the deployed-instance scenarios that
-#                do not depend on the fixture data
+#   deploy       main only, after conformance: wrangler deploy (free plan)
+#   live         the live checks against the deployed Worker (live.yml)
 name: Node
 
 on:
@@ -34,7 +34,6 @@ env:
   SCHEMATHESIS_IMAGE: schemathesis/schemathesis:stable
   # Neon's SQL-over-HTTP proxy for a plain Postgres (github.com/TimoWilhelm/local-neon-http-proxy), pinned by digest.
   NEON_PROXY_IMAGE: ghcr.io/timowilhelm/local-neon-http-proxy@sha256:cd2ae14edf2feafbc3330492de5c80506f77274c3bd013154cdef697bdeb768a
-  DEPLOYED_URL: https://replay-api-node.krtmtthw.workers.dev
   WRANGLER_SEND_METRICS: "false"
 
 jobs:
@@ -186,7 +185,7 @@ jobs:
           if-no-files-found: ignore
 
   deploy:
-    name: Deploy (Cloudflare Workers) and check the deployed instance
+    name: Deploy (Cloudflare Workers)
     needs: conformance
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -222,14 +221,12 @@ jobs:
           npm run generate
           npx wrangler deploy --var "TR_COMMIT:${GITHUB_SHA::7}"
 
-      # The deployed instance serves the production dataset, not the fixture, so only the scenarios that hold for any
-      # dataset run here (headers, caching, problems, test hooks absent). Hooks are off in production.
-      - name: Deployed-instance scenarios
-        working-directory: contracts
-        env:
-          BASE_URL: ${{ env.DEPLOYED_URL }}
-          IMPL: node
-          TEST_HOOKS: "0"
-          NO_HOOKS_BASE_URL: ${{ env.DEPLOYED_URL }}
-          SITE_ORIGIN: https://replay.krtmtthw.dev
-        run: npx vitest run --config conformance/vitest.config.ts headers caching problems test-hooks
+  live:
+    name: Live check
+    needs: deploy
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/live.yml
+    with:
+      impl: node

@@ -161,6 +161,10 @@ msgid "{label} is not deployed yet. Nothing to wait for."
 msgstr "{label} is not deployed yet. Nothing to wait for."
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} is paused until next month to stay within its free hosting hours."
+msgstr "{label} is paused until next month to stay within its free hosting hours."
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 msgstr "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 
@@ -1360,6 +1364,10 @@ msgstr "Pause both"
 msgid "Pause replay"
 msgstr "Pause replay"
 
+#: src/features/under-the-hood/Race.tsx
+msgid "paused this month"
+msgstr "paused this month"
+
 #: src/features/replay/StormHeading.tsx
 msgid "peak"
 msgstr "peak"
@@ -1758,6 +1766,10 @@ msgstr "There is nothing at this address. The storm id may be wrong, or the stor
 #: src/features/under-the-hood/Explorer.tsx
 msgid "This backend is not deployed yet."
 msgstr "This backend is not deployed yet."
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "This backend is paused until next month to stay within its free hosting hours."
+msgstr "This backend is paused until next month to stay within its free hosting hours."
 
 #: src/features/replay/StormReplay.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."

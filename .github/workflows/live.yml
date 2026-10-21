@@ -1,0 +1,114 @@
+# Live checks: the deployed-instance subset of the conformance suite against each live backend, through its own
+# public URL (not the edge, so the edge cache and its per-IP limit stay out of the way).
+#   - after each deploy: java.yml, go.yml and node.yml call this workflow for their backend (workflow_call);
+#   - weekly, and on demand: every backend listed in BACKEND_ORIGINS (wrangler.jsonc).
+# One short run per backend (about 40 requests). It wakes a sleeping Render service for one sleep period (15 min).
+# A failure opens (or comments on) an issue "Live check failed: {impl}".
+#
+# Excluded on purpose: tests/storms.test.ts and tests/places.test.ts assert golden answers from the fixture database
+# (contracts/db/seed: exact page walks, counts and rankings over 9 storms), which production's full catalogue cannot
+# match. live.test.ts needs the test hooks, which are off in production. What runs holds for any dataset: headers.test
+# (§4 headers, request ids, compression, the bundle), caching.test (ETags, 304s, Cache-Control classes, cookies
+# ignored), problems.test (problem+json codes, 404s for removed routes, 405s) and test-hooks.test (hooks absent).
+# A backend paused this month by the Render hours guard (scripts/budget-check.mjs) is skipped, not failed.
+name: Live
+
+on:
+  schedule:
+    - cron: "41 3 * * 1" # Mondays 03:41 UTC
+  workflow_dispatch:
+    inputs:
+      impl:
+        description: "One backend (java, node, rust, go); empty for all"
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      impl:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  backends:
+    name: Backends to check
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: list
+        env:
+          ONLY: ${{ inputs.impl }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const text = fs.readFileSync("wrangler.jsonc", "utf8").replace(/^\s*\/\/.*$/gm, "");
+            const origins = JSON.parse(JSON.parse(text).vars.BACKEND_ORIGINS);
+            const only = process.env.ONLY;
+            const list = Object.entries(origins).filter(([impl]) => !only || impl === only).map(([impl, url]) => ({ impl, url }));
+            if (!list.length) throw new Error(`no backend ${only} in BACKEND_ORIGINS`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify(list)}\n`);
+          '
+
+  check:
+    name: Live check (${{ matrix.impl }})
+    needs: backends
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.backends.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Wake and wait for readiness (paused backends are skipped)
+        id: ready
+        env:
+          BASE_URL: ${{ matrix.url }}
+        run: |
+          for _ in $(seq 36); do
+            code=$(curl -s -o /tmp/readyz -w '%{http_code}' -m 20 "$BASE_URL/readyz" || true)
+            if [ "$code" = 200 ]; then echo "state=ready" >> "$GITHUB_OUTPUT"; exit 0; fi
+            if grep -qi suspended /tmp/readyz 2>/dev/null; then echo "state=paused" >> "$GITHUB_OUTPUT"; echo "::notice::${{ matrix.impl }} is paused this month (Render hours guard): skipped"; exit 0; fi
+            sleep 5
+          done
+          echo "state=down" >> "$GITHUB_OUTPUT"
+          echo "::error::${{ matrix.impl }} did not become ready within 3 minutes (last HTTP $code)"
+          exit 1
+
+      - name: Deployed-instance scenarios
+        if: steps.ready.outputs.state == 'ready'
+        working-directory: contracts
+        env:
+          BASE_URL: ${{ matrix.url }}
+          IMPL: ${{ matrix.impl }}
+          TEST_HOOKS: "0"
+          NO_HOOKS_BASE_URL: ${{ matrix.url }}
+          SITE_ORIGIN: https://replay.krtmtthw.dev
+        run: |
+          npm ci
+          npm run bundle
+          npx vitest run --config conformance/vitest.config.ts headers caching problems test-hooks
+
+      - name: Open or update the failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMPL: ${{ matrix.impl }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Live check failed: $IMPL"
+          body="The live check of the $IMPL backend (${{ matrix.url }}) failed on $(date -u +%Y-%m-%dT%H:%MZ): $RUN_URL"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ -n "$number" ]; then gh issue comment "$number" --body "$body"; else gh issue create --title "$title" --body "$body"; fi
