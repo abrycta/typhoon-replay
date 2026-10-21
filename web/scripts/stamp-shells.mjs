@@ -94,7 +94,7 @@ const home = {
   title: "Typhoon Replay",
   text: "Replay any typhoon that hit the Philippines or Japan, hour by hour: ERA5 wind, rain and pressure beside the official best track.",
   url: `${site}/`,
-  image: `${site}/og-default.png`,
+  image: `${site}/og-card.png`,
 };
 writeFileSync(join(dist, "index.html"), stamp(template, headTags(home), "Typhoon Replay needs JavaScript for the interactive replay."));
 
