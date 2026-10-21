@@ -10,12 +10,13 @@ setWorkerUrl(workerUrl);
 
 import { useEffect, useRef, useState } from "react";
 
-import { type FrameStore, hourAt, type TyfHeader } from "@/data";
+import { type FrameStore, type TyfHeader } from "@/data";
 import { FIELDS, fieldLut, type FieldLayer as FieldLayerId } from "@/shared/lib/fields";
 import type { StormTrack, TrackHour } from "@/shared/model/types";
 
 import type { PlayerClock } from "../player";
 import { BASEMAP_STYLE, type CustomBasemap, fallbackStyle, themeBasemap, type ThemeKey, tokenColor } from "./basemap";
+import { eyeAt } from "./eye";
 import { FieldLayer } from "./field-layer";
 
 export interface MapView {
@@ -88,17 +89,6 @@ function bounds(hours: readonly TrackHour[]): LngLatBoundsLike | undefined {
   return [Math.min(...lons) - 2, Math.min(...lats) - 2, Math.max(...lons) + 2, Math.max(...lats) + 2];
 }
 
-function positionAt(hours: readonly TrackHour[], t: number): { lon: number; lat: number; observed: boolean } | undefined {
-  const a = hourAt(hours, t);
-  if (!a) return undefined;
-  const b = hourAt(hours, a.t + 3600);
-  if (!b || b.t === a.t) return { lon: a.lon, lat: a.lat, observed: a.observed };
-  const f = Math.min(1, Math.max(0, (t - a.t) / 3600));
-  let dl = b.lon - a.lon;
-  if (dl > 180) dl -= 360;
-  if (dl < -180) dl += 360;
-  return { lon: a.lon + dl * f, lat: a.lat + (b.lat - a.lat) * f, observed: f < 0.02 ? a.observed : f > 0.98 ? b.observed : false };
-}
 
 export default function ReplayMap(props: ReplayMapProps) {
   const { label, descriptionId, header, store, clock, track, layer, particles, showTrack, themeKey, view, interactive = true, className, onUnavailable } = props;
@@ -296,17 +286,19 @@ export default function ReplayMap(props: ReplayMapProps) {
       }
       const t0 = p.times[i];
       if (t0 !== undefined && p.track) {
-        const at = positionAt(p.track.hours, t0 + f * ((p.times[j] ?? t0) - t0));
+        const at = eyeAt(p.track.hours, t0 + f * ((p.times[j] ?? t0) - t0), clock.snapshot.playing);
         const src = map.getSource("current") as GeoJSONSource | undefined;
-        if (at && src) src.setData({ type: "Feature", properties: { observed: at.observed }, geometry: { type: "Point", coordinates: [at.lon, at.lat] } });
+        if (at && src) src.setData({ type: "Feature", properties: { observed: at.filled }, geometry: { type: "Point", coordinates: [at.lon, at.lat] } });
       }
       map.triggerRepaint();
     };
     apply(clock.pos);
     const off = clock.onTick(apply);
+    const offState = clock.subscribe(() => apply(clock.pos)); // fill the ring once playback pauses on a fix
     const unsub = store?.subscribe(() => apply(clock.pos));
     return () => {
       off();
+      offState();
       unsub?.();
     };
   }, [clock, store, styleVersion, header, track]);

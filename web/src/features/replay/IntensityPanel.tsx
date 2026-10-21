@@ -46,18 +46,15 @@ export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, three
         </h2>
         {hour ? (
           <>
-            <p className="text-xs text-muted-foreground">
-              {hour.observed ? (
-                <Badge variant="secondary">{t`Observed fix`}</Badge>
-              ) : (
-                <>
-                  <Badge variant="outline">{t`Interpolated`}</Badge>{" "}
-                  {hour.between
-                    ? t`between the ${formatShort(hour.between[0], lang, tz)} and ${formatShort(hour.between[1], lang, tz)} fixes`
-                    : null}
-                </>
-              )}
-            </p>
+            {/* Badge and fix line always both present, so the panel keeps its height (no shift at each fix). */}
+            <div className="grid justify-items-start gap-1 text-xs text-muted-foreground" data-testid="fix-status">
+              {hour.observed ? <Badge variant="secondary">{t`Observed fix`}</Badge> : <Badge variant="outline">{t`Interpolated`}</Badge>}
+              <span className="min-h-[1lh]">
+                {!hour.observed && hour.between
+                  ? t`between the ${formatShort(hour.between[0], lang, tz)} and ${formatShort(hour.between[1], lang, tz)} fixes`
+                  : "\u00a0"}
+              </span>
+            </div>
             <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm tabular-nums">
               <dt className="text-muted-foreground">{t`JTWC, 1-min mean`}</dt>
               <dd data-testid="bt-jtwc">
