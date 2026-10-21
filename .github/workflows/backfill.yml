@@ -46,6 +46,13 @@ on:
         description: Publish (flip latest.json) when everything passes
         type: boolean
         default: true
+      reuse_run:
+        description: >-
+          Optional run ID of an earlier backfill whose frames job succeeded (artifacts kept 7 days): reuse its
+          prepared catalogue and frames.json files instead of preparing and building again; the data gates,
+          dataset check and upload verification still run
+        default: ""
+        required: false
 
 permissions:
   contents: read
@@ -62,6 +69,9 @@ jobs:
   prepare:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read     # reuse_run: download another run's artifacts
     outputs:
       ok: ${{ steps.setup.outputs.ok }}
       version: ${{ steps.plan.outputs.version }}
@@ -82,8 +92,16 @@ jobs:
             data/raw/naturalearth
             data/processed/places
           key: pinned-sources-${{ hashFiles('pipeline/sources.yaml', 'pipeline/typhoon/places.py') }}
+      - name: Reuse the prepared catalogue of run ${{ inputs.reuse_run }}
+        if: steps.setup.outputs.ok == 'true' && inputs.reuse_run != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: prepared
+          path: data
+          run-id: ${{ inputs.reuse_run }}
+          github-token: ${{ github.token }}
       - name: Prepare the catalogue
-        if: steps.setup.outputs.ok == 'true'
+        if: steps.setup.outputs.ok == 'true' && inputs.reuse_run == ''
         working-directory: pipeline
         env:
           ARCHIVE_READ_TOKEN: ${{ secrets.ARCHIVE_READ_TOKEN }}
@@ -102,12 +120,17 @@ jobs:
           STORMS: ${{ inputs.storms }}
           MODE: ${{ inputs.mode }}
           SCOPE: ${{ inputs.scope }}
+          REUSE_RUN: ${{ inputs.reuse_run }}
         run: |
           version=$(uv run python -m typhoon publish next-version)
-          args=(--batches "$BATCHES" --mode "$MODE" --previous "$HF_ROOT" --out ../data/plan.json)
-          if [ "$SCOPE" = "selected" ]; then args+=(--selected); fi
-          if [ -n "$STORMS" ]; then args+=(--list "$STORMS"); fi
-          uv run python -m typhoon plan "${args[@]}"
+          if [ -n "$REUSE_RUN" ]; then
+            echo '{}' > ../data/plan.json   # nothing to build: the frames come from run $REUSE_RUN
+          else
+            args=(--batches "$BATCHES" --mode "$MODE" --previous "$HF_ROOT" --out ../data/plan.json)
+            if [ "$SCOPE" = "selected" ]; then args+=(--selected); fi
+            if [ -n "$STORMS" ]; then args+=(--list "$STORMS"); fi
+            uv run python -m typhoon plan "${args[@]}"
+          fi
           {
             echo "version=$version"
             echo "batches=$(python3 -c 'import json; print(json.dumps([k for k, v in json.load(open("../data/plan.json")).items() if v]))')"
@@ -182,6 +205,9 @@ jobs:
       (needs.frames.result == 'success' || (needs.frames.result == 'skipped' && needs.prepare.outputs.batches == '[]'))
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read     # reuse_run: download another run's artifacts
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: setup
@@ -194,11 +220,21 @@ jobs:
         with:
           name: prepared
           path: data
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - if: inputs.reuse_run == ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: frames-meta-*
           merge-multiple: true
           path: data/processed/frames
+      - name: Frames of run ${{ inputs.reuse_run }} (already validated and uploaded there)
+        if: inputs.reuse_run != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: frames-meta-*
+          merge-multiple: true
+          path: data/processed/frames
+          run-id: ${{ inputs.reuse_run }}
+          github-token: ${{ github.token }}
       - name: Assemble and check v${{ needs.prepare.outputs.version }}
         working-directory: pipeline
         env:

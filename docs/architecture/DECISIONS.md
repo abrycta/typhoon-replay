@@ -29,6 +29,16 @@ Supersedes the account parts of the table above (System: "shared, language-neutr
 - **Contract 2.0.0** (breaking, removals only) is still served under `/v1`: the URL major changes only when an operation that stays changes (`contracts/docs/CONTRACT-GUIDE.md` §2, §14; `contracts/CHANGELOG.md`). Database migration `20261021000600_drop_accounts` drops `auth.*` and the `app` account tables.
 - **Four backends, unchanged build order:** contract → Java → Go → Node → Rust. The frontend is built in parallel.
 
+## Update 2026-10-21: dataset file sizes (whole-catalogue backfill)
+
+The first whole-catalogue build (2,058 storms with frames) failed its dataset check: `v2/frames-index.json` was 30 MB, over the 25 MiB per-file cap (Cloudflare Pages). It held, per storm, the track hash and the full frame record (time, centre, per-frame `series`, every frame file's path, size and sha256, ~14 kB), which `summary.json` already carries for the app. Only the pipeline reads it (to reuse frames whose track did not change, and in the check).
+
+- **Frames index sharded by season**: `v<N>/frames-index/<season>.json` (largest ~0.5 MB; ~29 MB in all). `index.json` names the shards with `framesIndexShards: "v<N>/frames-index/{season}.json"` instead of `framesIndex`. The pipeline still reads v1's single `frames-index.json`, so building on the published v1 works. Kept as data rather than re-derived from 2,058 `summary.json` files: reuse then costs ~70 requests, not ~2,000. The web app never fetches it.
+- **File checksums moved out of `manifest.json`** into `v<N>/files.json` (manifest names it in `fileList`): with every frame file listed the manifest was 5.2 MB (1.5 MB gzip), and the app fetches it on every page for the footer. The pipeline and `publish` read either form.
+- **Every version holds every storm folder.** The build used to drop an unchanged storm's folder and point its `path` at an earlier version, but the app reads `v<N>/storms/<sid>/` (web/docs/DATA-LAYOUT.md), so those storms would have 404ed after the flip. Unchanged files are deduplicated by the Hub, so this costs upload commits, not storage.
+- **Budgets in the dataset check:** 25 MiB for any file (hosting cap); 2.5 MB raw for `index.json` (the browse catalogue, ~185 kB gzip); **1 MB raw for every other file fetched before a page can draw**: `manifest.json`, `places/index.json`, each storm's `summary.json` and `track.json`. JSON gzips about 8×, so 1 MB is ~125 kB transferred and well under 50 ms to parse on a mid-range phone; today the largest is a 105 kB `track.json`.
+- **Backfill `reuse_run` input:** a publish that fails after its frames job succeeded can be redone from that run's artifacts (the prepared catalogue and the `frames.json` files, kept 7 days) without rebuilding frames. The data-quality gates, the dataset check and the upload verification still run.
+
 ## Frozen showcase policy
 
 Once a backend is built (Java now; Go, Node and Rust as they land) it is **pinned and only receives security fixes**, so the "Under the hood" race always compares the same code.

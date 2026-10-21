@@ -27,7 +27,7 @@ from typing import Any
 import httpx
 
 from .config import BUILD, ERA5_HONESTY, HF_REPO, PIPELINE_DIR
-from .dataset import check
+from .dataset import check, file_list
 
 log = logging.getLogger("typhoon.publish")
 CARD_TEMPLATE = PIPELINE_DIR / "dataset_card.md"
@@ -97,12 +97,12 @@ def upload(version: int, root: Path = BUILD) -> None:
     vdir = root / f"v{version}"
     if not (vdir / "manifest.json").exists():
         raise SystemExit(f"{vdir} is not built")
-    man = json.loads((vdir / "manifest.json").read_text())
-    shared = [r for r, f in man["files"].items() if f.get("shared")]
+    files = local_files(version, root)
+    shared = [r for r, f in files.items() if f.get("shared")]
     have: dict[str, int] = {}
     for top in sorted({r.split("/", 1)[0] for r in shared}):
         have |= remote_paths(top)
-    frames = [r for r in shared if have.get(r) != man["files"][r]["bytes"] and (root / r).exists()]
+    frames = [r for r in shared if have.get(r) != files[r]["bytes"] and (root / r).exists()]
     version_files = sorted(str(p.relative_to(root)) for p in vdir.rglob("*") if p.is_file())
     log.info("uploading %d new shared files and %d files of v%d to %s", len(frames), len(version_files), version,
              HF_REPO)
@@ -112,18 +112,17 @@ def upload(version: int, root: Path = BUILD) -> None:
 
 def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> dict[str, Any]:
     """Every manifest file exists remotely with the right size; Range and CORS work on a frame file."""
-    man = json.loads((root / f"v{version}" / "manifest.json").read_text())
+    files = local_files(version, root)
     remote = remote_paths(f"v{version}")
     for top in ("frames", "places", "tables"):
         remote |= remote_paths(top)
-    bad = [p for p, f in man["files"].items() if remote.get(p) != f["bytes"]]
-    if f"v{version}/manifest.json" not in remote:
-        bad.append(f"v{version}/manifest.json")
+    bad = [p for p, f in files.items() if remote.get(p) != f["bytes"]]
+    bad += [p for p in (f"v{version}/manifest.json", f"v{version}/files.json") if p not in remote]
     if bad:
         raise SystemExit(f"{len(bad)} files missing or wrong size remotely, e.g. {bad[:5]}")
-    tyf = sample or next((p for p in man["files"] if p.endswith(".tyf")),
-                         next(p for p in man["files"] if p.endswith(".webp")))
-    info = man["files"][tyf]
+    tyf = sample or next((p for p in files if p.endswith(".tyf")),
+                         next(p for p in files if p.endswith(".webp")))
+    info = files[tyf]
     hdr_len = None
     with httpx.Client(follow_redirects=True, timeout=60) as c:
         r = c.get(resolve_url(tyf), headers={"Range": "bytes=0-7", "Origin": "https://typhoon-replay.pages.dev"})
@@ -139,7 +138,7 @@ def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> di
         pre = c.options(resolve_url(tyf), headers={"Origin": "https://typhoon-replay.pages.dev",
                                                    "Access-Control-Request-Method": "GET",
                                                    "Access-Control-Request-Headers": "range"})
-    out = {"files": len(man["files"]), "sample": tyf, "sampleBytes": info["bytes"],
+    out = {"files": len(files), "sample": tyf, "sampleBytes": info["bytes"],
            "range_status": [first, r2.status_code], "range_bytes": len(r2.content),
            "content_range": r2.headers.get("content-range"), "cors_allow_origin": cors,
            "preflight_status": pre.status_code,
@@ -148,6 +147,11 @@ def verify(version: int, root: Path = BUILD, *, sample: str | None = None) -> di
     if not (first == 206 and r2.status_code == 206 and len(r2.content) == size and cors and out["magic_ok"]):
         raise SystemExit(f"range/CORS check failed: {out}")
     return out
+
+
+def local_files(version: int, root: Path = BUILD) -> dict[str, dict[str, Any]]:
+    man = json.loads((root / f"v{version}" / "manifest.json").read_text())
+    return file_list(man, lambda rel: json.loads((root / rel).read_text()))
 
 
 def card(version: int, man: dict[str, Any], root: Path = BUILD) -> str:
@@ -227,7 +231,9 @@ def prune(keep: int, *, squash: bool = False, dry_run: bool = True) -> dict[str,
     for v in kept:
         r = httpx.get(resolve_url(f"v{v}/manifest.json"), follow_redirects=True, timeout=120)
         if r.status_code == 200:
-            referenced |= {k for k, f in r.json()["files"].items() if f.get("shared")}
+            vfiles = file_list(r.json(), lambda rel: httpx.get(resolve_url(rel), follow_redirects=True,
+                                                               timeout=120).raise_for_status().json())
+            referenced |= {k for k, f in vfiles.items() if f.get("shared")}
     drop = [f for f in files if (m := re.match(r"v(\d+)/", f)) and int(m.group(1)) not in kept]
     drop += [f for f in files if f.split("/", 1)[0] in ("frames", "places", "tables") and f not in referenced]
     out = {"versions": versions, "kept": sorted(kept), "delete": len(drop), "dryRun": dry_run}

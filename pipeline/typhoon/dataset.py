@@ -53,6 +53,12 @@ log = logging.getLogger("typhoon.dataset")
 SCHEMA = "typhoon-replay/dataset@1"
 FRAMES_ROOT = "frames"   # content-addressed frame files, shared by every data version
 INDEX_MAX_BYTES = 2_500_000   # raw; about 200 kB gzipped
+# Budget for every other JSON the web app fetches before it can draw a page (manifest.json for the footer,
+# places/index.json, and a storm page's summary.json + track.json). JSON gzips about 8x, so 1 MB raw is
+# ~125 kB over the wire and well under 50 ms of JSON.parse on a mid-range phone; each of these files is a
+# small fraction of it today. Frame files are streamed by range and are not part of this budget.
+PAGE_LOAD_MAX_BYTES = 1_000_000
+PAGE_LOAD_FILES = ("manifest.json", "places/index.json")
 
 
 def iso(t: Any) -> str | None:
@@ -326,18 +332,29 @@ def _get_json(root: str, rel_path: str) -> Any:
     return json.loads(p.read_text()) if p.exists() else None
 
 
+def frames_index_path(base_v: str, season: int) -> str:
+    """One season's shard of the frames index (sid -> {trackHash, frames}); pipeline-internal, not fetched by
+    the web app. A single file grew to 30 MB with the whole catalogue (docs/architecture/DECISIONS.md, "dataset file sizes")."""
+    return f"{base_v}frames-index/{season}.json"
+
+
 def load_previous(root: str | None) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    """(index.json, frames-index.json) of the version `latest.json` points at under `root` (URL or dir)."""
+    """(index.json, frames index) of the version `latest.json` points at under `root` (URL or dir). Reads the
+    per-season shards (`framesIndexShards`), or the single frames-index.json of v1."""
     if not root:
         return None, {}
     latest = _get_json(root, "latest.json")
     if not latest:
         return None, {}
-    return _get_json(root, latest["index"]), _get_json(root, latest["path"] + "frames-index.json") or {}
-
-
-def index_storms(prev: dict[str, Any] | None) -> list[dict[str, Any]]:
-    return list(prev["storms"]) if prev else []
+    prev = _get_json(root, latest["index"])
+    if not prev:
+        return None, {}
+    if "framesIndexShards" not in prev:
+        return prev, _get_json(root, prev.get("framesIndex") or latest["path"] + "frames-index.json") or {}
+    frames: dict[str, Any] = {}
+    for season in sorted({int(r["season"]) for r in prev["storms"] if r.get("replayAvailable")}):
+        frames |= _get_json(root, prev["framesIndexShards"].replace("{season}", str(season))) or {}
+    return prev, frames
 
 
 def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
@@ -362,15 +379,14 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     st_stats = stats.storm_stats(st.set_index("sid"), fixes, hourly,
                                  shapely.STRtree(shapely.from_wkb(pl.geom_wkb.to_numpy())))
     local = replay_storms()
-    prev, prev_frames = load_previous(previous)
-    prev_paths = {r["sid"]: (r["path"], r["contentHash"]) for r in index_storms(prev)}
+    _, prev_frames = load_previous(previous)
     fx_by, lf_by, hr_by = dict(tuple(fixes.groupby("sid"))), dict(tuple(lfs.groupby("sid"))), dict(tuple(hourly.groupby("sid")))
     empty_lf = lfs.iloc[0:0]
     index_rows: list[dict[str, Any]] = []
-    frames_index: dict[str, Any] = {}
+    frames_index: dict[int, dict[str, Any]] = {}   # season -> sid -> {trackHash, frames}
     frame_refs: dict[str, dict[str, Any]] = {}   # every frame file this version references
     replay: dict[str, dict[str, Any]] = {}
-    reused = reused_frames = 0
+    reused_frames = 0
     for row in st.sort_values(["season", "started_at", "sid"]).itertuples(index=False):
         s: Any = pd.Series(row._asdict())
         sid = s.sid
@@ -396,7 +412,7 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         if fr:
             h = fr["era5VsBestTrack"]
             replay[sid] = {"frames": fr["frames"], "ratio": h.get("headlineRatio"), "agency": h.get("headlineAgency")}
-            frames_index[sid] = {"trackHash": th, "frames": fr}
+            frames_index.setdefault(int(s.season), {})[sid] = {"trackHash": th, "frames": fr}
         summ = summary_doc(s, lf_by.get(sid, empty_lf), place_names, fr, base, ex_by.get(sid), place_objs,
                            st_stats.get(sid))
         trk = track_doc(s, fx_by[sid], hr_by[sid])
@@ -405,16 +421,14 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
         h = hr_by[sid]
         (sdir / "og.png").write_bytes(og.render(s.to_dict(), h.lon.to_numpy(), h.lat.to_numpy(), h.wind_kt.to_numpy()))
         # content hash of the storm's documents (the summary lists every frame file's sha256, so it covers the
-        # frames too); frame paths relative to the storm directory make it version-independent
+        # frames too); frame paths relative to the storm directory make it version-independent. Every version
+        # keeps every storm folder: the web app reads v<N>/storms/<sid>/ (web/docs/DATA-LAYOUT.md), and
+        # unchanged files cost nothing on the Hub (content-deduplicated).
         hsh = hashlib.sha256()
         for name in ("summary.json", "track.json", "og.png"):
             hsh.update(name.encode() + b"\0" + hashlib.sha256((sdir / name).read_bytes()).digest())
         content = hsh.hexdigest()[:32]
         path = base
-        if sid in prev_paths and prev_paths[sid][1] == content and sid not in local:
-            path = prev_paths[sid][0]
-            shutil.rmtree(sdir)
-            reused += 1
         index_rows.append(omit({
             "sid": sid, "name": s["name"], "localNames": local_names(s), "designation": catalog.designation(s.atcf_id),
             "season": int(s.season), "basin": s.basin, "startedAt": iso(s.started_at), "endedAt": iso(s.ended_at), "peakWindKt": num(s.peak_wind_kt),
@@ -433,12 +447,15 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
                 "directory (dataset-root relative; may be an earlier version's when nothing changed).",
         "storms": index_rows,
         "places": f"{base_v}places/index.json", "manifest": f"{base_v}manifest.json", "tables": f"{base_v}tables.json",
-        "framesIndex": f"{base_v}frames-index.json", "era5Note": ERA5_HONESTY,
+        "framesIndexShards": frames_index_path(base_v, "{season}"), "era5Note": ERA5_HONESTY,
         "stats": {k: f"{base_v}stats/{k}.json" for k in ("seasons", "climatology", "admin", "records")},
         "selection": f"{base_v}selection.json",
     }
     (vdir / "index.json").write_bytes(dumps(index))
-    (vdir / "frames-index.json").write_bytes(dumps(frames_index))
+    for season, entries in frames_index.items():
+        p = vdir / frames_index_path("", season)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(dumps(entries))
     write_places(vdir, base_v, pl, ex, st, out_root, frame_refs)
     write_stats(vdir, st, st_stats, lfs, pl, ex)
     sel_json = PROCESSED / "catalog/selection.json"
@@ -450,9 +467,9 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     (vdir / "tables.json").write_bytes(dumps({"schema": SCHEMA, "note": "Content-addressed Parquet files of this "
                                               "version (paths relative to the dataset root); exposure is split per season.",
                                               "tables": table_paths}))
-    write_manifest(vdir, version, index, tinfo, local, reused, frame_refs, len(replay), reused_frames)
-    log.info("built %s: %d storms, %d with frames (%d built now, %d reused), %d storm folders reused",
-             vdir, len(index_rows), len(replay), len(local), reused_frames, reused)
+    write_manifest(vdir, version, index, tinfo, local, frame_refs, len(replay), reused_frames)
+    log.info("built %s: %d storms, %d with frames (%d built now, %d reused)",
+             vdir, len(index_rows), len(replay), len(local), reused_frames)
     return vdir
 
 
@@ -566,7 +583,7 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
 
 
 def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[str, Any],
-                   replay: dict[str, dict[str, Any]], reused: int, remote_files: dict[str, dict[str, Any]],
+                   replay: dict[str, dict[str, Any]], remote_files: dict[str, dict[str, Any]],
                    with_frames: int, reused_frames: int) -> None:
     run = sources.RunManifest()
     # inputs: every local source's provenance + the ERA5 reads recorded per storm
@@ -594,11 +611,11 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
     meta = sources.data_version_metadata(run, str(version))
     files = {}
     for p in sorted(vdir.rglob("*")):
-        if p.is_file() and p.name != "manifest.json":
+        if p.is_file() and p.relative_to(vdir).as_posix() not in ("manifest.json", "files.json"):
             files[str(p.relative_to(vdir.parent))] = {"bytes": p.stat().st_size, "sha256": sha256_file(p)}
     for k, v in remote_files.items():   # content-addressed frames outside the version directory
         files[k] = dict(v, shared=True)
-    fi = json.loads((vdir / "frames-index.json").read_text())
+    fi = read_frames_index(vdir)
     ratios = [v["frames"]["era5VsBestTrack"].get("headlineRatio") for v in fi.values()]
     ratios = [r for r in ratios if r is not None]
     reg = {s["id"]: s for s in sources.registry().sources}
@@ -628,11 +645,29 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
         "era5": {"note": ERA5_HONESTY, "stormsWithFrames": with_frames, "framesBuiltThisVersion": len(replay),
                  "framesReusedFromPrevious": reused_frames,
                  "medianHeadlineRatio": round(float(np.median(ratios)), 3) if ratios else None},
-        "counts": {"storms": len(index["storms"]), "reusedStormFolders": reused, "tables": tinfo},
+        "counts": {"storms": len(index["storms"]), "tables": tinfo},
         "frameSelection": selection_summary(),
-        "files": files,
+        "fileList": f"{vdir.name}/files.json",
     }
+    # the checksums of every file live in files.json (5 MB with the whole catalogue), not in manifest.json,
+    # which the web app fetches on every page for the footer
+    (vdir / "files.json").write_bytes(dumps({"schema": SCHEMA, "note": "Every file of this version (paths "
+                                             "relative to the dataset root); shared = content-addressed outside "
+                                             "the version directory.", "files": files}))
     (vdir / "manifest.json").write_bytes(json.dumps(manifest, ensure_ascii=False, indent=1).encode())
+
+
+def file_list(man: dict[str, Any], load: Any) -> dict[str, dict[str, Any]]:
+    """{path: {bytes, sha256, shared?}} of a version: manifest.json `files` (v1) or the `fileList` file, read
+    with `load(dataset-root path) -> dict`."""
+    return man["files"] if "files" in man else load(man["fileList"])["files"]
+
+
+def read_frames_index(vdir: Path) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for p in sorted((vdir / "frames-index").glob("*.json")):
+        out |= json.loads(p.read_text())
+    return out
 
 
 def selection_summary() -> dict[str, Any] | None:
@@ -659,7 +694,8 @@ def check(vdir: Path) -> dict[str, Any]:
     problems: list[str] = []
     root = vdir.parent
     man = json.loads((vdir / "manifest.json").read_text())
-    for rel, f in man["files"].items():
+    files = file_list(man, lambda rel: json.loads((root / rel).read_text()))
+    for rel, f in files.items():
         p = root / rel
         if f.get("shared") and not p.exists():
             continue  # a frame file uploaded by a batch job or published earlier; publish.verify checks it
@@ -674,18 +710,27 @@ def check(vdir: Path) -> dict[str, Any]:
     raw = (vdir / "index.json").stat().st_size
     if raw > INDEX_MAX_BYTES:
         problems.append(f"index.json is {raw} bytes")
+    for name in PAGE_LOAD_FILES:
+        n = (vdir / name).stat().st_size
+        if n > PAGE_LOAD_MAX_BYTES:
+            problems.append(f"{vdir.name}/{name} is {n} bytes (page-load budget {PAGE_LOAD_MAX_BYTES})")
     rows = idx["storms"]
     if len(rows) < 1500:
         problems.append(f"only {len(rows)} storms")
-    fi = json.loads((vdir / "frames-index.json").read_text())
+    fi = read_frames_index(vdir)
     replay = 0
     for r in rows:
         sdir = root / r["path"]
-        if not r["path"].startswith(vdir.name + "/"):
-            continue  # reused from a previous, already-validated version
+        if r["path"] != f"{vdir.name}/storms/{r['sid']}/":
+            problems.append(f"{r['sid']}: path {r['path']} is not in this version")
+            continue
         if not (sdir / "summary.json").exists():
             problems.append(f"{r['sid']}: summary.json missing")
             continue
+        for name in ("summary.json", "track.json"):
+            n = (sdir / name).stat().st_size if (sdir / name).exists() else 0
+            if n > PAGE_LOAD_MAX_BYTES:
+                problems.append(f"{r['path']}{name} is {n} bytes (page-load budget {PAGE_LOAD_MAX_BYTES})")
         s = json.loads((sdir / "summary.json").read_text())
         if s["sid"] != r["sid"] or s.get("replayAvailable") != r["replayAvailable"]:
             problems.append(f"{r['sid']}: summary/index disagree")
@@ -733,8 +778,8 @@ def check(vdir: Path) -> dict[str, Any]:
     if len(sids) != len(rows):
         problems.append("storms table and index disagree")
     gz = len(gzip.compress((vdir / "index.json").read_bytes()))
-    result = {"storms": len(rows), "replay": replay, "files": len(man["files"]), "indexGzipBytes": gz,
-              "bytes": sum(f["bytes"] for f in man["files"].values()), "problems": problems}
+    result = {"storms": len(rows), "replay": replay, "files": len(files), "indexGzipBytes": gz,
+              "bytes": sum(f["bytes"] for f in files.values()), "problems": problems}
     if problems:
         raise CheckFailed(json.dumps(result, indent=1))
     return result

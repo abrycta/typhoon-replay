@@ -19,7 +19,7 @@ If the primary host fails (HTTP error, CORS, or an HTML page), the next base URL
 | Path (relative to a base URL) | Content | Required |
 |---|---|---|
 | `latest.json` | Pointer to the current version: `{"version": 1, "path": "v1/"}`. Also accepted: `{"version": 1}` (path `v1/`), `"v1"`, `1`. | yes |
-| `v<N>/manifest.json` | `{datasetVersion, dataAsOf, generatedAt?, fixture?, sources: [{id, name, url, license, attribution}]}` | no (footer and About page fall back) |
+| `v<N>/manifest.json` | `{datasetVersion, dataAsOf, generatedAt?, fixture?, sources: [{id, name, url, license, attribution}]}`; from v2 the per-file checksums are in `v<N>/files.json` (`fileList`), which the app does not fetch | no (footer and About page fall back) |
 | `v<N>/index.json` | `{"storms": [StormSummary…]}` or a bare array | yes |
 | `v<N>/storms/<sid>/summary.json` | StormDetail (below) | yes per storm |
 | `v<N>/storms/<sid>/track.json` | `{"fixes": [TrackFix…]}` plus optional `"hours"` | yes per storm |
@@ -30,7 +30,9 @@ If the primary host fails (HTTP error, CORS, or an HTML page), the next base URL
 | `v<N>/places/search.json` | compact place search index (below); **assumption**: the pipeline does not write it yet | no (falls back to the shards) |
 | `v<N>/places/<shard>.json` | places of one PH province / JP prefecture and their storm exposure (below) | for "My town" |
 
-`<sid>` is the IBTrACS SID (`^[0-9]{7}[NS][0-9]{5}$`).
+`<sid>` is the IBTrACS SID (`^[0-9]{7}[NS][0-9]{5}$`). Every version directory holds every storm's folder (index rows' `path` is always `v<N>/storms/<sid>/`).
+
+**Size budgets** (pipeline `dataset.check`, raw bytes): any file < 25 MiB (hosting cap); `index.json` ≤ 2.5 MB; every other file fetched before a page can draw (`manifest.json`, `places/index.json`, `summary.json`, `track.json`) ≤ 1 MB. Pipeline-only files (`files.json`, `frames-index/<season>.json`, `tables/`) are not fetched by the app.
 
 ## Records
 

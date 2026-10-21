@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import io
+import json
 import zlib
+from pathlib import Path
 
 import numcodecs
 import numpy as np
@@ -188,6 +190,24 @@ def test_json_cleaning_and_track_hash() -> None:
     h = pd.DataFrame({"time": pd.date_range("2020", periods=3, freq="h", tz="UTC"), "lat": [1.0, 2, 3], "lon": [359.0, 1, 2]})
     h2 = h.assign(lat=[1.0, 2, 3.5])
     assert dataset.track_hash(h) == dataset.track_hash(h.copy()) != dataset.track_hash(h2)
+
+
+def test_previous_frames_index_reads_v1_single_file_and_season_shards(tmp_path: Path) -> None:
+    def put(rel: str, doc: object) -> None:
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(json.dumps(doc))
+
+    rows = [{"sid": "a", "season": 2019, "replayAvailable": True}, {"sid": "b", "season": 2020, "replayAvailable": True},
+            {"sid": "c", "season": 2021, "replayAvailable": False}]
+    put("latest.json", {"path": "v1/", "index": "v1/index.json"})
+    put("v1/index.json", {"storms": rows, "framesIndex": "v1/frames-index.json"})
+    put("v1/frames-index.json", {"a": {"trackHash": "1"}, "b": {"trackHash": "2"}})
+    assert set(dataset.load_previous(str(tmp_path))[1]) == {"a", "b"}
+    put("latest.json", {"path": "v2/", "index": "v2/index.json"})
+    put("v2/index.json", {"storms": rows, "framesIndexShards": dataset.frames_index_path("v2/", "{season}")})
+    put(dataset.frames_index_path("v2/", 2019), {"a": {"trackHash": "1"}})
+    put(dataset.frames_index_path("v2/", 2020), {"b": {"trackHash": "3"}})
+    assert dataset.load_previous(str(tmp_path))[1] == {"a": {"trackHash": "1"}, "b": {"trackHash": "3"}}
 
 
 def test_antimeridian_track_does_not_cross_the_philippines() -> None:

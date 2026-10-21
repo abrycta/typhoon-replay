@@ -53,7 +53,9 @@ typhoon-strength hours, and the ERA5-vs-best-track central pressure bias.
 ```
 latest.json                              {"dataVersion": N, "path": "vN/", ...}  (flipped last)
 vN/index.json                            every storm, columnar: names, season, peak, landfall, bbox, path
-vN/manifest.json                         provenance of every input, attribution, checksums of every file
+vN/manifest.json                         provenance of every input, attribution, counts
+vN/files.json                            size and sha256 of every file of the version (frames included)
+vN/frames-index/<season>.json            pipeline bookkeeping: frame records + track hashes, for reuse
 vN/storms/<sid>/summary.json             storm detail + frame manifest (paths relative to the repo root)
 vN/storms/<sid>/track.json               observed fixes + hourly interpolated track (columnar)
 vN/storms/<sid>/og.png                   1200x630 share image
