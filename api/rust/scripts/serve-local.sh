@@ -4,7 +4,7 @@
 set -euo pipefail
 port="$1"; hooks="$2"
 cd "$(dirname "$0")/.."
-exec npx wrangler dev --port "$port" --ip 127.0.0.1 --persist-to ".wrangler/state-$port" --log-level log \
+exec npx wrangler dev --port "$port" --ip 127.0.0.1 --inspector-port "$((port + 1000))" --persist-to ".wrangler/state-$port" --log-level log \
   --var "TR_TEST_HOOKS:$hooks" --var "TR_RATE_LIMIT_PER_MINUTE:0" \
   --var "TR_SITE_ORIGIN:${SITE_ORIGIN:-http://localhost:8788}" \
   --var "DATABASE_URL:${DATABASE_URL:?DATABASE_URL is required}" \

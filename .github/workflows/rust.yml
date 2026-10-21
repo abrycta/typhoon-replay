@@ -206,12 +206,13 @@ jobs:
       - name: Compatibility table
         if: always()
         working-directory: contracts
-        run: npm run compat-table >> "$GITHUB_STEP_SUMMARY"
+        run: mkdir -p conformance/results && npm run compat-table >> "$GITHUB_STEP_SUMMARY"
 
       - name: Worker logs
         if: failure()
         run: |
           tail -100 /tmp/rust-8090.log
+          tail -50 /tmp/rust-8092.log
           docker logs neon-proxy 2>&1 | tail -50
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
