@@ -11,6 +11,7 @@ setWorkerUrl(workerUrl);
 import { useEffect, useRef, useState } from "react";
 
 import { type FrameStore, type TyfHeader } from "@/data";
+import { hostPause } from "@/shared/ui/host-pause";
 import { FIELDS, fieldLut, type FieldLayer as FieldLayerId } from "@/shared/lib/fields";
 import type { StormTrack, TrackHour } from "@/shared/model/types";
 
@@ -334,7 +335,7 @@ export default function ReplayMap(props: ReplayMapProps) {
   }, [era5?.lon, era5?.lat, era5?.label, era5?.name, styleVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => void markerRef.current?.remove(), []);
 
-  // Particles need continuous frames even while paused; stop when hidden or offscreen.
+  // Particles need continuous frames even while paused; stop when hidden, offscreen, or paused by the embedding page.
   useEffect(() => {
     if (!particles) return;
     let raf = 0;
@@ -344,7 +345,7 @@ export default function ReplayMap(props: ReplayMapProps) {
     let last = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
-      if (!visible || document.hidden || now - last < 30) return; // ~30 fps cap
+      if (!visible || document.hidden || hostPause.get() || now - last < 30) return; // ~30 fps cap
       last = now;
       mapRef.current?.triggerRepaint();
     };

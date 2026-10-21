@@ -85,3 +85,41 @@ test.describe("compact (phone)", () => {
     expect(bad, "requests off the app's origin or to /api/").toEqual([]);
   });
 });
+
+// The parent (krtmtthw.dev) starts the frame still (?paused=1) and pauses or resumes it by message; the wind
+// particles stop while paused. A stand-in parent page on the real origin frames the local build (both on public
+// https origins, proxied, since Chrome won't let a public page frame 127.0.0.1). Messages from elsewhere are ignored.
+test("embed: the parent pauses and resumes the particles, and only the parent", async ({ page, baseURL }) => {
+  const app = "https://replay.krtmtthw.dev";
+  await page.route(`${app}/**`, async (r) => {
+    const u = new URL(r.request().url());
+    await r.fulfill({ response: await r.fetch({ url: `${baseURL}${u.pathname}${u.search}` }) });
+  });
+  const src = `${app}${EMBED}?lang=en&paused=1`;
+  await page.route("https://krtmtthw.dev/", (r) =>
+    r.fulfill({ contentType: "text/html", body: `<!doctype html><iframe src="${src}" width="1440" height="900"></iframe>` }),
+  );
+  await page.goto("https://krtmtthw.dev/");
+  const embed = page.frameLocator("iframe");
+  await expect(embed.getByTestId("storm-replay")).toHaveAttribute("data-frame-ready", "true", { timeout: 20_000 });
+  const map = embed.getByTestId("replay-map");
+  const still = async () => {
+    const a = await map.screenshot();
+    await page.waitForTimeout(600);
+    return a.equals(await map.screenshot());
+  };
+  const send = (type: string) =>
+    page.evaluate(([t, o]) => document.querySelector("iframe")!.contentWindow!.postMessage({ type: t }, o!), [type, app]);
+  await page.waitForTimeout(500);
+  expect(await still()).toBe(true);
+  await send("akari:embed-resume");
+  await expect.poll(still).toBe(false);
+  await send("akari:embed-pause");
+  await expect(embed.locator("html")).toHaveAttribute("data-embed-paused", "");
+  await page.waitForTimeout(300);
+  expect(await still()).toBe(true);
+  // A message from the frame itself (not the parent) is ignored.
+  await embed.locator("html").evaluate(() => window.postMessage({ type: "akari:embed-resume" }, "*"));
+  await page.waitForTimeout(300);
+  expect(await still()).toBe(true);
+});

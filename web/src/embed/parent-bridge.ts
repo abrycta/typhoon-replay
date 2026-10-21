@@ -1,6 +1,9 @@
 // The embed's side of the krtmtthw.dev iframe contract: tell the parent when the first full frame is painted,
-// follow its scale (the frame is shown scaled down) and its theme. Only messages from the portfolio itself count.
+// follow its scale (the frame is shown scaled down), its theme, and its pause and resume (off-screen, or another
+// embed is the one moving on a touch device). Only messages from the portfolio's own window and origin count.
 import { cookieDomainApplies, THEME_STORE_EVENT, writeContrast, writeTheme } from "@abrycta/akari/react";
+
+import { hostPause } from "@/shared/ui/host-pause";
 
 export const PARENT_ORIGIN = "https://krtmtthw.dev";
 const COOKIE_DOMAIN = "krtmtthw.dev";
@@ -14,11 +17,14 @@ export function postReady(app: "replay" | "lights") {
 
 type ParentMessage =
   | { type: "akari:embed-scale"; scale: number }
+  | { type: "akari:embed-pause" | "akari:embed-resume" }
   | { type: "akari:theme"; theme: "light" | "dark" | null; contrast: "more" | "normal" | null };
 
 export function handleParentMessage(data: unknown, root: HTMLElement = document.documentElement) {
   const m = data as ParentMessage | null;
-  if (m?.type === "akari:embed-scale") {
+  if (m?.type === "akari:embed-pause" || m?.type === "akari:embed-resume") {
+    hostPause.set(m.type === "akari:embed-pause");
+  } else if (m?.type === "akari:embed-scale") {
     if (typeof m.scale === "number" && m.scale > 0 && m.scale <= 1) root.style.setProperty("--embed-scale", String(m.scale));
   } else if (m?.type === "akari:theme") {
     if (cookieDomainApplies(location.hostname, COOKIE_DOMAIN)) {
@@ -34,6 +40,9 @@ export function handleParentMessage(data: unknown, root: HTMLElement = document.
 
 /** Listens for the parent's messages; returns the cleanup. */
 export function listenToParent(): () => void {
+  // `?paused=1`: the parent starts the frame still and sends the state once it is ready. Unframed, nothing could
+  // resume it, so it is ignored.
+  if (framed() && new URLSearchParams(location.search).get("paused") === "1") hostPause.set(true);
   const on = (e: MessageEvent) => {
     if (e.origin !== PARENT_ORIGIN || e.source !== window.parent) return;
     handleParentMessage(e.data);
