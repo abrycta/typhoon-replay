@@ -91,8 +91,8 @@ test.describe("shared theme cookie (krtmtthw.dev)", () => {
     });
     const banner = page.getByRole("banner");
     await expect(
-      banner.getByRole("button", { name: "Dark mode" }),
-    ).toHaveAttribute("aria-pressed", "true");
+      banner.getByRole("button", { name: /^Theme: / }),
+    ).toHaveAccessibleName("Theme: dark");
     await expect(
       banner.getByRole("button", { name: "High contrast" }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -107,14 +107,17 @@ test.describe("shared theme cookie (krtmtthw.dev)", () => {
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto(`${ORIGIN}/`);
     const banner = page.getByRole("banner");
-    await expect(
-      banner.getByRole("button", { name: "Dark mode" }),
-    ).toHaveAttribute("aria-pressed", "false");
+    const theme = banner.getByRole("button", { name: /^Theme: / });
+    await expect(theme).toHaveAccessibleName("Theme: auto (light)");
     // No cookie: follows the system, and nothing is stored until the user toggles.
     expect((await context.cookies()).filter((c) => c.name === "theme")).toEqual(
       [],
     );
-    await banner.getByRole("button", { name: "Dark mode" }).click();
+    // Auto → Light → Dark.
+    await theme.click();
+    await expect(theme).toHaveAccessibleName("Theme: light");
+    await theme.click();
+    await expect(theme).toHaveAccessibleName("Theme: dark");
     await banner.getByRole("button", { name: "High contrast" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     const cookies = Object.fromEntries(
@@ -137,9 +140,7 @@ test.describe("shared theme cookie (krtmtthw.dev)", () => {
     // A reload (or another *.krtmtthw.dev app) starts dark.
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await expect(
-      banner.getByRole("button", { name: "Dark mode" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    await expect(theme).toHaveAccessibleName("Theme: dark");
   });
 });
 
@@ -150,9 +151,13 @@ test("other hosts fall back to localStorage", async ({ page, context }) => {
   ).toHaveAttribute("data-shared-cookie-domain", "krtmtthw.dev");
   const toggle = page
     .getByRole("banner")
-    .getByRole("button", { name: "Dark mode" });
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    .getByRole("button", { name: /^Theme: / });
+  await expect(toggle).toHaveAccessibleName("Theme: auto (light)");
+  // Auto → Light → Dark.
   await toggle.click();
+  await expect(toggle).toHaveAccessibleName("Theme: light");
+  await toggle.click();
+  await expect(toggle).toHaveAccessibleName("Theme: dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   expect((await context.cookies()).filter((c) => c.name === "theme")).toEqual(
     [],
