@@ -88,6 +88,15 @@ export class PlayerClock {
     this.moved();
   }
 
+  /** Follow another clock (compare view): a fractional position, clamped to this replay, without playing. */
+  follow(pos: number) {
+    if (this.frames < 1) return;
+    const p = Math.min(Math.max(0, pos), this.frames - 1);
+    if (p === this.pos) return;
+    this.pos = p;
+    this.moved();
+  }
+
   step(delta: number) {
     this.seek(Math.floor(this.pos + 1e-6) + delta);
   }

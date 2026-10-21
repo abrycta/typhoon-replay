@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle, Skeleton, useLang } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
+import { lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { bestWind, hourAt, maxNear, type ResolvedDataset, useFrameStore, useStormTrack } from "@/data";
 import type { FieldLayer } from "@/shared/lib/fields";
@@ -38,6 +38,13 @@ export interface ReplayUrlState {
   v?: string;
 }
 
+/** A clock another view drives: its position in hours, its ticks, and a gate that holds playback for missing frames. */
+export interface ReplayLeader {
+  readonly pos: number;
+  onTick(fn: (pos: number) => void): () => void;
+  addReadyCheck(fn: (pos: number) => boolean): () => void;
+}
+
 export interface StormReplayProps {
   detail: StormDetail;
   dataset: ResolvedDataset;
@@ -47,16 +54,18 @@ export interface StormReplayProps {
   pageKeyboard?: boolean;
   /** Hide the timeline table (compare view shows one shared table). */
   showTable?: boolean;
-  /** Externally driven index (compare view keeps two players in step). */
-  syncIndex?: number;
-  onIndex?: (index: number) => void;
+  /** A shared clock (compare view): this replay follows it at `leaderOffset` hours and hides its own controls. */
+  leader?: ReplayLeader;
+  leaderOffset?: number;
+  /** Drawn over the map (compare view: "not yet formed" / "ended"). */
+  mapOverlay?: ReactNode;
   compact?: boolean;
   autoplay?: boolean;
   loop?: boolean;
   mapClassName?: string;
 }
 
-export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTable = true, syncIndex, onIndex, compact, autoplay, loop, mapClassName }: StormReplayProps) {
+export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTable = true, leader, leaderOffset = 0, mapOverlay, compact, autoplay, loop, mapClassName }: StormReplayProps) {
   const { t } = useLingui();
   const { lang } = useLang();
   const fieldLabels = useFieldLabels();
@@ -96,21 +105,26 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     clock.play();
   }, [autoplay, reducedMotion, clock, times.length]);
 
-  // External sync (compare view): follow the shared hour when *it* changes. Not on local moves: re-seeking to the
-  // old shared hour whenever this replay's own index moved snapped Play and the scrubber back to it.
+  // Shared clock (compare view): follow it, and hold its playback until this replay's frame has arrived.
   useEffect(() => {
-    if (!times.length || syncIndex === undefined) return;
-    const target = Math.min(syncIndex, times.length - 1);
-    if (clock.snapshot.index !== target) clock.seek(target);
-  }, [syncIndex, clock, times.length]);
+    if (!leader || !times.length) return;
+    let last = -1;
+    const follow = (p: number) => {
+      clock.follow(p - leaderOffset);
+      const i = clock.snapshot.index;
+      if (Math.abs(i - last) > 1) store?.prioritise(i); // a jump (drag, step), not playback
+      last = i;
+    };
+    follow(leader.pos);
+    return leader.onTick(follow);
+  }, [leader, leaderOffset, clock, store, times.length]);
   useEffect(() => {
-    // Read the clock, not the render's state: a sync seek in the same commit has already moved it.
-    const i = clock.snapshot.index;
-    if (!times.length) return; // timeline not known yet
-    // A shorter storm clamps the shared hour; only report moves the user made inside its range.
-    if (syncIndex === undefined || (i !== syncIndex && !(syncIndex > times.length - 1 && i === times.length - 1))) onIndex?.(i);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.index, onIndex, clock]);
+    if (!leader || !hasFrames) return;
+    return leader.addReadyCheck((p) => {
+      const i = Math.floor(p + 1e-6) - leaderOffset;
+      return i < 0 || i >= times.length || !!store?.has(i) || !!store?.getSnapshot().done;
+    });
+  }, [leader, leaderOffset, store, hasFrames, times.length]);
 
   // Keep the URL's time in step while paused (scrubs, steps, jumps), never on every playing frame.
   useEffect(() => {
@@ -217,6 +231,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                 {t`frames ${progress}%`}
               </div>
             ) : null}
+            {mapOverlay}
           </div>
           <p id={descId} className="sr-only">
             {t`The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text.`}
@@ -233,6 +248,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
               <AlertDescription>{t`The replay continues with the best track only. (${snap.error})`}</AlertDescription>
             </Alert>
           ) : null}
+          {leader ? null : (
           <PlayerControls
             clock={clock}
             state={state}
@@ -247,6 +263,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             }}
             compact={compact}
           />
+          )}
         </div>
         {compact ? null : (
           <div className="grid content-start gap-4">

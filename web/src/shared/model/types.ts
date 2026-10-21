@@ -25,6 +25,8 @@ export interface StormSummary {
   landfallCountries: Country[];
   /** JTWC tropical cyclone number from IBTrACS USA_ATCF_ID ("03W"); static index from data v2, optional. */
   designation?: string;
+  /** Saffir–Simpson class from the JTWC peak ("td", "ts", "cat1"…"cat5"), static index only. */
+  saffirSimpson?: string;
   /** Accumulated cyclone energy (10^4 kt^2), static index only. */
   ace?: number;
   /** Static index only: frames exist for the replay. */
@@ -44,6 +46,8 @@ export interface Landfall {
   at: string;
   position: LonLat;
   placeId?: string;
+  /** Static data: the municipality name ("Dulag"). */
+  placeName?: string;
 }
 
 export interface DataSource {

@@ -19,7 +19,9 @@ describe("URL state schemas", () => {
   it("repairs garbage instead of failing the page", () => {
     expect(replaySearch.parse({ t: "yesterday", layer: "lava", speed: 3, v: "x" })).toMatchObject({ t: undefined, layer: "wind", speed: 4, v: undefined });
     expect(townSearch.parse({ radius: "75" }).radius).toBe(100);
-    expect(compareSearch.parse({ a: "2013306N07162", h: "-3" })).toMatchObject({ a: "2013306N07162", h: undefined, layer: "wind" });
+    // h counts from the aligned 0 h, so it may be negative; garbage and unknown line-ups are dropped.
+    expect(compareSearch.parse({ a: "2013306N07162", h: "-3", al: "landfall" })).toMatchObject({ a: "2013306N07162", h: -3, al: "landfall", layer: "wind" });
+    expect(compareSearch.parse({ h: "1.5", al: "sideways" })).toMatchObject({ h: undefined, al: undefined });
   });
 });
 

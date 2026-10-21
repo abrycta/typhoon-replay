@@ -34,7 +34,9 @@ export const catalogSearch = z.object({
 export const compareSearch = z.object({
   a: opt(z.string()),
   b: opt(z.string()),
-  h: opt(z.pipe(z.coerce.number(), z.int().check(z.minimum(0)))),
+  // Hours from 0 h (the aligned moment), negative before it; `al` is the line-up (peak when absent).
+  h: opt(z.pipe(z.coerce.number(), z.int())),
+  al: opt(z.enum(["formation", "peak", "landfall"])),
   layer,
   units,
 });

@@ -93,10 +93,35 @@ msgstr "気象庁の {0} 倍"
 msgid "{0}× JTWC"
 msgstr "JTWC の {0} 倍"
 
+#: src/features/compare/LineUp.tsx
+msgid "{ad} h after peak"
+msgstr "ピークの{ad}時間後"
+
+#: src/features/compare/LineUp.tsx
+msgid "{ad} h before peak"
+msgstr "ピークの{ad}時間前"
+
+#: src/features/compare/StormPicker.tsx
 #: src/features/storm-search/StormBrowser.tsx
 #: src/routes/index.tsx
 msgid "{d}s"
 msgstr "{d}年代"
+
+#: src/features/compare/labels.ts
+msgid "{days} d {hours} h"
+msgstr "{days}日{hours}時間"
+
+#: src/features/compare/StormPicker.tsx
+msgid "{hidden} unnamed hidden"
+msgstr "名称なし{hidden}件を非表示"
+
+#: src/features/compare/labels.ts
+msgid "{hours} h"
+msgstr "{hours}時間"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "{ka} kt vs {kb} kt; {longer} lived {hours} h longer"
+msgstr "{ka} kt 対 {kb} kt。{longer}は{hours}時間長く続いた"
 
 #. placeholder {0}: lane.httpStatus
 #. placeholder {1}: lane.reason ?? "?"
@@ -145,6 +170,39 @@ msgstr "{label} は起動中です（このページを開いたときに起動�
 msgid "{label} woke up and answered in {0}; the answer itself took {1}."
 msgstr "{label} は起動して {0} で応答しました（応答そのものは {1}）。"
 
+#: src/features/compare/SlotCard.tsx
+msgid "{landfalls} landfalls"
+msgstr "上陸{landfalls}回"
+
+#: src/features/compare/SlotCard.tsx
+msgid "{minutes}-min"
+msgstr "{minutes}分平均"
+
+#: src/features/compare/StormPicker.tsx
+msgid "{n} storms found"
+msgstr "{n}件の台風"
+
+#: src/features/compare/StormPicker.tsx
+msgid "{n} storms found, showing the newest {LIMIT}"
+msgstr "{n}件の台風(新しい順に{LIMIT}件を表示)"
+
+#: src/features/compare/LineUp.tsx
+msgid "{name} at {place}"
+msgstr "{name}は{place}"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "{name}: {j} kt JTWC, {m} kt JMA"
+msgstr "{name}: JTWC {j} kt、気象庁 {m} kt"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "{name}: {list}."
+msgstr "{name}: {list}。"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "{name}: all fields present."
+msgstr "{name}: すべての項目があります。"
+
+#: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "{s} h/s"
 msgstr "{s} 時間/秒"
@@ -154,6 +212,10 @@ msgstr "{s} 時間/秒"
 msgid "{SHOW} of {0} storms shown."
 msgstr "{0} 件中 {SHOW} 件を表示。"
 
+#: src/features/compare/LineUp.tsx
+msgid "● formed ◆ peak ▲ landfall"
+msgstr "● 発生 ◆ ピーク ▲ 上陸"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "✓ Same result"
 msgstr "✓ 同じ結果"
@@ -162,9 +224,29 @@ msgstr "✓ 同じ結果"
 msgid "✗ Different result"
 msgstr "✗ 異なる結果"
 
+#: src/features/compare/LineUp.tsx
+msgid "0 h = first landfall ({list})"
+msgstr "0時間 = 最初の上陸({list})"
+
+#: src/features/compare/LineUp.tsx
+msgid "0 h = first track point ({list})"
+msgstr "0時間 = 最初の経路点({list})"
+
+#: src/features/compare/LineUp.tsx
+msgid "0 h = peak wind ({list})"
+msgstr "0時間 = 最大風速({list})"
+
+#: src/features/compare/LineUp.tsx
+msgid "1 d/s"
+msgstr "1日/秒"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "1 hour"
 msgstr "1時間"
+
+#: src/features/compare/SlotCard.tsx
+msgid "1 landfall"
+msgstr "上陸1回"
 
 #: src/features/replay/labels.ts
 msgid "10 m wind gust"
@@ -186,6 +268,10 @@ msgstr "15 分間アクセスのないバックエンドはスリープし、起
 msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
 msgstr "制作: <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
 
+#: src/features/compare/CompareView.tsx
+msgid "A storm could not be loaded. Pick another one or try again later."
+msgstr "台風を読み込めませんでした。別の台風を選ぶか、時間をおいて再度お試しください。"
+
 #: src/app/Shell.tsx
 #: src/routes/about.tsx
 msgid "About"
@@ -195,9 +281,17 @@ msgstr "概要"
 msgid "About Replay"
 msgstr "Replay について"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "About this comparison"
+msgstr "この比較について"
+
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "Affected places"
 msgstr "影響を受けた地点"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Aligned {how} →"
+msgstr "{how}で揃える →"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "All"
@@ -229,6 +323,15 @@ msgstr "問い合わせ中"
 msgid "Asking…"
 msgstr "問い合わせ中…"
 
+#: src/features/compare/SuggestedPairs.tsx
+msgid "at landfall"
+msgstr "上陸時"
+
+#: src/features/compare/LineUp.tsx
+#: src/features/compare/SuggestedPairs.tsx
+msgid "at peak"
+msgstr "ピーク時"
+
 #. placeholder {0}: check.atPeak.era5WindMs.toFixed(1)
 #. placeholder {1}: check.atPeak.jtwcMs?.toFixed(1) ?? "?"
 #. placeholder {2}: check.atPeak.jmaMs?.toFixed(1) ?? "?"
@@ -242,6 +345,7 @@ msgstr "この台風の最盛期、場の最大風速は {0} m/s で、JTWC の 
 msgid "awake"
 msgstr "稼働中"
 
+#: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "Back one hour"
 msgstr "1時間戻る"
@@ -258,6 +362,10 @@ msgstr "バックエンド"
 msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
 msgstr "背景地図: OpenFreeMap、© OpenStreetMap contributors（ODbL）。代替の海岸線は Natural Earth（パブリックドメイン）。"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "Before weather satellites (the 1960s), tracks come from ships, land stations and aircraft, so positions and winds are rougher and weak storms may be missing."
+msgstr "気象衛星以前(1960年代まで)の経路は船舶・地上観測所・航空機の観測によるため、位置や風速の精度が低く、弱い台風が記録されていないことがあります。"
+
 #: src/features/replay/LayerPanel.tsx
 msgid "Best track"
 msgstr "ベストトラック"
@@ -266,15 +374,23 @@ msgstr "ベストトラック"
 msgid "Best-track intensity"
 msgstr "ベストトラックの強度"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "Best-track wind is JTWC's 1-minute mean when JTWC reported one, else JMA's 10-minute mean, which reads lower."
+msgstr "ベストトラックの風速は、JTWCの値があればJTWCの1分間平均、なければ気象庁の10分間平均(値は低めになります)です。"
+
 #. placeholder {0}: formatShort(hour.between[0], lang, tz)
 #. placeholder {1}: formatShort(hour.between[1], lang, tz)
 #: src/features/replay/IntensityPanel.tsx
 msgid "between the {0} and {1} fixes"
 msgstr "{0} と {1} の観測値の間"
 
-#: src/features/compare/CompareView.tsx
-msgid "Both replays move together: the scrubbers count hours from each storm's first frame. Colours use the same fixed scale for every storm."
-msgstr "2つのリプレイは連動します。時刻は各台風の最初のフレームからの経過時間です。色はすべての台風で同じ固定スケールです。"
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Both {kt} kt into Japan, {ya} and {yb}"
+msgstr "どちらも{kt} ktで日本へ({ya}年と{yb}年)"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Both {kt} kt into the Philippines, {ya} and {yb}"
+msgstr "どちらも{kt} ktでフィリピンへ({ya}年と{yb}年)"
 
 #: src/routes/storm.$sid.tsx
 msgid "Breadcrumb"
@@ -292,21 +408,50 @@ msgstr "年代と国で探す"
 msgid "Browse storms"
 msgstr "台風を探す"
 
+#: src/features/compare/SlotCard.tsx
+#: src/features/compare/StormPicker.tsx
+msgid "Cat {cat}"
+msgstr "カテゴリー{cat}"
+
 #: src/routes/storms.tsx
 msgid "Catalogue"
 msgstr "カタログ"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Category"
+msgstr "カテゴリー"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "Centre"
 msgstr "中心位置"
 
+#: src/features/compare/StormPicker.tsx
+msgid "Change storm"
+msgstr "台風を変更"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Change storm A"
+msgstr "台風Aを変更"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Change storm B"
+msgstr "台風Bを変更"
+
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Check"
 msgstr "項目"
 
-#: src/features/compare/CompareView.tsx
+#: src/features/compare/StormPicker.tsx
 msgid "Choose a storm"
 msgstr "台風を選択"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Choose storm A"
+msgstr "台風Aを選ぶ"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Choose storm B"
+msgstr "台風Bを選ぶ"
 
 #: src/features/town-history/TownHistory.tsx
 msgid "City or municipality"
@@ -334,8 +479,8 @@ msgid "Compare Haiyan and Rai"
 msgstr "ハイエンとライを比較"
 
 #: src/routes/compare.tsx
-msgid "Compare two storms"
-msgstr "2つの台風を比較"
+msgid "Compare two typhoons"
+msgstr "2つの台風を比べる"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Conformance"
@@ -349,13 +494,13 @@ msgstr "契約"
 msgid "Copy link to this hour"
 msgstr "この時刻へのリンクをコピー"
 
-#: src/features/compare/CompareView.tsx
-msgid "Could not load {sid}."
-msgstr "{sid} を読み込めませんでした。"
-
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Country"
 msgstr "国"
+
+#: src/features/compare/LineUp.tsx
+msgid "d"
+msgstr "日"
 
 #: src/app/Shell.tsx
 msgid "Data served statically · API in four languages → <0>Tech</0>"
@@ -374,6 +519,7 @@ msgstr "データ v{0}"
 msgid "Dataset unavailable"
 msgstr "データセットを利用できません"
 
+#: src/features/compare/StormPicker.tsx
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Decade"
 msgstr "年代"
@@ -398,9 +544,25 @@ msgstr "東"
 msgid "Edge"
 msgstr "エッジ"
 
+#: src/features/compare/LineUp.tsx
+msgid "ended"
+msgstr "消滅後"
+
+#: src/features/compare/CompareView.tsx
+msgid "Ended {h} h ago"
+msgstr "{h}時間前に消滅"
+
+#: src/features/compare/LineUp.tsx
+msgid "ended {hours} h ago"
+msgstr "{hours}時間前に消滅"
+
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Endpoint"
 msgstr "エンドポイント"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "ERA5 (Copernicus Climate Change Service, CC BY 4.0)"
+msgstr "ERA5(コペルニクス気候変動サービス、CC BY 4.0)"
 
 #: src/features/replay/StormReplay.tsx
 msgid "ERA5 centre"
@@ -469,7 +631,6 @@ msgid "Featured replay"
 msgstr "注目のリプレイ"
 
 #: src/features/under-the-hood/ResultTable.tsx
-#: src/routes/compare.tsx
 msgid "Field"
 msgstr "場"
 
@@ -499,10 +660,27 @@ msgstr "台風を探す"
 msgid "Finished: {0} of {1} backends answered."
 msgstr "完了: {1} 個中 {0} 個のバックエンドが応答しました。"
 
-#: src/features/compare/CompareView.tsx
-msgid "First storm"
-msgstr "1つ目の台風"
+#: src/features/compare/LineUp.tsx
+msgid "First landfall"
+msgstr "最初の上陸"
 
+#: src/features/compare/LineUp.tsx
+msgid "First time on land"
+msgstr "最初に陸地に達した時"
+
+#: src/features/compare/LineUp.tsx
+msgid "First track point"
+msgstr "最初の経路点"
+
+#: src/features/compare/LineUp.tsx
+msgid "Formation"
+msgstr "発生"
+
+#: src/features/compare/LineUp.tsx
+msgid "Formed"
+msgstr "発生"
+
+#: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "Forward one hour"
 msgstr "1時間進む"
@@ -518,6 +696,10 @@ msgstr "無料枠: サーバーはアイドル時にスリープし、要求が�
 #: src/features/under-the-hood/Race.tsx
 msgid "From {firstLabel}. No other backend has answered yet."
 msgstr "{firstLabel} の結果です。ほかのバックエンドはまだ応答していません。"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "from formation"
+msgstr "発生時"
 
 #. placeholder {0}: formatDate(CONFORMANCE.updatedAt, lang)
 #: src/features/under-the-hood/ConformanceTable.tsx
@@ -576,6 +758,10 @@ msgstr "ホーム"
 msgid "Hosting"
 msgstr "ホスティング"
 
+#: src/features/compare/LineUp.tsx
+msgid "hour {n}"
+msgstr "{n}時間目"
+
 #: src/features/replay/TimelineTable.tsx
 msgid "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a time to move the replay there."
 msgstr "1時間ごとの経路、ベストトラックの強度、ERA5 の風速。時刻を選ぶとリプレイがその時刻に移動します。"
@@ -588,6 +774,10 @@ msgstr "100 km 以内の時間"
 msgid "How it works"
 msgstr "しくみ"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "IBTrACS v04r01 (NOAA NCEI)"
+msgstr "IBTrACS v04r01(NOAA NCEI)"
+
 #: src/routes/about.tsx
 msgid "IBTrACS v04r01: NOAA National Centers for Environmental Information, public domain."
 msgstr "IBTrACS v04r01: NOAA 国立環境情報センター、パブリックドメイン。"
@@ -596,6 +786,18 @@ msgstr "IBTrACS v04r01: NOAA 国立環境情報センター、パブリックド
 #: src/features/under-the-hood/Race.tsx
 msgid "Identical across {0} (compared after normalising: key order, number formatting, timestamps, implementation fields)."
 msgstr "{0} で一致（キーの順序、数値の書式、時刻表記、実装固有の項目を正規化して比較）。"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Include unnamed storms ({unnamed}, mostly before 1980)"
+msgstr "名称のない台風を含める({unnamed}件、主に1980年以前)"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Include unnamed storms ({unnamed})"
+msgstr "名称のない台風を含める({unnamed}件)"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Intensity on the cards and the timeline is the IBTrACS best track; the maps are ERA5 reanalysis, hourly, on a grid of about 28 km."
+msgstr "カードとタイムラインの強度はIBTrACSのベストトラック、地図はERA5再解析(1時間ごと、約28 km格子)です。"
 
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
@@ -612,6 +814,8 @@ msgstr "補間値"
 msgid "interpolated ({0}–{1})"
 msgstr "補間（{0}–{1}）"
 
+#: src/features/compare/labels.ts
+#: src/features/compare/StormPicker.tsx
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Japan"
 msgstr "日本"
@@ -619,6 +823,10 @@ msgstr "日本"
 #: src/routes/storm.$sid.tsx
 msgid "Japan {dates}"
 msgstr "日本 {dates}"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
+msgstr "{since}年以降に日本に上陸した最強の2つ: {ktA} ktと{ktB} kt"
 
 #: src/features/replay/labels.ts
 msgid "JMA (10-min mean)"
@@ -656,6 +864,12 @@ msgstr "JTWC の風速は1分平均、気象庁と PAGASA は10分平均のた�
 msgid "JTWC, 1-min mean"
 msgstr "JTWC・1分平均"
 
+#: src/features/compare/LineUp.tsx
+msgid "Keys: arrows move one hour, Shift+arrows six, Home and End jump to the ends, Space plays."
+msgstr "キー: 矢印で1時間、Shift+矢印で6時間移動、Home/Endで端へ、Spaceで再生。"
+
+#: src/features/compare/LineUp.tsx
+#: src/features/compare/StormPicker.tsx
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Landfall"
 msgstr "上陸"
@@ -685,6 +899,14 @@ msgstr "{dates} フィリピンに上陸"
 #: src/features/replay/TimelineTable.tsx
 msgid "Landfall in the Philippines at {0}"
 msgstr "{0} フィリピンに上陸"
+
+#: src/features/compare/LineUp.tsx
+msgid "Landfall is off: {missing} never made landfall in the Philippines or Japan, so the storms are lined up at the peak."
+msgstr "上陸は選べません: {missing}はフィリピンにも日本にも上陸していないため、ピークで揃えています。"
+
+#: src/features/compare/LineUp.tsx
+msgid "Landfall is off: {missing} never made landfall in the Philippines or Japan."
+msgstr "上陸は選べません: {missing}はフィリピンにも日本にも上陸していません。"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Landfall: Japan"
@@ -716,10 +938,23 @@ msgstr "レイヤー"
 msgid "Licences"
 msgstr "ライセンス"
 
+#: src/features/compare/LineUp.tsx
+msgid "Line the storms up"
+msgstr "台風を揃える"
+
+#: src/features/compare/LineUp.tsx
+msgid "Line up by"
+msgstr "揃える基準"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Lining up: 0 h is the moment you choose for both storms (first track point, peak wind or first landfall). The timeline runs from the earliest start to the latest end, so outside its own life a storm shows \"not yet formed\" or \"ended\"."
+msgstr "揃え方: 0時間は両方の台風で選んだ時点(最初の経路点、最大風速、最初の上陸)です。タイムラインは早い方の発生から遅い方の消滅までなので、自分の期間の外では「発生前」または「消滅後」と表示されます。"
+
 #: src/routes/storm.$sid.tsx
 msgid "Link copied"
 msgstr "リンクをコピーしました"
 
+#: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "Loading frames…"
 msgstr "フレームを読み込み中…"
@@ -748,6 +983,14 @@ msgstr "最低海面気圧"
 msgid "Main"
 msgstr "メイン"
 
+#: src/routes/compare.tsx
+msgid "Map field"
+msgstr "地図の要素"
+
+#: src/features/compare/CompareView.tsx
+msgid "Map of {name}"
+msgstr "{name}の地図"
+
 #: src/features/replay/StormReplay.tsx
 msgid "Map of {stormName}'s track with the ERA5 field ({layerName}) at {timeLabel}"
 msgstr "{timeLabel} の {stormName} の経路と ERA5 の場（{layerName}）の地図"
@@ -764,6 +1007,10 @@ msgstr "地図を表示できません"
 msgid "Max wind (kt)"
 msgstr "最大風速 (kt)"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "More about the data"
+msgstr "データについて詳しく"
+
 #: src/app/Shell.tsx
 msgid "My town"
 msgstr "わが町"
@@ -779,6 +1026,10 @@ msgstr "名前"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Name, A–Z (unnamed last)"
 msgstr "名前順 A–Z（名称なしは最後）"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Name, PAGASA name, 台風第…号, year or ID"
+msgstr "名前、PAGASA名、台風第…号、年またはID"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
@@ -800,9 +1051,17 @@ msgstr "応答がありません（ネットワークエラー）。"
 msgid "No best-track fix at this hour."
 msgstr "この時刻のベストトラック値はありません。"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "no best-track wind"
+msgstr "ベストトラックの風速なし"
+
 #: src/features/replay/IntensityPanel.tsx
 msgid "no best-track wind to compare"
 msgstr "比較するベストトラック風速がありません"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "no central pressure"
+msgstr "中心気圧なし"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "no clear centre"
@@ -811,6 +1070,10 @@ msgstr "明瞭な中心なし"
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
 msgstr "{radius} km 以内に対象地点はありません。"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "no ERA5 field replay (track only)"
+msgstr "ERA5の場の再生なし(経路のみ)"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only."
@@ -828,6 +1091,34 @@ msgstr "国際名なし"
 msgid "No international name · {designation}"
 msgstr "国際名なし · {designation}"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "no JMA data"
+msgstr "気象庁のデータなし"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "no JMA data (JMA's best track starts in 1951)"
+msgstr "気象庁のデータなし(気象庁のベストトラックは1951年から)"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "no JTWC wind (JMA's 10-minute wind is shown)"
+msgstr "JTWCの風速なし(気象庁の10分間平均を表示)"
+
+#: src/features/compare/SlotCard.tsx
+msgid "No landfall in the Philippines or Japan"
+msgstr "フィリピン・日本への上陸なし"
+
+#: src/features/compare/SlotCard.tsx
+msgid "No storm chosen yet."
+msgstr "まだ台風が選ばれていません。"
+
+#: src/features/compare/StormPicker.tsx
+msgid "No storm matches. Try a year, a PAGASA name or 台風第…号."
+msgstr "該当する台風がありません。年、PAGASA名、台風第…号で試してください。"
+
+#: src/features/compare/StormPicker.tsx
+msgid "No storms found"
+msgstr "台風が見つかりません"
+
 #: src/features/town-history/TownHistory.tsx
 msgid "No storms in the archive passed this close"
 msgstr "この距離まで接近した台風は記録にありません"
@@ -835,6 +1126,10 @@ msgstr "この距離まで接近した台風は記録にありません"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "No storms match"
 msgstr "該当する台風がありません"
+
+#: src/features/compare/SlotCard.tsx
+msgid "No wind estimate"
+msgstr "風速の推定なし"
 
 #: src/features/replay/use-compass-names.ts
 msgid "north"
@@ -863,6 +1158,18 @@ msgstr "未読み込み"
 #: src/features/replay/IntensityPanel.tsx
 msgid "not reported"
 msgstr "報告なし"
+
+#: src/features/compare/LineUp.tsx
+msgid "not yet formed"
+msgstr "発生前"
+
+#: src/features/compare/CompareView.tsx
+msgid "Not yet formed · forms in {h} h"
+msgstr "発生前 · {h}時間後に発生"
+
+#: src/features/compare/LineUp.tsx
+msgid "not yet formed (in {hours} h)"
+msgstr "発生前({hours}時間後に発生)"
 
 #: src/features/replay/TimelineTable.tsx
 msgid "observed"
@@ -916,6 +1223,10 @@ msgstr "システムで「視差効果を減らす」が設定されているた
 msgid "Pause"
 msgstr "一時停止"
 
+#: src/features/compare/LineUp.tsx
+msgid "Pause both"
+msgstr "両方を一時停止"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "Pause replay"
 msgstr "リプレイを一時停止"
@@ -923,6 +1234,10 @@ msgstr "リプレイを一時停止"
 #: src/routes/storm.$sid.tsx
 msgid "peak"
 msgstr "最盛期"
+
+#: src/features/compare/LineUp.tsx
+msgid "Peak"
+msgstr "ピーク"
 
 #. placeholder {0}: s.peakWindKt.toFixed(0)
 #. placeholder {1}: (s.peakWindAgency ?? "").toUpperCase()
@@ -934,6 +1249,8 @@ msgstr "最大 {0} kt（{1}）"
 msgid "Peak wind"
 msgstr "最大風速"
 
+#: src/features/compare/labels.ts
+#: src/features/compare/StormPicker.tsx
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Philippines"
 msgstr "フィリピン"
@@ -946,9 +1263,9 @@ msgstr "フィリピン・日本・1940年以降"
 msgid "Philippines {dates}"
 msgstr "フィリピン {dates}"
 
-#: src/features/compare/CompareView.tsx
-msgid "Pick a storm"
-msgstr "台風を選んでください"
+#: src/routes/compare.tsx
+msgid "Pick any two storms since 1940. Both play on one clock, lined up the way you choose."
+msgstr "1940年以降の台風を2つ選んでください。選んだ揃え方で、同じ時計で再生します。"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Place"
@@ -966,6 +1283,10 @@ msgstr "ベストトラックが {radius} km 以内を通過した地点（近�
 msgid "Play"
 msgstr "再生"
 
+#: src/features/compare/LineUp.tsx
+msgid "Play both"
+msgstr "両方を再生"
+
 #: src/features/replay/PlayerControls.tsx
 msgid "Play replay"
 msgstr "リプレイを再生"
@@ -974,6 +1295,7 @@ msgstr "リプレイを再生"
 msgid "play/pause"
 msgstr "再生/一時停止"
 
+#: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "Playback speed"
 msgstr "再生速度"
@@ -985,6 +1307,10 @@ msgstr "「送信」を押すと応答が表示されます。"
 #: src/features/replay/labels.ts
 msgid "Pressure"
 msgstr "気圧"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "Pressure is the lowest central pressure in hPa."
+msgstr "気圧は最低中心気圧(hPa)です。"
 
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Proof"
@@ -1062,9 +1388,9 @@ msgstr "4 つすべてで実行"
 msgid "Running…"
 msgstr "実行中…"
 
-#: src/routes/compare.tsx
-msgid "Same colour scale, same clock. The URL keeps both storms, the layer and the hour."
-msgstr "同じ色スケール、同じ時計。URL に2つの台風、レイヤー、時刻が保存されます。"
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Same {hours} h life, {ya} and {yb}, before weather satellites"
+msgstr "どちらも寿命{hours}時間、{ya}年と{yb}年、気象衛星以前"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "Same question, four answers"
@@ -1090,31 +1416,39 @@ msgstr "検索"
 msgid "Search a Philippine city or municipality, or a Japanese municipality, and list the storms that passed within a chosen distance. The search runs in your browser over the published dataset."
 msgstr "フィリピンの市・町、または日本の市区町村を検索し、指定した距離以内を通過した台風を一覧します。検索は公開データセットを使ってブラウザ内で行われます。"
 
+#: src/features/compare/StormPicker.tsx
+msgid "Search by name, PAGASA name, Japanese number, year or ID, then pick a storm."
+msgstr "名前、PAGASA名、日本の台風番号、年またはIDで検索し、台風を選びます。"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "Search places: \"Naha\""
 msgstr "地名検索:「Naha」"
+
+#: src/features/compare/StormPicker.tsx
+msgid "Search storms"
+msgstr "台風を検索"
 
 #: src/features/storm-search/StormBrowser.tsx
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Season"
 msgstr "シーズン"
 
-#: src/features/compare/CompareView.tsx
-msgid "Second storm"
-msgstr "2つ目の台風"
-
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Send"
 msgstr "送信"
+
+#: src/features/compare/LineUp.tsx
+msgid "Shared timeline"
+msgstr "共通のタイムライン"
 
 #. placeholder {0}: Math.min(PAGE, rest)
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Show {0} more"
 msgstr "さらに{0}件を表示"
 
-#: src/routes/compare.tsx
-msgid "Side by side"
-msgstr "並べて表示"
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Showing now · {how}"
+msgstr "表示中 · {how}"
 
 #: src/app/Shell.tsx
 msgid "Skip to content"
@@ -1140,6 +1474,10 @@ msgstr "出典"
 msgid "Sources and licences"
 msgstr "出典とライセンス"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "Sources:"
+msgstr "出典:"
+
 #: src/features/replay/use-compass-names.ts
 msgid "south"
 msgstr "南"
@@ -1159,6 +1497,14 @@ msgstr "速度"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Storm"
 msgstr "台風"
+
+#: src/features/compare/SlotCard.tsx
+msgid "Storm A"
+msgstr "台風A"
+
+#: src/features/compare/SlotCard.tsx
+msgid "Storm B"
+msgstr "台風B"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Storm name or year"
@@ -1197,6 +1543,14 @@ msgstr "{km} km 以内の 10 m 最大風速"
 msgid "Strongest first (peak wind)"
 msgstr "強い順（最大風速）"
 
+#: src/features/compare/LineUp.tsx
+msgid "Strongest wind"
+msgstr "最大風速"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "Suggested pairs"
+msgstr "おすすめの組み合わせ"
+
 #: src/features/town-history/TownHistory.tsx
 msgid "Tacloban, Naha, 那覇…"
 msgstr "タクロバン、那覇、Naha…"
@@ -1219,6 +1573,10 @@ msgstr "バックエンドの結果が一致しません。{firstLabel} の結�
 #: src/features/replay/StormReplay.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
 msgstr "地図には台風に追従する ERA5 の場の範囲、線で示したベストトラック（点は観測値）、現在の中心（観測値は塗りつぶし、補間値は中抜きの円）を表示します。下のタイムライン表に同じデータを文字で示しています。"
+
+#: src/features/compare/AboutComparison.tsx
+msgid "The maps show ERA5 wind, gust, rain (mm/h) and sea-level pressure (hPa). Reanalysis smooths the eye wall, so its winds are well below the best track: use it for size and timing, not peak strength."
+msgstr "地図はERA5の風、突風、雨(mm/h)、海面気圧(hPa)です。再解析は眼の壁雲を平滑化するため、風速はベストトラックよりかなり低くなります。強さではなく、大きさやタイミングを見るために使ってください。"
 
 #: src/app/errors.tsx
 msgid "The page failed to render. Reloading usually helps."
@@ -1244,6 +1602,10 @@ msgstr "台風カタログを読み込めませんでした"
 #: src/features/town-history/TownHistory.tsx
 msgid "The storm list for this place could not be loaded."
 msgstr "この地点の台風一覧を読み込めませんでした。"
+
+#: src/features/compare/SuggestedPairs.tsx
+msgid "The two strongest Philippine landfalls since {since}: {ktA} kt and {ktB} kt"
+msgstr "{since}年以降にフィリピンに上陸した最強の2つ: {ktA} ktと{ktB} kt"
 
 #: src/routes/about.tsx
 msgid "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours that are interpolated between best-track fixes."
@@ -1281,6 +1643,10 @@ msgstr "この台風を読み込めませんでした"
 msgid "Time"
 msgstr "時刻"
 
+#: src/features/compare/AboutComparison.tsx
+msgid "Time steps: best-track fixes are 3- or 6-hourly and the hours between are interpolated; ERA5 frames are hourly. Wind is in knots (kt) here; 1 kt = 0.514 m/s."
+msgstr "時間間隔: ベストトラックは3時間または6時間ごとで、その間は補間しています。ERA5は1時間ごとです。ここでの風速はノット(kt)で、1 kt = 0.514 m/sです。"
+
 #: src/features/replay/LayerPanel.tsx
 msgid "Time zone"
 msgstr "タイムゾーン"
@@ -1292,10 +1658,6 @@ msgstr "タイムライン"
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
 msgstr "タイムライン表"
-
-#: src/features/compare/CompareView.tsx
-msgid "track only"
-msgstr "経路のみ"
 
 #: src/features/storm-search/StormList.tsx
 msgid "Track only"

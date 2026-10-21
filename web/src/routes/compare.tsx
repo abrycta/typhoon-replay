@@ -15,7 +15,7 @@ export const Route = createFileRoute("/compare")({
   component: ComparePage,
 });
 
-const renderReplay: RenderReplay = ({ detail, dataset, layer, units, syncIndex, onIndex }) => (
+const renderReplay: RenderReplay = ({ detail, dataset, layer, units, leader, leaderOffset, mapOverlay }) => (
   <StormReplay
     detail={detail}
     dataset={dataset}
@@ -23,8 +23,9 @@ const renderReplay: RenderReplay = ({ detail, dataset, layer, units, syncIndex, 
     onUrl={() => {}}
     compact
     showTable={false}
-    syncIndex={syncIndex}
-    onIndex={onIndex}
+    leader={leader}
+    leaderOffset={leaderOffset}
+    mapOverlay={mapOverlay}
   />
 );
 
@@ -35,19 +36,21 @@ function ComparePage() {
   const labels = useFieldLabels();
   useDocumentTitle(t`Compare`);
   const onUrl = useCallback((p: Partial<CompareUrl>) => void navigate({ search: (prev) => ({ ...prev, ...p }), replace: true, resetScroll: false }), [navigate]);
+  const fieldControl = (
+    <div className="flex flex-wrap items-center gap-3">
+      <Label id="cmp-layer">{t`Map field`}</Label>
+      <ToggleGroup type="single" variant="outline" size="sm" spacing={0} value={search.layer} onValueChange={(v) => v && onUrl({ layer: v as CompareUrl["layer"] })} aria-labelledby="cmp-layer">
+        {(["wind", "gust", "rain", "pressure"] as const).map((l) => (
+          <ToggleGroupItem key={l} value={l} className="px-2.5 text-xs">
+            {labels[l].short}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </div>
+  );
   return (
-    <Page eyebrow={t`Side by side`} title={t`Compare two storms`} lede={t`Same colour scale, same clock. The URL keeps both storms, the layer and the hour.`}>
-      <div className="flex flex-wrap items-center gap-3">
-        <Label id="cmp-layer">{t`Field`}</Label>
-        <ToggleGroup type="single" variant="outline" size="sm" spacing={0} value={search.layer} onValueChange={(v) => v && onUrl({ layer: v as CompareUrl["layer"] })} aria-labelledby="cmp-layer">
-          {(["wind", "gust", "rain", "pressure"] as const).map((l) => (
-            <ToggleGroupItem key={l} value={l} className="px-2.5 text-xs">
-              {labels[l].short}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
-      <CompareView url={search} onUrl={onUrl} renderReplay={renderReplay} />
+    <Page title={t`Compare two typhoons`} lede={t`Pick any two storms since 1940. Both play on one clock, lined up the way you choose.`}>
+      <CompareView url={search} onUrl={onUrl} renderReplay={renderReplay} fieldControl={fieldControl} />
     </Page>
   );
 }
