@@ -8,6 +8,7 @@ import { buildInfo, formatBuildInfo } from "@/shared/lib/build-info";
 import { isLocale } from "@/shared/i18n/i18n";
 import { AUTHOR, PORTFOLIO_HOST, PORTFOLIO_URL } from "@/shared/lib/site";
 
+import { useHeaderCrumbs } from "./header-crumbs";
 import { useIsNotFound } from "./not-found-state";
 
 /** `?lang=` works on any page (share links). */
@@ -33,6 +34,7 @@ export function Shell({ children }: { children: ReactNode }) {
   useGlobalParams();
   const pathname = useLocation({ select: (l) => l.pathname });
   const notFound = useIsNotFound();
+  const crumbs = useHeaderCrumbs();
   return (
     <AppShell
       header={
@@ -50,6 +52,7 @@ export function Shell({ children }: { children: ReactNode }) {
           location={{ pathname: notFound ? "/404" : pathname }}
           portfolioLink
           languages
+          breadcrumb={crumbs}
           renderLink={({ href, "aria-current": current, ...p }) => <HeaderAnchor to={href} activeProps={{}} current={current} {...p} />}
         />
       }

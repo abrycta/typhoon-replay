@@ -16,6 +16,7 @@ import { ArrowLeftIcon, CheckIcon, LinkIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { NotFound } from "@/app/errors";
+import { usePageCrumbs } from "@/app/header-crumbs";
 import { DataError, useStormDetail } from "@/data";
 import { type ReplayUrlState, StormHeading, StormReplay } from "@/features/replay";
 import { AffectedPlaces } from "@/features/storm-places";
@@ -55,6 +56,8 @@ function ShareButton() {
 /** Home › Storms › <storm>, the last crumb being the current page. */
 function StormBreadcrumb({ current }: { current: string }) {
   const { t } = useLingui();
+  // The Header strip shows the same trail once this one has scrolled away.
+  usePageCrumbs([{ href: "/", label: t`Home` }, { href: "/storms", label: t`Storms` }, { label: current }]);
   return (
     <Breadcrumb aria-label={t`Breadcrumb`} data-testid="breadcrumb">
       <BreadcrumbList>
