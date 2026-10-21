@@ -208,7 +208,7 @@ export function LineUp({
 
         <div className="grid gap-1.5">
           {lanes.map((l) => (
-            <div key={l.slot} className="flex h-8 min-w-0 flex-col justify-center leading-tight">
+            <div key={l.slot} className="flex h-9 min-w-0 flex-col justify-center leading-none gap-0.5">
               <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
                 <span className={`size-2.5 shrink-0 ${l.slot === "A" ? "rounded-full" : "rounded-[2px]"}`} style={{ background: BAR[l.slot] }} aria-hidden="true" />
                 <span className="truncate">{l.name}</span>
@@ -243,7 +243,7 @@ export function LineUp({
             const to = pct(l.offset + l.span.hours - 1);
             const at = (t0: number | undefined) => (t0 === undefined ? -1 : pct(l.offset + hoursInto(l.span, t0)));
             return (
-              <div key={l.slot} className="relative h-8 overflow-hidden rounded-[5px]" style={{ background: stripes }} data-testid={`lane-${l.slot}`}>
+              <div key={l.slot} className="relative h-9 overflow-hidden rounded-[5px]" style={{ background: stripes }} data-testid={`lane-${l.slot}`}>
                 {from >= 12 ? (
                   <span className="absolute inset-y-0 left-0 flex items-center justify-center text-[11.5px] text-muted-foreground" style={{ width: `${from}%` }}>
                     {t`not yet formed`}
