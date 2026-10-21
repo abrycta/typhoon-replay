@@ -30,6 +30,8 @@ the build together with the Function.
 - Request headers are allow-listed:
   - forwarded: `Accept`, `Accept-Language`, `Authorization`, `Content-Type`, the `If-*` headers, `Last-Event-ID`,
     `Origin`, `Referer`, `User-Agent`, `X-Request-Id` and `X-Requested-With`;
+  - the client's `Accept-Encoding` is not forwarded: the proxy always sends its own `Accept-Encoding: br, gzip`
+    (see "Compression" below);
   - `Cookie` is forwarded with only the `__Host-tr_*` cookies, so `__cf_bm`, analytics and other cookies never
     reach a backend;
   - the proxy sets `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-For` (from `CF-Connecting-IP`) and
@@ -71,8 +73,29 @@ Under the contract's table (CONTRACT-GUIDE §6), that covers catalogue reads, `/
 catalogue 404s. The live snapshot (`no-cache`), `/me`, auth, errors and health never qualify.
 
 **Key.** The key is the full URL with its query parameters sorted, plus a hash of `Accept` and `Accept-Language`
-(the request headers a `Vary` may name) and `KEY_VERSION` (`edge/src/cache.ts`). Query parameters with different
-values never share an entry. Bumping `KEY_VERSION` orphans every stored entry on the next deploy: that is the purge.
+(the request headers a `Vary` may name) and `KEY_VERSION` (`edge/src/cache.ts`, now `3`). Query parameters with
+different values never share an entry. Bumping `KEY_VERSION` orphans every stored entry on the next deploy: that is
+the purge.
+
+**Compression.** Render bills the bytes it sends, so the proxy asks for them compressed:
+- every upstream request carries `Accept-Encoding: br, gzip` (the Java backend gzips JSON over 1 KB, and Render's own
+  Cloudflare front gzips the rest). Production Workers already negotiated gzip without it, but `wrangler pages dev`
+  (workerd) sends none, so the header is explicit;
+- a body that is passed through untouched keeps its encoding (Cloudflare re-encodes it for each client, identity
+  included);
+- an entry is stored **decoded** (its `Content-Encoding` and `Content-Length` are dropped when it is stored), so no
+  cache implementation can serve gzip bytes twice or without their header. Cloudflare compresses cached answers for
+  the client again.
+
+**Dataset pin.** A catalogue body changes only with the dataset version: its ETag `W/"d{n}-{resourceKey}"` comes
+from data, never from bytes (CONTRACT-GUIDE §6), which is why a revalidation may answer 304. Each time the origin
+answers with such an ETag (a 200 or a revalidation's 304; `/v1/meta`'s `…-d{n}"` counts too), the proxy records `n`
+as that backend's dataset version at this data centre (a small entry under `/api/{impl}/__edge/dataset`, which no
+backend path can reach). A catalogue 200 past its `max-age` whose version matches a record younger than
+`DATASET_PIN_S` (300 s, the contract's own `max-age`) is a `HIT`. So one origin answer every 5 minutes keeps every
+cached storm list, search and storm page fresh, instead of one revalidation per URL. After a publish, the first
+answer with `d{n+1}` unpins every older entry, which then follows the normal rules below; the bound on staleness
+is unchanged. `/v1/meta`, 404/410s and health are never pinned.
 
 **Dataset changes.** Catalogue ETags carry the dataset version (`W/"d{n}-…"`), so a revalidation after a publish gets
 a full 200. Two cases need more:
@@ -84,7 +107,7 @@ a full 200. Two cases need more:
 
 | State | Condition (age since stored) | Behaviour |
 |---|---|---|
-| `HIT` | `< max-age` | Served from the edge; the origin isn't contacted. A matching `If-None-Match` gets a 304 at the edge. |
+| `HIT` | `< max-age`, or a catalogue entry under the dataset pin | Served from the edge; the origin isn't contacted. A matching `If-None-Match` gets a 304 at the edge. |
 | `STALE` (`X-Edge-Stale: revalidating`) | `< max-age + stale-while-revalidate` | Served at once. A background conditional request (`If-None-Match: <cached ETag>`) refreshes the entry: a 304 costs almost no egress. A cold backend never blocks the visitor. |
 | `MISS` or `STALE` (`X-Edge-Stale: if-error`) | `< max-age + stale-if-error` (the origin's value, or `STALE_IF_ERROR_S`, 7 days by default) | The origin gets `STALE_TIMEOUT_MS` (1.5 s). If it answers, the entry is refreshed (`MISS`). On an error, a 5xx or a timeout, the stale copy is served and the request finishes in the background (which also wakes the backend). |
 | `MISS` | no entry | Fetched without the client's validators so that a full copy can be stored. A matching `If-None-Match` still gets a 304 from the edge. |
@@ -147,20 +170,20 @@ millisecond of CPU to set up and nothing per frame. It can stay open as long as 
 - If a `RATE_LIMITER` binding ever becomes available (for example through a service binding to a small Worker), it
   takes over automatically.
 
-## Static mode (egress guard)
+## Static mode (manual emergency switch)
 
 `STATIC_MODE=true` stops all origin traffic:
 - cached entries of any age are served (`X-Edge-Stale: static-mode` when past `max-age`);
 - everything else, including health, SSE and writes, gets a 503 `static-mode` with `Retry-After: 3600`.
 
-**Hook for the nightly bandwidth job** (SYSTEM-ARCHITECTURE-RESEARCH §7.1). Use either:
-1. **Env var.** Vars live in `wrangler.jsonc`, which is the source of truth for Pages settings: the dashboard shows
-   them read-only. The job deploys with `STATIC_MODE` set to `"true"` (edit the var, then `wrangler pages deploy`),
-   and sets it back on the 1st.
-2. **KV flag (no redeploy).** Create a KV namespace, bind it as `EDGE_FLAGS` in `wrangler.jsonc`
-   (`"kv_namespaces": [{"binding": "EDGE_FLAGS", "id": "…"}]`), and have the job write the key `static_mode` with the
-   value `true` or `false` (`wrangler kv key put static_mode true --namespace-id <id> --remote`). The proxy reads it at most
-   once a minute per isolate (`cacheTtl` 60), so the extra KV reads stay small.
+**Decision (2026-10-21, OPEN-QUESTIONS A.9):** the backends stay live, and Render bandwidth is kept down by compression
+and the edge cache (dataset pin) instead. There is no scheduled bandwidth job, and nothing flips this switch
+automatically. It stays as a manual emergency switch, for example if a scraper gets past the rate limit. To use it:
+1. **Env var (no new resource).** Set `"STATIC_MODE": "true"` in `wrangler.jsonc` and push to `main`; `deploy.yml`
+   redeploys Pages. Set it back the same way. The var must be committed, because every deploy from `main` resets the
+   Pages vars to `wrangler.jsonc`.
+2. **KV flag (not set up).** The proxy also reads the key `static_mode` from an optional KV binding `EDGE_FLAGS`, at
+   most once a minute per isolate (`cacheTtl` 60). Binding one would create a Cloudflare resource, so it is not used.
 
 ## Configuration
 
@@ -169,7 +192,7 @@ Defaults are committed in `wrangler.jsonc` under `vars`:
 | Var | Default | Meaning |
 |---|---|---|
 | `BACKEND_ORIGINS` | `{"java":"https://typhoon-replay-java.onrender.com"}` | impl → origin (add node/rust/go as they deploy) |
-| `STATIC_MODE` | `false` | egress guard |
+| `STATIC_MODE` | `false` | manual emergency switch: cached answers only |
 | `ORIGIN_TIMEOUT_MS` | `8000` | wait before 503 `backend-waking` on a miss |
 | `STALE_TIMEOUT_MS` | `1500` | wait before serving a stale-if-error copy |
 | `STALE_IF_ERROR_S` | `604800` | edge stale-if-error window when the origin sends none |
@@ -187,7 +210,8 @@ npm run test:edge   # tsc -p edge + Vitest inside workerd (@cloudflare/vitest-pl
 The tests run in the real Workers runtime (Miniflare), with `caches.default`. The backend is a fake origin
 installed over `fetch`. They cover:
 - routing and rewrite, the origin map, header hygiene;
-- cache HIT, MISS and STALE in both modes, 304s, cookies and private responses never cached, Vary keys;
+- cache HIT, MISS and STALE in both modes, 304s, cookies and private responses never cached, Vary keys, the dataset
+  pin, and the upstream `Accept-Encoding`;
 - cold-start 503 plus wake, incremental SSE, rate limiting, static mode, unknown impls and oversized bodies.
 
 `scripts/ci.sh` runs them after the web checks.

@@ -1,5 +1,5 @@
 // Same-origin edge proxy: /api/{impl}/* → the impl's origin (CONTRACT-GUIDE §2), with edge caching of public
-// reads, cold-start handling, SSE pass-through, per-IP rate limiting and the static-mode egress guard.
+// reads, cold-start handling, SSE pass-through, per-IP rate limiting and the static-mode emergency switch.
 // Behaviour and free-plan notes: edge/README.md.
 
 import { cacheKey, type Entry, fromEntry, lookup, refresh, store } from "./cache";

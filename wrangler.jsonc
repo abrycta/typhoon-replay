@@ -12,7 +12,8 @@
   "compatibility_date": "2026-10-01",
   // Edge proxy settings (functions/api/[[path]].ts; edge/README.md). Values are strings, as in the dashboard.
   // BACKEND_ORIGINS maps impl -> origin; add node/rust/go here as they deploy. Unlisted impls answer 503
-  // backend-not-deployed. STATIC_MODE "true" serves cached responses only (egress guard, edge/README.md).
+  // backend-not-deployed. STATIC_MODE "true" serves cached responses only: a manual emergency switch,
+  // nothing sets it automatically (edge/README.md "Static mode").
   "vars": {
     "BACKEND_ORIGINS": "{\"java\":\"https://typhoon-replay-java.onrender.com\"}",
     "STATIC_MODE": "false",

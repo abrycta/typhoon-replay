@@ -65,8 +65,8 @@ const HOP_BY_HOP = ["connection", "keep-alive", "proxy-connection", "te", "trail
 
 /**
  * Request headers forwarded to a backend (allow-list). Everything else is dropped, notably every `cf-*` header,
- * client-supplied `x-forwarded-*`, analytics/tracing headers and `accept-encoding` (the runtime negotiates
- * compression with the origin itself).
+ * client-supplied `x-forwarded-*`, analytics/tracing headers and the client's `accept-encoding` (the proxy sets its own,
+ * UPSTREAM_ACCEPT_ENCODING below).
  */
 const FORWARD_REQUEST = [
   "accept",
@@ -111,6 +111,14 @@ export function clientIp(request: Request): string {
  */
 export const EDGE_SECRET_HEADER = "X-Edge-Secret";
 
+/**
+ * Always ask the origin for a compressed body: Render bills the bytes it sends, and a subrequest without this header
+ * gets identity (measured with workerd: none is added). The runtime decodes the body only when code reads it, so a
+ * passed-through body keeps its encoding to the client, and cache.put/match handle the encoding themselves. The
+ * client's own Accept-Encoding is never forwarded (Cloudflare re-encodes for the client).
+ */
+export const UPSTREAM_ACCEPT_ENCODING = "br, gzip";
+
 export function upstreamHeaders(request: Request, opts: { impl: string; requestId: string; dropConditional?: boolean; edgeSecret?: string }): Headers {
   const src = request.headers;
   const out = new Headers();
@@ -129,6 +137,7 @@ export function upstreamHeaders(request: Request, opts: { impl: string; requestI
   const ip = src.get("CF-Connecting-IP")?.trim();
   if (ip) out.set("X-Forwarded-For", ip);
   if (opts.edgeSecret) out.set(EDGE_SECRET_HEADER, opts.edgeSecret);
+  out.set("Accept-Encoding", UPSTREAM_ACCEPT_ENCODING);
   return out;
 }
 

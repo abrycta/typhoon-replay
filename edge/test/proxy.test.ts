@@ -130,7 +130,8 @@ describe("header hygiene", () => {
     expect(up.get("X-Request-Id")).toBe("req-1");
     expect(up.get("User-Agent")).toBe("test-agent");
     expect(up.get("Accept")).toBe("application/json");
-    for (const name of ["CF-Ray", "CF-IPCountry", "Connection", "Keep-Alive", "Accept-Encoding", "CF-Connecting-IP"]) expect(up.has(name), name).toBe(false);
+    expect(up.get("Accept-Encoding")).toBe("br, gzip"); // the proxy's own, never the client's: Render bills its bytes
+    for (const name of ["CF-Ray", "CF-IPCountry", "Connection", "Keep-Alive", "CF-Connecting-IP"]) expect(up.has(name), name).toBe(false);
   });
 
   it("proves itself to the backend with EDGE_SECRET, never forwarding a client's copy", async () => {
@@ -322,6 +323,43 @@ describe("edge cache", () => {
     const after = await h.call("/api/java/v1/storms");
     expect(after.res.headers.get("X-Edge-Cache")).toBe("HIT"); // the 304 refreshed the entry
     expect(await after.res.json()).toEqual({ items: ["old"] });
+  });
+
+  it("dataset pin: one origin answer for dataset d7 turns every other d7 entry past max-age into a HIT", async () => {
+    await h.seed("/api/java/v1/storms", { items: ["a"] }, CATALOGUE, 600);
+    await h.seed("/api/java/v1/places/search?q=manila", { items: ["b"] }, { ...CATALOGUE, ETag: 'W/"d7-def"' }, 600);
+    h.setOrigin(() => new Response(null, { status: 304, headers: { ETag: CATALOGUE.ETag, "Cache-Control": CATALOGUE["Cache-Control"] } }));
+    const first = await h.call("/api/java/v1/storms");
+    expect(first.res.headers.get("X-Edge-Cache")).toBe("STALE");
+    await first.settle();
+    expect(h.calls).toHaveLength(1);
+    const other = await h.call("/api/java/v1/places/search?q=manila");
+    expect(other.res.headers.get("X-Edge-Cache")).toBe("HIT");
+    expect(await other.res.json()).toEqual({ items: ["b"] });
+    expect(h.calls).toHaveLength(1); // no revalidation of its own
+  });
+
+  it("dataset pin: a newer dataset seen at the origin unpins entries built from the old one", async () => {
+    await h.seed("/api/java/v1/storms", { items: ["a"] }, CATALOGUE, 600);
+    await h.seed("/api/java/v1/places/search?q=manila", { items: ["b"] }, { ...CATALOGUE, ETag: 'W/"d7-def"' }, 600);
+    h.setOrigin(() => json({ items: ["a2"] }, { headers: { ...CATALOGUE, ETag: 'W/"d8-abc"' } }));
+    await (await h.call("/api/java/v1/storms")).settle();
+    const other = await h.call("/api/java/v1/places/search?q=manila");
+    expect(other.res.headers.get("X-Edge-Cache")).toBe("STALE");
+    expect(other.res.headers.get("X-Edge-Stale")).toBe("revalidating");
+    await other.settle();
+    expect(h.calls).toHaveLength(2);
+  });
+
+  it("dataset pin: never applies to /v1/meta or 404s", async () => {
+    const meta = { "Cache-Control": "public, max-age=60", ETag: 'W/"c2.0.1-java-0.2.1-d7"', "X-Backend-Impl": "java" };
+    await h.seed("/api/java/v1/meta", { impl: "java", datasetVersion: 7 }, meta, 3600);
+    await h.seed("/api/java/v1/storms", { items: ["a"] }, CATALOGUE, 10); // records d7 as current, 10 s ago
+    h.setOrigin(() => json({ impl: "java", datasetVersion: 7 }, { headers: meta }));
+    const r = await h.call("/api/java/v1/meta");
+    expect(r.res.headers.get("X-Edge-Cache")).not.toBe("HIT");
+    await r.settle();
+    expect(h.calls).toHaveLength(1);
   });
 
   it("stale-if-error: serves the stale copy when the backend answers 503", async () => {
