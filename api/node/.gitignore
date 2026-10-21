@@ -1,0 +1,5 @@
+node_modules/
+build/
+src/generated/
+.wrangler/
+.dev.vars

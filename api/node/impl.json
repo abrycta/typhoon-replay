@@ -1,0 +1,8 @@
+{
+  "impl": "node",
+  "implVersion": "0.1.0",
+  "contract": ">=2.0.0 <3.0.0",
+  "claimedContract": "2.0.2",
+  "minSchemaVersion": "20261021000500",
+  "stack": "TypeScript 5.9 on Cloudflare Workers, Hono 4.13, contract-first: openapi-typescript types + Ajv standalone validators, Kysely 0.29 (SQL compiler only), Neon serverless HTTP"
+}

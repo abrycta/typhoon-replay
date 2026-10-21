@@ -54,6 +54,10 @@ Workers, which consume no Render hours.
 | Node | **Cloudflare Worker** `replay-api-node` (workers.dev + service binding from the edge) | Neon serverless HTTP | Fastify 5 cannot run on Workers: its boot generates code from strings (`EvalError: Code generation from strings disallowed`, measured with `nodejs_compat`). The Node backend takes the closest contract-first stack that fits (decided by its build, recorded in `api/node/`). |
 | Rust | **Cloudflare Worker** `replay-api-rust` (workers-rs, wasm) | Neon serverless HTTP via the Workers fetch API | Axum 0.8 routers run on workers-rs; SQLx needs Tokio sockets, which Workers lack, so queries go over Neon's HTTP endpoint. |
 
+**Node stack** (2026-10-22, recorded in `api/node/README.md`): Hono 4.13 on Workers; openapi-typescript types and Ajv
+validators generated from the contract at build time (standalone code, so nothing is compiled from strings at runtime);
+Kysely 0.29 only to compile SQL. Trade-off: no Fastify plugin ecosystem, and SSE streams end after 90 s (subrequest cap).
+
 **Neon over HTTP, not Hyperdrive** (for the Workers backends and Go): one HTTPS request per transaction
 (`POST https://{host}/sql`, read-only batch with `SET LOCAL statement_timeout = 5000`), no connection held between
 requests. Hyperdrive (free: 100k queries/day) keeps a pool of origin connections, and open connections stop Neon's

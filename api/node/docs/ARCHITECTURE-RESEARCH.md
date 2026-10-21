@@ -1,6 +1,6 @@
 # Replay: Node/TypeScript backend architecture research
 
-Status: research only. Nothing here is implemented yet.
+Status: research. The backend that was built differs in hosting and framework (Cloudflare Workers, Hono, build-time validators): see [`../README.md`](../README.md) and `docs/architecture/DECISIONS.md`, "Update 2026-10-22".
 Checked on 2026-10-21. Package versions come from `npm view` on that day. Hosting terms come from the vendors' own pages unless a row says otherwise.
 
 **Scope.** This is one of four interchangeable backends (Java, Node/TS, Rust, Go). All four implement one OpenAPI 3.1 contract and one PostGIS schema from `contracts/`, and all four must pass one conformance suite. A Cloudflare Worker sends `/api/node/*` to this service. The service runs as a Docker image on Render's free tier against Neon's free Postgres. Local development uses Docker Compose with PostGIS and Mailpit.

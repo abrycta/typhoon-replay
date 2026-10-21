@@ -1,0 +1,235 @@
+# Node backend (api/node): TypeScript + Hono on Cloudflare Workers, Neon serverless HTTP (docs/architecture/DECISIONS.md).
+#   build        bundle the contract, generate types/validators from it, typecheck, bundle the Worker (size check)
+#   conformance  the Worker in local workerd (wrangler dev) against PostGIS 18 with the migrations and seed, reached
+#                through Neon's open-source SQL-over-HTTP proxy; Vitest scenarios (SSE heartbeat and a no-hooks
+#                instance included) and Schemathesis, like java.yml
+#   deploy       main only, after conformance: wrangler deploy (free plan), then the deployed-instance scenarios that
+#                do not depend on the fixture data
+name: Node
+
+on:
+  pull_request:
+    paths:
+      - api/node/**
+      - contracts/**
+      - .github/workflows/node.yml
+  push:
+    branches: [main]
+    paths:
+      - api/node/**
+      - contracts/**
+      - .github/workflows/node.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DBMATE_IMAGE: ghcr.io/amacneil/dbmate:2.37
+  POSTGIS_IMAGE: postgis/postgis:18-3.6
+  SCHEMATHESIS_IMAGE: schemathesis/schemathesis:stable
+  # Neon's SQL-over-HTTP proxy for a plain Postgres (github.com/TimoWilhelm/local-neon-http-proxy), pinned by digest.
+  NEON_PROXY_IMAGE: ghcr.io/timowilhelm/local-neon-http-proxy@sha256:cd2ae14edf2feafbc3330492de5c80506f77274c3bd013154cdef697bdeb768a
+  DEPLOYED_URL: https://replay-api-node.krtmtthw.workers.dev
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            contracts/package-lock.json
+            api/node/package-lock.json
+
+      - name: Bundle the contract
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run bundle
+
+      - name: Generate from the contract, typecheck, bundle the Worker
+        working-directory: api/node
+        run: |
+          npm ci
+          npm run build
+          size=$(gzip -9c build/index.js | wc -c)
+          echo "Worker bundle gzip: $size bytes (Workers free plan limit: 3 MiB compressed)"
+          test "$size" -lt 3000000
+
+  conformance:
+    name: Conformance (scenarios + Schemathesis)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgis:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: tr
+          POSTGRES_PASSWORD: tr
+          POSTGRES_DB: typhoon
+        ports:
+          - 5432:5432
+        # Like Neon, the database starts without extensions; migration 1 creates them.
+        volumes:
+          - /tmp/empty-initdb:/docker-entrypoint-initdb.d
+        options: >-
+          --health-cmd "pg_isready -U tr -d typhoon"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://tr:tr@localhost:5432/typhoon?sslmode=disable
+      SITE_ORIGIN: http://localhost:8788
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            contracts/package-lock.json
+            api/node/package-lock.json
+
+      - name: Install and bundle the contract
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run bundle
+
+      - name: Migrate and seed
+        run: |
+          docker run --rm --network host -e DATABASE_URL -e DBMATE_MIGRATIONS_DIR=/db/migrations -e DBMATE_NO_DUMP_SCHEMA=true \
+            -v "$PWD/contracts/db:/db:ro" "$DBMATE_IMAGE" --wait up
+          docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
+
+      - name: Start the Neon HTTP proxy (:4444)
+        run: |
+          docker run -d --name neon-proxy --network host -e PG_CONNECTION_STRING="postgres://tr:tr@localhost:5432/typhoon" "$NEON_PROXY_IMAGE"
+          for _ in $(seq 60); do
+            curl -fsS -o /dev/null -X POST http://localhost:4444/sql -H 'Neon-Connection-String: postgres://tr:tr@db.localtest.me:5432/typhoon' \
+              -d '{"query":"select 1","params":[]}' && break
+            sleep 1
+          done
+
+      - name: Start two workers (hooks on :8087, hooks off :8088)
+        working-directory: api/node
+        env:
+          DATABASE_URL: postgres://tr:tr@db.localtest.me:5432/typhoon
+          TR_SITE_ORIGIN: ${{ env.SITE_ORIGIN }}
+          TR_RATE_LIMIT_PER_MINUTE: "0"
+        run: |
+          npm ci
+          npm run generate
+          nohup scripts/serve-local.sh 8087 1 > /tmp/node-8087.log 2>&1 &
+          nohup scripts/serve-local.sh 8088 0 > /tmp/node-8088.log 2>&1 &
+          for port in 8087 8088; do
+            for _ in $(seq 90); do curl -fsS -o /dev/null "http://localhost:$port/readyz" && break; sleep 1; done
+            curl -fsS "http://localhost:$port/readyz"
+          done
+
+      - name: Scenario suite (Vitest, IMPL=node, SSE heartbeat included)
+        working-directory: contracts
+        env:
+          BASE_URL: http://localhost:8087
+          IMPL: node
+          SLOW: "1"
+          NO_HOOKS_BASE_URL: http://localhost:8088
+        run: npm run conformance
+
+      - name: Reload the fixture
+        run: |
+          docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
+
+      # Known contract-side gap (api/java/README.md "Conformance"): generated data the schema can't rule out (a random
+      # cursor, season combined with from/to) trips positive_data_acceptance, so that check is excluded, as in java.yml.
+      - name: Schemathesis (gating, known contract gaps excluded)
+        run: |
+          mkdir -p contracts/conformance/results
+          docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e BASE_URL=http://localhost:8087 \
+            -e TR_SITE_ORIGIN="$SITE_ORIGIN" -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
+            --config-file /c/conformance/schemathesis/backend.toml run /c/dist/openapi.json \
+            --exclude-checks positive_data_acceptance --request-retries 3 \
+            --report junit --report-junit-path /c/conformance/results/node-schemathesis.xml
+
+      - name: Compatibility table
+        if: always()
+        working-directory: contracts
+        run: npm run compat-table >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Worker logs
+        if: failure()
+        run: |
+          tail -100 /tmp/node-8087.log
+          docker logs neon-proxy 2>&1 | tail -50
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: node-conformance-results
+          path: contracts/conformance/results/
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy (Cloudflare Workers) and check the deployed instance
+    needs: conformance
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: node-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            contracts/package-lock.json
+            api/node/package-lock.json
+
+      - name: Bundle the contract
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run bundle
+
+      # DATABASE_URL and TR_EDGE_SECRET are Worker secrets, set once with `wrangler secret put` (api/node/README.md).
+      - name: wrangler deploy
+        working-directory: api/node
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npm ci
+          npm run generate
+          npx wrangler deploy --var "TR_COMMIT:${GITHUB_SHA::7}"
+
+      # The deployed instance serves the production dataset, not the fixture, so only the scenarios that hold for any
+      # dataset run here (headers, caching, problems, test hooks absent). Hooks are off in production.
+      - name: Deployed-instance scenarios
+        working-directory: contracts
+        env:
+          BASE_URL: ${{ env.DEPLOYED_URL }}
+          IMPL: node
+          TEST_HOOKS: "0"
+          NO_HOOKS_BASE_URL: ${{ env.DEPLOYED_URL }}
+          SITE_ORIGIN: https://replay.krtmtthw.dev
+        run: npx vitest run --config conformance/vitest.config.ts headers caching problems test-hooks

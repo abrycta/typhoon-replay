@@ -1,0 +1,22 @@
+// replay-api-node: the Node/TypeScript backend as a Cloudflare Worker on the free plan
+// (docs/architecture/DECISIONS.md, "Update 2026-10-22: hosting the Go, Node and Rust backends"; api/node/README.md).
+// Secrets, set once with `wrangler secret put` (never in files): DATABASE_URL (Neon pooled URL), TR_EDGE_SECRET.
+// TR_COMMIT is set per deploy: `wrangler deploy --var TR_COMMIT:<sha>`.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "replay-api-node",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "minify": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": {
+    "TR_SITE_ORIGIN": "https://replay.krtmtthw.dev",
+    "TR_TEST_HOOKS": "0",
+    "TR_RATE_LIMIT_PER_MINUTE": "600",
+    "TR_COMMIT": "unknown"
+  },
+  // Free rate limiting binding: per client IP, 600 requests per 60 s (namespace ids: 1002 node, 1003 rust).
+  "ratelimits": [{ "name": "RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 600, "period": 60 } }]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@typhoon-replay/api-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Replay API, Node/TypeScript implementation: Hono on Cloudflare Workers, contract-first (OpenAPI types + Ajv standalone validators), Kysely-compiled SQL over Neon's serverless HTTP endpoint.",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "npm run generate && npm run typecheck && wrangler deploy --dry-run --outdir build",
+    "serve": "scripts/serve-local.sh"
+  },
+  "dependencies": {
+    "hono": "4.13.13",
+    "kysely": "0.29.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261019.1",
+    "ajv": "8.20.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "wrangler": "4.151.3"
+  },
+  "allowScripts": {
+    "workerd": true,
+    "esbuild": true,
+    "fsevents": false
+  }
+}
