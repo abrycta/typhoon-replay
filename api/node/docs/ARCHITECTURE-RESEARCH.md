@@ -1,4 +1,4 @@
-# Typhoon Replay: Node/TypeScript backend architecture research
+# Replay: Node/TypeScript backend architecture research
 
 Status: research only. Nothing here is implemented yet.
 Checked on 2026-10-21. Package versions come from `npm view` on that day. Hosting terms come from the vendors' own pages unless a row says otherwise.

@@ -1,4 +1,4 @@
-# Typhoon Replay: system and contract architecture (research)
+# Replay: system and contract architecture (research)
 
 > **Update 2026-10-21:** accounts were dropped (no OAuth, sessions, saved places or alert email); the API is a public, read-only showcase. See `DECISIONS.md` ("Update 2026-10-21: no accounts…") and `contracts/docs/CONTRACT-GUIDE.md` §14. The account parts below are kept as research history.
 

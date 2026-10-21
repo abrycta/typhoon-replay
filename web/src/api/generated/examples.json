@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.0.1",
+  "contractVersion": "2.0.2",
   "operations": {
     "getHealth": {
       "method": "get",
@@ -40,7 +40,7 @@
             "java": {
               "impl": "java",
               "implVersion": "0.1.0",
-              "contractVersion": "2.0.1",
+              "contractVersion": "2.0.2",
               "schemaVersion": "20261021000500",
               "datasetVersion": 1,
               "commit": "617f6ce",
@@ -59,8 +59,8 @@
             "default": {
               "openapi": "3.1.0",
               "info": {
-                "title": "Typhoon Replay API",
-                "version": "2.0.1"
+                "title": "Replay API",
+                "version": "2.0.2"
               },
               "paths": {}
             }

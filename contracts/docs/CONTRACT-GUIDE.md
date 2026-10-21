@@ -1,4 +1,4 @@
-# Typhoon Replay API: contract guide
+# Replay API: contract guide
 
 > **Status: contract `2.0.0`, accepted 2026-10-21** (`1.0.0` the same day). `contracts/openapi/` is the single source of truth; this guide only explains the rules the spec can't express. Refinements made while writing the v1 spec are listed in §13; what v2 removed, and the rules it changed, in §14.
 > Background and the reasons for each rule: [`docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md`](../../docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md). Open decisions: [`docs/architecture/OPEN-QUESTIONS.md`](../../docs/architecture/OPEN-QUESTIONS.md).
@@ -31,7 +31,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 ## 2. Base path, routing and versioning
 
-- The public base as seen by the browser is `https://typhoon.krtmtthw.dev/api/{impl}/v1`, with `{impl} ∈ java | node | rust | go`. The edge proxy strips `/api/{impl}`, so **backends serve `/v1/...`, `/healthz` and `/readyz` at their own root**.
+- The public base as seen by the browser is `https://replay.krtmtthw.dev/api/{impl}/v1`, with `{impl} ∈ java | node | rust | go`. The edge proxy strips `/api/{impl}`, so **backends serve `/v1/...`, `/healthz` and `/readyz` at their own root**.
 - `info.version` is the contract semver. Each backend declares the contract range it implements in `api/<lang>/impl.json` and reports it at runtime (§4).
 - `/v1` is the **URL major version**, a promise to callers: an operation served under `/v1` keeps its meaning. Since v2 it is distinct from the contract major:
   - A breaking change to an operation that stays (a removed or renamed field, a new required parameter, a changed status code, cursor or ETag rule) bumps the contract major **and** creates `/v2`, served alongside `/v1` until every backend has moved.
@@ -120,7 +120,7 @@ Every 4xx/5xx response (except 304) MUST be `application/problem+json`:
 
 ```json
 {
-  "type": "https://typhoon.krtmtthw.dev/problems/validation",
+  "type": "https://replay.krtmtthw.dev/problems/validation",
   "title": "Request validation failed",
   "status": 400,
   "detail": "limit must be between 1 and 200",
@@ -262,7 +262,8 @@ Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): 
    body carries `datasetVersion`, so the old ETag let a revalidation answer 304 and keep a stale body after a
    publish. `/v1/openapi.json` keeps `W/"c{contractVersion}-{impl}-{implVersion}"`.
 2. **Canonical host.** Problem `type` URIs are `https://typhoon.krtmtthw.dev/problems/{code}` (§8), and the
-   production server and examples use `https://typhoon.krtmtthw.dev`, the site's custom domain.
+   production server and examples use `https://typhoon.krtmtthw.dev`, the site's custom domain. (Replaced by
+   `https://replay.krtmtthw.dev` in 2.0.2, §16.)
 3. **Examples work as requests.** Each paginated operation has its own `cursor` example, made for its default sort
    (a shared `season-desc` cursor was rejected as `invalid-cursor` elsewhere). `npm run check-examples` validates
    every example against its schema (formats and undeclared properties included) and each cursor example against
@@ -270,3 +271,13 @@ Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): 
 
 These are patch-level: ETags are opaque to clients (only echoed back), and clients read the stable `code`, not
 `type`. No field, parameter, status or cursor rule changes.
+
+## 16. 2.0.2: rename to Replay (2026-10-21)
+
+1. **New canonical host.** The product is now "Replay" at `https://replay.krtmtthw.dev`. Problem `type` URIs are
+   `https://replay.krtmtthw.dev/problems/{code}` (§8), and the production server and examples use that host.
+2. **Old URIs retired.** `https://typhoon.krtmtthw.dev/problems/{code}` is not redirected: the old host is removed.
+3. **Unchanged:** fields, parameters, statuses, cursor rules and the ETag formats (`/v1/meta` stays
+   `W/"c{contractVersion}-{impl}-{implVersion}-d{datasetVersion}"`; the `c` part now reads `2.0.2`).
+
+Patch-level for the same reason as 2.0.1: clients read the stable `code`, not `type`.

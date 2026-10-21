@@ -1,4 +1,4 @@
-# Typhoon Replay: Java backend architecture research
+# Replay: Java backend architecture research
 
 Status: research only (no code yet). Verified on 2026-10-21 unless a line says otherwise.
 

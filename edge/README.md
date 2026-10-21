@@ -1,7 +1,7 @@
 # Edge proxy
 
 The same-origin proxy from `docs/architecture/DECISIONS.md` (System A): a Cloudflare Pages Function that routes
-`https://typhoon.krtmtthw.dev/api/{impl}/*` to that backend's Render service.
+`https://replay.krtmtthw.dev/api/{impl}/*` to that backend's Render service.
 
 | File | Role |
 |---|---|

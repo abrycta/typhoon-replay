@@ -1,7 +1,7 @@
 [project]
 name = "typhoon-pipeline"
 version = "0.1.0"
-description = "Typhoon Replay data pipeline: IBTrACS ingest, ERA5 storm frames, PAGASA name crosswalk"
+description = "Replay data pipeline: IBTrACS ingest, ERA5 storm frames, PAGASA name crosswalk"
 authors = [{ name = "Kurt" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [

@@ -2,7 +2,7 @@ summary: Java backend metadata
 value:
   impl: java
   implVersion: 0.1.0
-  contractVersion: 2.0.1
+  contractVersion: 2.0.2
   schemaVersion: '20261021000500'
   datasetVersion: 1
   commit: 617f6ce

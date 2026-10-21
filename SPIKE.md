@@ -1,4 +1,4 @@
-# Typhoon Replay — data spike 1 (2026-10-20/21)
+# Replay — data spike 1 (2026-10-20/21)
 
 Goal: prove the no-account data routes (IBTrACS + ERA5 from public buckets) end to end for one hero storm
 (Haiyan/Yolanda 2013) and size the full catalogue against the free hosting limits. Earth Engine was **not**

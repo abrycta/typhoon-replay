@@ -1,7 +1,7 @@
 {
   "name": "typhoon-replay",
   "private": true,
-  "description": "Deploy tooling for Typhoon Replay (Cloudflare Pages). The app itself lives in web/.",
+  "description": "Deploy tooling for Replay (Cloudflare Pages). The app itself lives in web/.",
   "engines": {
     "node": ">=24 <25"
   },

@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../../data-archive-kit/schema/sources.schema.json
-# Typhoon Replay source registry (format: archivekit, abrycta/data-archive-kit).
+# Replay source registry (format: archivekit, abrycta/data-archive-kit).
 #
 # Every upstream input the pipeline reads is listed here. `typhoon.sources.fetch(<id>)` walks the
 # `links` in order (primary first), validates each download against `checks`, and finally falls back
@@ -355,7 +355,7 @@ sources:
       compatible with CC BY 4.0).
     attribution: >-
       出典「国土数値情報（行政区域データ）」（国土交通省）を加工して作成. Source: MLIT National Land
-      Numerical Information (Administrative Areas, N03 2025-01-01), processed by Typhoon Replay.
+      Numerical Information (Administrative Areas, N03 2025-01-01), processed by Replay.
     cadence: yearly (January 1 boundaries, published the following autumn); pinned
     pin: { product: N03, edition: "2025-01-01" }
     links:

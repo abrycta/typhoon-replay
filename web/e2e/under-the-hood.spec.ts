@@ -81,7 +81,7 @@ test("the header has no backend selector; the footer links to Under the hood", a
 // ------------------------------------------------------------------------------------------ the API page
 
 const PROBLEM = "application/problem+json";
-const problem = (code: string, status = 503) => ({ type: `https://typhoon.krtmtthw.dev/problems/${code}`, title: code, status, code, requestId: "r1" });
+const problem = (code: string, status = 503) => ({ type: `https://replay.krtmtthw.dev/problems/${code}`, title: code, status, code, requestId: "r1" });
 
 /** Haiyan near Tacloban, as two implementations might serialise it (key order, number format, impl field). */
 const HITS = {

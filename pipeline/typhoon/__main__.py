@@ -1,4 +1,4 @@
-"""Typhoon Replay pipeline CLI: `uv run python -m typhoon <stage> [...]` (run from pipeline/).
+"""Replay pipeline CLI: `uv run python -m typhoon <stage> [...]` (run from pipeline/).
 
 Stages, in order (each reads the previous stages' Parquet under data/processed/):
 

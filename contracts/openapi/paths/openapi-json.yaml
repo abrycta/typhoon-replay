@@ -30,8 +30,8 @@ get:
           example:
             openapi: 3.1.0
             info:
-              title: Typhoon Replay API
-              version: 2.0.1
+              title: Replay API
+              version: 2.0.2
             paths: {}
     '304':
       $ref: ../components/responses/NotModified.yaml

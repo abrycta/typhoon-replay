@@ -34,11 +34,11 @@ describe("routing and path rewrite", () => {
     const { res } = await h.call("/api/java/v1/me/places", {
       method: "POST",
       body: JSON.stringify({ placeId: "PH-0837000000" }),
-      headers: { "Content-Type": "application/json", "X-Requested-With": "typhoon-replay", Origin: "https://typhoon.krtmtthw.dev" },
+      headers: { "Content-Type": "application/json", "X-Requested-With": "typhoon-replay", Origin: "https://replay.krtmtthw.dev" },
     });
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual({ method: "POST", body: '{"placeId":"PH-0837000000"}' });
-    expect(h.calls[0]!.headers.get("Origin")).toBe("https://typhoon.krtmtthw.dev");
+    expect(h.calls[0]!.headers.get("Origin")).toBe("https://replay.krtmtthw.dev");
     expect(h.calls[0]!.headers.get("X-Requested-With")).toBe("typhoon-replay");
   });
 

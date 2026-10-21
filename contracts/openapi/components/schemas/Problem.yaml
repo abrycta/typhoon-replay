@@ -6,7 +6,7 @@ properties:
   type:
     type: string
     format: uri
-    example: https://typhoon.krtmtthw.dev/problems/validation
+    example: https://replay.krtmtthw.dev/problems/validation
   title:
     type: string
   status:

@@ -1,4 +1,4 @@
-# Typhoon Replay: Rust backend architecture research
+# Replay: Rust backend architecture research
 
 Status: research only, nothing implemented. Versions checked on crates.io, GitHub and vendor docs on **2026-10-21**.
 Scope: the Rust implementation of the shared OpenAPI 3.1 contract (`/api/rust/*` behind the edge proxy).

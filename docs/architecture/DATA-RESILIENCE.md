@@ -1,6 +1,6 @@
 # Data resilience
 
-Written 2026-10-21 by Kurt. This document covers how Typhoon Replay keeps working when an upstream data source moves, breaks or disappears.
+Written 2026-10-21 by Kurt. This document covers how Replay keeps working when an upstream data source moves, breaks or disappears.
 
 The machinery is the shared private kit [`abrycta/data-archive-kit`](https://github.com/abrycta/data-archive-kit) (`archivekit`); its README and `docs/ADOPTING.md` hold the generic details. This file is the Typhoon-specific part: the sources, their fallbacks, how data versions are published, and the runbook.
 

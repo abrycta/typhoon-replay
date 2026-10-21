@@ -37,6 +37,6 @@ export const PROBLEM_TITLES: Record<string, string> = {
   'not-ready': 'Service not ready',
   'stream-capacity': 'Too many live streams',
 };
-export const PROBLEM_BASE = 'https://typhoon.krtmtthw.dev/problems/';
+export const PROBLEM_BASE = 'https://replay.krtmtthw.dev/problems/';
 
 export const MAX_RESPONSE_BYTES = 64 * 1024;

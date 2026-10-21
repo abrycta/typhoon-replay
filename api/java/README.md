@@ -1,4 +1,4 @@
-# Typhoon Replay API: Java backend
+# Replay API: Java backend
 
 Stack A from [`docs/ARCHITECTURE-RESEARCH.md`](docs/ARCHITECTURE-RESEARCH.md) §12: Spring Boot 4.1.1, Java 25,
 Spring MVC on virtual threads, Spring Modulith 2.1.1, `JdbcClient` with hand-written PostGIS SQL, and controllers that
@@ -18,7 +18,7 @@ just java-dev               # from source (Gradle), against the compose database
 
 Configuration comes only from the environment, with the names every backend shares (CONTRACT-GUIDE §11):
 `DATABASE_URL` (a `postgres://` URL, mapped onto JDBC with `prepareThreshold=0` for the Neon pooler), `TR_SITE_ORIGIN`
-(default `https://typhoon.krtmtthw.dev`; the origin of absolute `Link` headers), `TR_TEST_HOOKS`, `TR_LOG_LEVEL`, `PORT`.
+(default `https://replay.krtmtthw.dev`; the origin of absolute `Link` headers), `TR_TEST_HOOKS`, `TR_LOG_LEVEL`, `PORT`.
 Java-only extras: `TR_RATE_LIMIT_PER_MINUTE` (default 600, 0 disables), `TR_MAX_STREAMS` (default 200), `TR_COMMIT`,
 `TR_EDGE_SECRET` (shared with the edge proxy's `EDGE_SECRET`: only requests carrying it in `X-Edge-Secret` have their
 `X-Forwarded-For` trusted, so the per-IP limiter keys on the visitor; anything else is keyed on the connecting address).
@@ -109,6 +109,6 @@ security fixes, so the "Under the hood" race always compares the same code.
    (backends never run DDL). `/readyz` stays 503 until the schema is at least `20261021000500`. 0.2.0 also runs on
    `20261021000600` (accounts dropped): deploy it first, then apply that migration.
 2. Render: Docker web service, Singapore, free plan; Dockerfile `api/java/Dockerfile`, build context the repository
-   root; health check path `/healthz`. Env: `DATABASE_URL`, `TR_SITE_ORIGIN=https://typhoon.krtmtthw.dev`, `TR_COMMIT`
+   root; health check path `/healthz`. Env: `DATABASE_URL`, `TR_SITE_ORIGIN=https://replay.krtmtthw.dev`, `TR_COMMIT`
    (or Render's `RENDER_GIT_COMMIT`). `PORT` is set by Render. Remove the old `TR_OAUTH_*` and `TR_ALLOWED_ORIGINS`
    variables, and the OAuth apps' Java callback URLs, after the 2.0.0 deploy.

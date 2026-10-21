@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.10
-# Typhoon Replay Java backend. Build context: the repository root (the contract lives in contracts/):
+# Replay Java backend. Build context: the repository root (the contract lives in contracts/):
 #   docker build -f api/java/Dockerfile -t typhoon-replay-java .
 # Stages: bundle the contract -> Gradle bootJar -> extract -> AOT cache training run (JEP 514/515) -> JRE 25 runtime.
 # Frozen showcase (docs/architecture/DECISIONS.md): base images are pinned by digest; Renovate only bumps a digest

@@ -1,4 +1,4 @@
-# Typhoon Replay: Go backend architecture research
+# Replay: Go backend architecture research
 
 Status: research only, nothing implemented yet. Written 2026-10-21. I checked versions against the Go module proxy, GitHub releases and the official docs on that date.
 Scope: `api/go/`, one of four interchangeable backends. It implements the shared OpenAPI 3.1 contract in `contracts/` against the shared PostGIS schema, and it must pass the shared conformance suite.

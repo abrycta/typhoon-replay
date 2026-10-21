@@ -1,7 +1,7 @@
 // HTTP helpers: header hygiene, request ids and RFC 9457 problem responses generated at the edge.
 
 /** Same base as the backends' problems (CONTRACT-GUIDE §8). */
-export const PROBLEM_BASE = "https://typhoon.krtmtthw.dev/problems/";
+export const PROBLEM_BASE = "https://replay.krtmtthw.dev/problems/";
 
 /**
  * Edge problem codes. 413/429/404/405 reuse the contract's codes; the rest are proxy-only (kebab-case like the

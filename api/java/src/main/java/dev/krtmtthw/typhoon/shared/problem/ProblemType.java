@@ -14,7 +14,7 @@ public enum ProblemType {
     NOT_READY(503, "not-ready", "Service not ready"),
     STREAM_CAPACITY(503, "stream-capacity", "Too many live streams");
 
-    public static final String TYPE_BASE = "https://typhoon.krtmtthw.dev/problems/";
+    public static final String TYPE_BASE = "https://replay.krtmtthw.dev/problems/";
 
     private final int status;
     private final String code;

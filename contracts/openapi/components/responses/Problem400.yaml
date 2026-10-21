@@ -17,7 +17,7 @@ content:
     examples:
       validation:
         value:
-          type: https://typhoon.krtmtthw.dev/problems/validation
+          type: https://replay.krtmtthw.dev/problems/validation
           title: Request validation failed
           status: 400
           detail: Example detail text; free-form.
@@ -29,7 +29,7 @@ content:
               detail: must be <= 100
       invalid-cursor:
         value:
-          type: https://typhoon.krtmtthw.dev/problems/invalid-cursor
+          type: https://replay.krtmtthw.dev/problems/invalid-cursor
           title: Invalid cursor
           status: 400
           detail: cursor was made for sort "name", not "season-desc"

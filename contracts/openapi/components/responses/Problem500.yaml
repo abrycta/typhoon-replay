@@ -17,7 +17,7 @@ content:
     examples:
       internal:
         value:
-          type: https://typhoon.krtmtthw.dev/problems/internal
+          type: https://replay.krtmtthw.dev/problems/internal
           title: Internal server error
           status: 500
           detail: Example detail text; free-form.

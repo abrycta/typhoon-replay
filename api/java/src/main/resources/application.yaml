@@ -3,7 +3,7 @@
 tr:
   impl: java
   # The browser-visible origin: absolute Link headers (with X-Forwarded-Prefix).
-  site-origin: ${TR_SITE_ORIGIN:https://typhoon.krtmtthw.dev}
+  site-origin: ${TR_SITE_ORIGIN:https://replay.krtmtthw.dev}
   test-hooks: ${TR_TEST_HOOKS:0}
   # Contract 2.0.0 reads only catalog/live/ops, which 000500 already has, so this build also runs before or after
   # 20261021000600_drop_accounts is applied (deploy first, then migrate).

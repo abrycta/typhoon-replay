@@ -34,7 +34,7 @@ export const NO_HOOKS_BASE_URL = process.env.NO_HOOKS_BASE_URL?.replace(/\/$/, '
 /** Opt-in for the slow (25 s) heartbeat scenario. */
 export const SLOW = process.env.SLOW === '1';
 /** Contract version the backend claims (impl.json); scenarios tagged newer are skipped as "not claimed". */
-export const CLAIMED_CONTRACT = process.env.CLAIMED_CONTRACT ?? '2.0.1';
+export const CLAIMED_CONTRACT = process.env.CLAIMED_CONTRACT ?? '2.0.2';
 
 const parse = (v: string) => v.split('.').map(Number) as [number, number, number];
 /**

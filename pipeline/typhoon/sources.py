@@ -1,4 +1,4 @@
-"""Typhoon Replay's adapter over archivekit (abrycta/data-archive-kit).
+"""Replay's adapter over archivekit (abrycta/data-archive-kit).
 
 The fallback chain (primary -> mirrors -> private archive), validation, provenance, auto-issues,
 snapshots and health checks all live in the kit. This module binds the project's registry

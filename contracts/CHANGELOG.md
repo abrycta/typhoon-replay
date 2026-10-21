@@ -5,6 +5,16 @@ major = breaking. A major that changes an operation which stays also gets a new 
 removes operations keeps the prefix (§2). `scripts/oasdiff-check.sh` writes the machine changelog to
 `dist/changelog.md`, and accepts breaking changes only with a major bump and an entry here.
 
+## 2.0.2 (2026-10-21)
+
+Product renamed to **Replay** and moved to `https://replay.krtmtthw.dev` (CONTRACT-GUIDE §16). No change to fields,
+parameters, statuses, ETag formats or cursor rules.
+
+- Problem `type` URIs are `https://replay.krtmtthw.dev/problems/{code}`; the production server and the examples use
+  the same host; the API title is "Replay API".
+- The old `https://typhoon.krtmtthw.dev/problems/{code}` URIs are retired with no redirect: the old host is going away.
+  Clients read the stable `code`, not `type`, so this is a patch.
+
 ## 2.0.1 (2026-10-21)
 
 Corrections, no change to fields, parameters, statuses or cursor rules (CONTRACT-GUIDE §15).

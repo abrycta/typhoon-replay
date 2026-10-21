@@ -1,4 +1,4 @@
-"""Typhoon Replay's use of archivekit: the registry, the IBTrACS hook and the fallback chain as wired here.
+"""Replay's use of archivekit: the registry, the IBTrACS hook and the fallback chain as wired here.
 
 The kit's own suite covers every failure type in depth; these tests pin the project's configuration.
 """

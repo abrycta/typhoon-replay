@@ -620,7 +620,7 @@ export interface components {
         Problem: {
             /**
              * Format: uri
-             * @example https://typhoon.krtmtthw.dev/problems/validation
+             * @example https://replay.krtmtthw.dev/problems/validation
              */
             type: string;
             title: string;
@@ -634,7 +634,7 @@ export interface components {
         };
         /**
          * ProblemCode
-         * @description Stable machine-readable error code. `type` is `https://typhoon.krtmtthw.dev/problems/{code}` and `title` is fixed per code:
+         * @description Stable machine-readable error code. `type` is `https://replay.krtmtthw.dev/problems/{code}` and `title` is fixed per code:
          *     validation "Request validation failed"; invalid-cursor "Invalid cursor"; not-found "Not found";
          *     method-not-allowed "Method not allowed"; not-acceptable "Not acceptable"; payload-too-large "Payload too large";
          *     unsupported-media-type "Unsupported media type"; rate-limited "Too many requests"; internal "Internal server error";
@@ -1031,7 +1031,7 @@ export interface components {
         "X-Backend-Version": string;
         /**
          * @description The contract version (this document's `info.version`) the backend implements.
-         * @example 2.0.1
+         * @example 2.0.2
          */
         "X-Contract-Version": string;
         /**
@@ -1068,7 +1068,7 @@ export interface components {
         ETag: string;
         /**
          * @description RFC 8288 `<absolute-url>; rel="next"`, present exactly when the body has `nextCursor`. Built from the browser-visible base (`X-Forwarded-Prefix`).
-         * @example <https://typhoon.krtmtthw.dev/api/java/v1/storms?season=2013&limit=2&cursor=WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0>; rel="next"
+         * @example <https://replay.krtmtthw.dev/api/java/v1/storms?season=2013&limit=2&cursor=WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0>; rel="next"
          */
         Link: string;
         /**
@@ -1220,8 +1220,8 @@ export interface operations {
                      * @example {
                      *       "openapi": "3.1.0",
                      *       "info": {
-                     *         "title": "Typhoon Replay API",
-                     *         "version": "2.0.1"
+                     *         "title": "Replay API",
+                     *         "version": "2.0.2"
                      *       },
                      *       "paths": {}
                      *     }

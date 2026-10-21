@@ -17,7 +17,7 @@ Decided 2026-10-21 by Kurt, after the research in this folder, `contracts/docs/`
 
 ## Update 2026-10-21: custom domain
 
-- The app is served at **https://typhoon.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). This is System option A on the owner's domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
+- The app is served at **https://replay.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). Renamed from Typhoon Replay and moved from `typhoon.krtmtthw.dev` later the same day, with no redirect from the old host (contract 2.0.2). This is System option A on the owner's domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
 
 ## Update 2026-10-21: no accounts; static-first visitors; Under the hood showcase
 
