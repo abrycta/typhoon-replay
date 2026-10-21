@@ -34,7 +34,7 @@ that follow each storm.
 | | |
 |---|---|
 | Storms in the catalogue | {{STORMS}} (IBTrACS WP since 1940 that entered the PAGASA Area of Responsibility or made landfall in PH/JP) |
-| Storms with ERA5 replay frames | {{REPLAY}} in this version (the full backfill adds the rest) |
+| Storms with ERA5 replay frames | {{REPLAY}} in this version |
 | Observed best-track fixes | {{FIXES}} |
 | Places | {{PLACES}} (PH cities/municipalities by 10-digit PSGC, JP municipalities by JIS X 0402 code) |
 | Place x storm exposure rows | {{EXPOSURE}} |
