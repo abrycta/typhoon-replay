@@ -1,0 +1,11 @@
+# oapi-codegen v2 (pinned as a go.mod tool): models, parameter structs and the std-http ServerInterface from the
+# contract's 3.0 bundle (contracts/dist/openapi.3.0.json, made for generators). Regenerate with `go generate ./...`.
+# The strict layer is not used: its typed responses build JSON through encoding/json reflection, which is slow under
+# TinyGo; responses are written by internal/jsonw instead (docs/architecture/DECISIONS.md, "Go on Workers").
+package: api
+generate:
+  models: true
+  std-http-server: true
+output: api.gen.go # relative to internal/api, where go generate runs
+output-options:
+  skip-prune: true

@@ -1,0 +1,218 @@
+# Go backend (api/go): Go 1.27 net/http + oapi-codegen, Neon serverless HTTP, on Render free (docs/architecture/DECISIONS.md,
+# "Hosting the Go, Node and Rust backends").
+#   build        vet, unit tests, generated code up to date
+#   conformance  the Docker image against PostGIS 18 with the migrations and seed, reached through Neon's open-source
+#                SQL-over-HTTP proxy; Vitest scenarios (SSE heartbeat and a no-hooks instance included) and
+#                Schemathesis, like java.yml. Render deploys main once these checks pass (autoDeployTrigger checksPass).
+#   deployed     manual (workflow_dispatch): the scenarios that hold for any dataset, against the live service
+name: Go
+
+on:
+  pull_request:
+    paths:
+      - api/go/**
+      - contracts/**
+      - .github/workflows/go.yml
+  push:
+    branches: [main]
+    paths:
+      - api/go/**
+      - contracts/**
+      - .github/workflows/go.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DBMATE_IMAGE: ghcr.io/amacneil/dbmate:2.37
+  POSTGIS_IMAGE: postgis/postgis:18-3.6
+  SCHEMATHESIS_IMAGE: schemathesis/schemathesis:stable
+  # Neon's SQL-over-HTTP proxy for a plain Postgres (github.com/TimoWilhelm/local-neon-http-proxy), pinned by digest.
+  NEON_PROXY_IMAGE: ghcr.io/timowilhelm/local-neon-http-proxy@sha256:cd2ae14edf2feafbc3330492de5c80506f77274c3bd013154cdef697bdeb768a
+  DEPLOYED_URL: https://typhoon-replay-go.onrender.com
+
+jobs:
+  build:
+    name: Build and test
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Bundle the contract
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run bundle
+          mkdir -p ../api/go/contract && cp dist/openapi.json ../api/go/contract/
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: api/go/go.mod
+          cache-dependency-path: api/go/go.sum
+
+      - name: Generated code is up to date
+        working-directory: api/go/internal/api
+        run: |
+          go generate ./...
+          git diff --exit-code -- .
+
+      - name: Vet and unit tests
+        working-directory: api/go
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+          go test ./...
+
+  conformance:
+    name: Conformance (scenarios + Schemathesis)
+    if: github.event_name != 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgis:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: tr
+          POSTGRES_PASSWORD: tr
+          POSTGRES_DB: typhoon
+        ports:
+          - 5432:5432
+        volumes:
+          - /tmp/empty-initdb:/docker-entrypoint-initdb.d
+        options: >-
+          --health-cmd "pg_isready -U tr -d typhoon"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://tr:tr@localhost:5432/typhoon?sslmode=disable
+      SITE_ORIGIN: http://localhost:8788
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install and bundle the contract
+        working-directory: contracts
+        run: |
+          npm ci
+          npm run bundle
+
+      - name: Build the image
+        run: docker build -f api/go/Dockerfile -t typhoon-replay-go:ci .
+
+      - name: Migrate and seed
+        run: |
+          docker run --rm --network host -e DATABASE_URL -e DBMATE_MIGRATIONS_DIR=/db/migrations -e DBMATE_NO_DUMP_SCHEMA=true \
+            -v "$PWD/contracts/db:/db:ro" "$DBMATE_IMAGE" --wait up
+          docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
+
+      - name: Start the Neon HTTP proxy (:4444)
+        run: |
+          docker run -d --name neon-proxy --network host -e PG_CONNECTION_STRING="postgres://tr:tr@localhost:5432/typhoon" "$NEON_PROXY_IMAGE"
+          for _ in $(seq 60); do
+            curl -fsS -o /dev/null -X POST http://localhost:4444/sql -H 'Neon-Connection-String: postgres://tr:tr@db.localtest.me:5432/typhoon' \
+              -d '{"query":"select 1","params":[]}' && break
+            sleep 1
+          done
+
+      - name: Start two backends (hooks on :8084, hooks off :8086)
+        run: |
+          common=(--network host -e DATABASE_URL=postgres://tr:tr@db.localtest.me:5432/typhoon -e NEON_HTTP_URL=http://localhost:4444/sql
+                  -e TR_SITE_ORIGIN="$SITE_ORIGIN" -e TR_RATE_LIMIT_PER_MINUTE=100000)
+          docker run -d --name go "${common[@]}" -e TR_TEST_HOOKS=1 -e PORT=8084 typhoon-replay-go:ci
+          docker run -d --name go-nohooks "${common[@]}" -e TR_TEST_HOOKS=0 -e PORT=8086 typhoon-replay-go:ci
+          for port in 8084 8086; do
+            for _ in $(seq 60); do curl -fsS -o /dev/null "http://localhost:$port/readyz" && break; sleep 1; done
+            curl -fsS "http://localhost:$port/readyz"
+          done
+
+      - name: Scenario suite (Vitest, IMPL=go, SSE heartbeat included)
+        working-directory: contracts
+        env:
+          BASE_URL: http://localhost:8084
+          IMPL: go
+          SLOW: "1"
+          NO_HOOKS_BASE_URL: http://localhost:8086
+        run: npm run conformance
+
+      - name: Reload the fixture
+        run: |
+          docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
+
+      - name: Schemathesis (gating, known contract gaps excluded)
+        run: |
+          mkdir -p contracts/conformance/results
+          docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e BASE_URL=http://localhost:8084 \
+            -e TR_SITE_ORIGIN="$SITE_ORIGIN" -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
+            --config-file /c/conformance/schemathesis/backend.toml run /c/dist/openapi.json \
+            --exclude-checks positive_data_acceptance --request-retries 3 \
+            --report junit --report-junit-path /c/conformance/results/go-schemathesis.xml
+
+      - name: Compatibility table
+        if: always()
+        working-directory: contracts
+        run: npm run compat-table >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Backend logs
+        if: failure()
+        run: |
+          docker logs go 2>&1 | tail -100
+          docker logs neon-proxy 2>&1 | tail -50
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: go-conformance-results
+          path: contracts/conformance/results/
+          if-no-files-found: ignore
+
+  # The live service serves the production dataset, not the fixture, so only the scenarios that hold for any dataset
+  # run here (headers, caching, problems, test hooks absent). Wakes the service (about a minute) first.
+  deployed:
+    name: Deployed-instance scenarios
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Scenarios against the live service
+        working-directory: contracts
+        env:
+          BASE_URL: ${{ env.DEPLOYED_URL }}
+          IMPL: go
+          TEST_HOOKS: "0"
+          NO_HOOKS_BASE_URL: ${{ env.DEPLOYED_URL }}
+          SITE_ORIGIN: https://replay.krtmtthw.dev
+        run: |
+          npm ci
+          npm run bundle
+          for _ in $(seq 30); do curl -fsS -o /dev/null "$BASE_URL/readyz" && break; sleep 5; done
+          npx vitest run --config conformance/vitest.config.ts headers caching problems test-hooks

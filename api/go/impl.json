@@ -1,0 +1,8 @@
+{
+  "impl": "go",
+  "implVersion": "0.1.0",
+  "contract": ">=2.0.0 <3.0.0",
+  "claimedContract": "2.0.2",
+  "minSchemaVersion": "20261021000500",
+  "stack": "Go 1.27.3 net/http, oapi-codegen 2.8 (std-http ServerInterface), Neon serverless HTTP, distroless image on Render free"
+}
