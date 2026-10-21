@@ -390,6 +390,10 @@ msgstr "Does each backend keep the contract?"
 msgid "Duration"
 msgstr "Duration"
 
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "east"
+msgstr "east"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Edge"
 msgstr "Edge"
@@ -397,6 +401,10 @@ msgstr "Edge"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Endpoint"
 msgstr "Endpoint"
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "ERA5 centre vs best track"
+msgstr "ERA5 centre vs best track"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
@@ -410,9 +418,17 @@ msgstr "ERA5 field replay"
 msgid "ERA5 max wind ({unit})"
 msgstr "ERA5 max wind ({unit})"
 
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "ERA5 places this storm about {km} km {dir} of the official track here."
+msgstr "ERA5 places this storm about {km} km {dir} of the official track here."
+
 #: src/features/replay/FieldLegend.tsx
 msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
 msgstr "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "ERA5 shows no clear centre near the official track here."
+msgstr "ERA5 shows no clear centre near the official track here."
 
 #: src/routes/about.tsx
 msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
@@ -774,6 +790,10 @@ msgstr "No best-track fix at this hour."
 msgid "no best-track wind to compare"
 msgstr "no best-track wind to compare"
 
+#: src/features/replay/IntensityPanel.tsx
+msgid "no clear centre"
+msgstr "no clear centre"
+
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
 msgstr "No covered place was within {radius} km."
@@ -801,6 +821,18 @@ msgstr "No storms in the archive passed this close"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "No storms match"
 msgstr "No storms match"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "north"
+msgstr "north"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "north-east"
+msgstr "north-east"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "north-west"
+msgstr "north-west"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "not deployed yet"
@@ -968,6 +1000,10 @@ msgstr "ready"
 msgid "reanalysis context"
 msgstr "reanalysis context"
 
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it."
+msgstr "Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it."
+
 #: src/routes/about.tsx
 msgid "Reanalysis is context, not the storm's strength"
 msgstr "Reanalysis is context, not the storm's strength"
@@ -1089,6 +1125,18 @@ msgstr "Sources"
 #: src/app/Shell.tsx
 msgid "Sources and licences"
 msgstr "Sources and licences"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "south"
+msgstr "south"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "south-east"
+msgstr "south-east"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "south-west"
+msgstr "south-west"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Speed"
@@ -1302,6 +1350,10 @@ msgstr "Value"
 #: src/features/under-the-hood/Race.tsx
 msgid "waking up"
 msgstr "waking up"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "west"
+msgstr "west"
 
 #: src/routes/about.tsx
 msgid "Where the data comes from, what it can and cannot tell you, and the licences that apply."

@@ -6,6 +6,9 @@ import { formatShort, type Lang, type TimeZoneChoice } from "@/shared/lib/time";
 import { jtwcCategory, ktToMs, msToKt, type SpeedUnit } from "@/shared/lib/units";
 import type { ReanalysisCheck, TrackHour } from "@/shared/model/types";
 
+import { compassPoint, type OffsetReading } from "./centre-offset";
+import { useCompassNames } from "./CentreOffsetNote";
+
 export interface IntensityPanelProps {
   hour?: TrackHour;
   /** ERA5 max 10 m wind (m/s) within `radiusDeg` of the best-track centre at this hour. */
@@ -15,6 +18,8 @@ export interface IntensityPanelProps {
   /** ERA5 numbers come from the lossless 3-hourly grid: there is no reading between its hours. */
   threeHourly?: boolean;
   check?: ReanalysisCheck;
+  /** Where ERA5 puts the centre against the best track (3-hourly). */
+  offset?: OffsetReading;
   units: SpeedUnit;
   lang: Lang;
   tz: TimeZoneChoice;
@@ -22,8 +27,9 @@ export interface IntensityPanelProps {
 
 const fmt = (v: number, d = 0) => v.toFixed(d);
 
-export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, threeHourly, check, units, lang, tz }: IntensityPanelProps) {
+export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, threeHourly, check, offset, units, lang, tz }: IntensityPanelProps) {
   const { t } = useLingui();
+  const dirs = useCompassNames();
   const sp = (kt: number) => (units === "kt" ? `${fmt(kt)} kt` : `${fmt(ktToMs(kt), 1)} m/s`);
   const spMs = (ms: number) => (units === "kt" ? `${fmt(msToKt(ms))} kt` : `${fmt(ms, 1)} m/s`);
   const jtwc = hour?.jtwcKt;
@@ -101,6 +107,14 @@ export function IntensityPanel({ hour, era5WindMs, era5MinMslp, radiusDeg, three
             {threeHourly ? t`No ERA5 reading at this hour: the numbers come from a lossless grid every 3 hours; the map between them is for viewing only.` : t`No field data at this hour.`}
           </p>
         )}
+        {offset ? (
+          <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm tabular-nums">
+            <dt className="text-muted-foreground">{t`ERA5 centre vs best track`}</dt>
+            <dd data-testid="era5-centre-offset">
+              {offset.kind === "offset" ? `${Math.round(offset.km / 10) * 10} km ${dirs[compassPoint(offset.bearingDeg)]}` : <span className="text-muted-foreground">{t`no clear centre`}</span>}
+            </dd>
+          </dl>
+        ) : null}
         {threeHourly && era5WindMs !== undefined ? (
           <p className="text-xs text-muted-foreground">{t`From the lossless 3-hourly grid (0.5°).`}</p>
         ) : null}

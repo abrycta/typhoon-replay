@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import zlib
 from pathlib import Path
 
@@ -305,3 +306,25 @@ def test_write_frames_is_content_addressed_and_valid(tmp_path) -> None:
         assert v["file"].startswith(v["sha256"][:16]) and (tmp_path / v["file"]).stat().st_size == v["bytes"]
     assert all(v["maxCodeError"] <= 40 for v in f["field"]["vars"])
     assert meta["series"] == {"era5MaxWindMs": [1.0] * T} and "series" not in meta["era5VsBestTrack"]
+
+
+def test_centre_offsets_find_era5_low_and_refuse_a_missing_one() -> None:
+    # 41 x 41 cells at 0.5 deg, NW cell centre (25, 170): window centre (15, 180), across the antimeridian
+    n, res, nw_lat, nw_lon = 41, 0.5, 25.0, 170.0
+    lat = nw_lat - np.arange(n)[:, None] * res
+    lon = nw_lon + np.arange(n)[None, :] * res
+
+    def low(clat: float, clon: float, depth: float) -> np.ndarray:
+        d2 = ((lat - clat) ** 2 + ((lon - clon) * math.cos(math.radians(15))) ** 2)
+        return 1010 - depth * np.exp(-d2 / 2.0)
+
+    # ERA5's low 2 deg north-east-ish of the track (track at 15N 179.5E, low at 16.5N 181.0E = 179.0W)
+    fields = np.stack([low(16.5, 181.0, 20), np.full((n, n), 1010.0), low(15, 186, 20)])
+    out = frames.centre_offsets(fields, np.full(3, nw_lat), np.full(3, nw_lon), res, np.full(3, 15.0),
+                                np.full(3, 179.5), [0, 3, 6])
+    expected = frames._km(15.0, 179.5, 16.5, 181.0)
+    assert abs(out["km"][0] - expected) < 5 and 35 < out["bearingDeg"][0] < 50
+    assert out["lat"][0] == 16.5 and out["lon"][0] == -179.0
+    assert out["km"][1] is None   # flat: no closed low
+    assert out["km"][2] is None   # ~700 km away: beyond the search edge, not this storm's centre
+    assert out["frameIndex"] == [0, 3, 6]

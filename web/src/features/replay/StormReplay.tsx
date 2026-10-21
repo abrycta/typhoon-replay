@@ -10,6 +10,8 @@ import type { StormDetail } from "@/shared/model/types";
 import { useHighContrast, useMapTheme, usePrefersReducedMotion } from "@/shared/ui/hooks";
 import { useStormName } from "@/shared/ui/use-storm-name";
 
+import { offsetAt } from "./centre-offset";
+import { CentreOffsetNote } from "./CentreOffsetNote";
 import { FieldLegend } from "./FieldLegend";
 import { IntensityPanel } from "./IntensityPanel";
 import { useFieldLabels } from "./labels";
@@ -154,6 +156,8 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const cur = useMemo(() => near(state.index), [state.index, snap.loadedFrames, snap.exactFrames, header, hours, series]);
 
+  const offset = layer === "none" ? undefined : offsetAt(detail.frames?.centreOffset, state.index);
+
   const timeLabel = time !== undefined ? formatDateTime(time, lang, tzChoice) : "";
   const bw = exactHour ? bestWind(exactHour) : undefined;
   const valueText = [
@@ -199,6 +203,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                 />
               </Suspense>
             )}
+            {webglError ? null : <CentreOffsetNote reading={offset} bestTrackKt={bw?.kt} />}
             {hasFrames && progress < 100 && !snap.error ? (
               <div className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-2 py-0.5 font-mono text-[11px] text-muted-foreground" aria-hidden="true">
                 {t`frames ${progress}%`}
@@ -243,6 +248,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
               era5MinMslp={cur?.mslp}
               radiusDeg={2}
               threeHourly={exactOnly}
+              offset={offset}
               check={detail.reanalysisCheck}
               units={url.units}
               lang={lang}

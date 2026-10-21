@@ -390,6 +390,10 @@ msgstr "各バックエンドは契約を守っているか"
 msgid "Duration"
 msgstr "継続時間"
 
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "east"
+msgstr "東"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Edge"
 msgstr "エッジ"
@@ -397,6 +401,10 @@ msgstr "エッジ"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Endpoint"
 msgstr "エンドポイント"
+
+#: src/features/replay/IntensityPanel.tsx
+msgid "ERA5 centre vs best track"
+msgstr "ERA5 の中心とベストトラックの差"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "ERA5 field near the centre"
@@ -410,9 +418,17 @@ msgstr "ERA5 の場のリプレイ"
 msgid "ERA5 max wind ({unit})"
 msgstr "ERA5 最大風速（{unit}）"
 
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "ERA5 places this storm about {km} km {dir} of the official track here."
+msgstr "この時刻、ERA5 はこの台風の中心を公式の経路から{dir}へ約 {km} km の位置に置いています。"
+
 #: src/features/replay/FieldLegend.tsx
 msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
 msgstr "ERA5 再解析（約28 km 格子）。参考情報です。すべての台風で同じスケール。"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "ERA5 shows no clear centre near the official track here."
+msgstr "この時刻、ERA5 には公式の経路の近くに明瞭な中心がありません。"
 
 #: src/routes/about.tsx
 msgid "ERA5: Copernicus Climate Change Service, CC BY 4.0. Contains modified Copernicus Climate Change Service information."
@@ -774,6 +790,10 @@ msgstr "この時刻のベストトラック値はありません。"
 msgid "no best-track wind to compare"
 msgstr "比較するベストトラック風速がありません"
 
+#: src/features/replay/IntensityPanel.tsx
+msgid "no clear centre"
+msgstr "明瞭な中心なし"
+
 #: src/features/storm-places/AffectedPlaces.tsx
 msgid "No covered place was within {radius} km."
 msgstr "{radius} km 以内に対象地点はありません。"
@@ -801,6 +821,18 @@ msgstr "この距離まで接近した台風は記録にありません"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "No storms match"
 msgstr "該当する台風がありません"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "north"
+msgstr "北"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "north-east"
+msgstr "北東"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "north-west"
+msgstr "北西"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "not deployed yet"
@@ -968,6 +1000,10 @@ msgstr "待機中"
 msgid "reanalysis context"
 msgstr "再解析・参考"
 
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it."
+msgstr "再解析は粗く、特に気象衛星以前はその傾向が強くなります。場は ERA5 が示す位置のまま表示しています。"
+
 #: src/routes/about.tsx
 msgid "Reanalysis is context, not the storm's strength"
 msgstr "再解析は参考情報であり、台風の強さではありません"
@@ -1089,6 +1125,18 @@ msgstr "出典"
 #: src/app/Shell.tsx
 msgid "Sources and licences"
 msgstr "出典とライセンス"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "south"
+msgstr "南"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "south-east"
+msgstr "南東"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "south-west"
+msgstr "南西"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Speed"
@@ -1302,6 +1350,10 @@ msgstr "値"
 #: src/features/under-the-hood/Race.tsx
 msgid "waking up"
 msgstr "起動中"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "west"
+msgstr "西"
 
 #: src/routes/about.tsx
 msgid "Where the data comes from, what it can and cannot tell you, and the licences that apply."

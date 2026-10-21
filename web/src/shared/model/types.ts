@@ -124,6 +124,20 @@ export interface FrameSeries {
 }
 
 /**
+ * Where ERA5 puts the storm centre against the best track, on the lossless 3-hourly grid (pipeline
+ * `frames.centre_offsets`). Arrays run over `frameIndex` (hourly frame numbers); null = ERA5 has no closed low
+ * near the track at that frame. Bearing is from the best-track position to ERA5's centre.
+ */
+export interface CentreOffset {
+  method?: string;
+  frameIndex: number[];
+  km: (number | null)[];
+  bearingDeg: (number | null)[];
+  lat?: (number | null)[];
+  lon?: (number | null)[];
+}
+
+/**
  * summary.frames. `format` names the .tyf when there is one (`path`, `bytes`, `sha256` describe it); storms
  * published WebP-only say "webp". `field` (lossy, hourly, drawing only) and `exact` (lossless, 3-hourly)
  * are the WebP sets, with the per-frame geometry in `time`, `nwLat`, `nwLon`.
@@ -146,6 +160,7 @@ export interface FramesManifest {
   nwLat?: number[];
   nwLon?: number[];
   series?: FrameSeries;
+  centreOffset?: CentreOffset;
   field?: WebpSheetSet;
   exact?: WebpSheetSet;
 }

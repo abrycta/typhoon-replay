@@ -223,6 +223,82 @@ def honesty(fields: dict[str, np.ndarray], nw_lat: np.ndarray, nw_lon: np.ndarra
     return out
 
 
+# ----------------------------------------------------------------------------- ERA5 centre vs best track
+
+CENTRE_SEARCH_KM = 500     # look for ERA5's low within this distance of the best-track position
+CENTRE_EDGE_KM = 450       # a minimum beyond this sits on the search edge: no closed low near the track
+CENTRE_RING_KM = (250, 400)  # environment ring around the found minimum, for the closed-low depth
+CENTRE_MIN_DEPTH_HPA = 2.0   # weaker than this: ERA5 has no identifiable centre
+
+
+def _km(lat1: Any, lon1: Any, lat2: Any, lon2: Any) -> Any:
+    p1, p2, dl = np.radians(lat1), np.radians(lat2), np.radians(np.asarray(lon2) - np.asarray(lon1))
+    a = np.sin((p2 - p1) / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2) ** 2
+    return 2 * 6371.0088 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
+
+
+def centre_offsets(mslp: np.ndarray, nw_lat: np.ndarray, nw_lon: np.ndarray, res: float, lat: np.ndarray,
+                   lon: np.ndarray, frame_index: list[int]) -> dict[str, Any]:
+    """Where ERA5 puts the storm centre, per frame, against the best-track position the app draws.
+
+    mslp[F, ny, nx] in hPa (NaN = nodata), row 0 north, NW cell centre (nw_lat, nw_lon) per frame; lat/lon the
+    best-track position at the same frames. The centre is the lowest sea-level pressure within
+    CENTRE_SEARCH_KM of the track (sub-cell by a parabola fit); a frame gets null when that minimum lies on the
+    search edge or is not a closed low (less than CENTRE_MIN_DEPTH_HPA below its 250-400 km ring), i.e. when ERA5
+    has no identifiable vortex near the track. Bearing: from the best-track position to ERA5's centre.
+    """
+    F, ny, nx = mslp.shape
+    rows: list[tuple[float | None, ...]] = []
+    none = (None, None, None, None)
+    for i in range(F):
+        glat = nw_lat[i] - np.arange(ny) * res
+        glon = nw_lon[i] + np.arange(nx) * res
+        LA, LO = np.meshgrid(glat, glon, indexing="ij")
+        p = mslp[i]
+        d = _km(lat[i], lon[i], LA, LO)
+        m = np.where((d <= CENTRE_SEARCH_KM) & np.isfinite(p), p, np.inf)
+        if not np.isfinite(m).any():
+            rows.append(none)
+            continue
+        r, c = np.unravel_index(int(np.argmin(m)), m.shape)
+
+        def para(a: float, b: float, cc: float) -> float:
+            den = a - 2 * b + cc
+            return float(np.clip(0.5 * (a - cc) / den, -0.5, 0.5)) if np.isfinite(den) and den > 0 else 0.0
+
+        dr = para(p[r - 1, c], p[r, c], p[r + 1, c]) if 0 < r < ny - 1 else 0.0
+        dc = para(p[r, c - 1], p[r, c], p[r, c + 1]) if 0 < c < nx - 1 else 0.0
+        elat, elon = float(nw_lat[i] - (r + dr) * res), float(nw_lon[i] + (c + dc) * res)
+        dc_ = _km(elat, elon, LA, LO)
+        ring = p[(dc_ >= CENTRE_RING_KM[0]) & (dc_ <= CENTRE_RING_KM[1]) & np.isfinite(p)]
+        depth = float(ring.mean() - p[r, c]) if ring.size else 0.0
+        if d[r, c] > CENTRE_EDGE_KM or depth < CENTRE_MIN_DEPTH_HPA:
+            rows.append(none)
+            continue
+        p1, p2 = math.radians(lat[i]), math.radians(elat)
+        dl = math.radians(elon - lon[i])
+        b = math.degrees(math.atan2(math.sin(dl) * math.cos(p2),
+                                    math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)))
+        rows.append((round(float(_km(lat[i], lon[i], elat, elon))), round((b + 360) % 360),
+                     round(elat, 2), round(float(lon180(elon % 360)), 2)))
+    km, brg, clat, clon = (list(x) for x in zip(*rows, strict=True)) if rows else ([], [], [], [])
+    return {"method": (f"Lowest ERA5 sea-level pressure within {CENTRE_SEARCH_KM} km of the best-track position, on "
+                       f"the lossless 3-hourly grid; null when ERA5 has no closed low there (minimum on the search "
+                       f"edge, or less than {CENTRE_MIN_DEPTH_HPA:g} hPa below its {CENTRE_RING_KM[0]}-"
+                       f"{CENTRE_RING_KM[1]} km ring)."),
+            "frameIndex": list(frame_index), "km": km, "bearingDeg": brg, "lat": clat, "lon": clon}
+
+
+def centre_offsets_from_codes(q: np.ndarray, nw_lat: np.ndarray, nw_lon: np.ndarray, res: float,
+                              hourly: pd.DataFrame, frame_index: list[int]) -> dict[str, Any]:
+    """centre_offsets from exact mslp codes q[F, ny, nx]; `hourly` holds the track rows of every hourly frame."""
+    mslp = dequantise(q, ENCODINGS["mslp"]).astype(float)
+    hourly = hourly.sort_values("time").reset_index(drop=True)
+    idx = np.asarray(frame_index)
+    return centre_offsets(mslp, np.asarray(nw_lat, float)[idx], np.asarray(nw_lon, float)[idx], res,
+                          hourly.lat.to_numpy(float)[idx], hourly.lon.to_numpy(float)[idx], list(frame_index))
+
+
 # ----------------------------------------------------------------------------- per storm
 
 FIELD_QUALITY = 80
@@ -291,10 +367,11 @@ def _named(out: Path, data: bytes, suffix: str) -> dict[str, Any]:
 
 def write_frames(sid: str, codes: dict[str, np.ndarray], hours: np.ndarray, nw_lat: np.ndarray, nw_lon: np.ndarray,
                  storm: dict[str, Any], served: dict[str, Any], qerr: dict[str, Any], check: dict[str, Any],
-                 out: Path, formats: tuple[str, ...] = ("webp",)) -> dict[str, Any]:
+                 out: Path, formats: tuple[str, ...] = ("webp",), hourly: pd.DataFrame | None = None) -> dict[str, Any]:
     """Write a storm's published frame files (content-addressed names) and its frames.json manifest.
 
-    `codes` holds uint8 codes per variable ([T, 81, 81]) for wind, gust, mslp, tp, wdir, u, v.
+    `codes` holds uint8 codes per variable ([T, 81, 81]) for wind, gust, mslp, tp, wdir, u, v; `hourly` (the
+    track row of every frame) adds `centreOffset`, ERA5's centre against the best track on the exact grid.
     """
     for old in out.glob("*"):
         if old.name != "provenance.json":
@@ -360,6 +437,10 @@ def write_frames(sid: str, codes: dict[str, np.ndarray], hours: np.ndarray, nw_l
         "nwLon": [round(float(lon180(x)), 2) for x in nw_lon], "files": files, "servedBy": served,
         "credit": credit, "quantisation": qerr, "series": check.pop("series", None), "era5VsBestTrack": check,
     }
+    if hourly is not None:
+        meta["centreOffset"] = centre_offsets_from_codes(
+            codes["mslp"][idx][:, ::EXACT_STRIDE, ::EXACT_STRIDE], nw_lat, nw_lon, 0.25 * EXACT_STRIDE, hourly,
+            idx.tolist())
     (out / "frames.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     return meta
 
@@ -388,7 +469,7 @@ def build_storm(sid: str, hourly: pd.DataFrame, storm: dict[str, Any], *, format
     codes["u"], codes["v"] = quantise(u, UV[0]), quantise(v, UV[1])
     served = {k: {lk: v.count(lk) for lk in dict.fromkeys(v)} for k, v in w.served.items()}
     return write_frames(sid, codes, hours, w.nw_lat, w.nw_lon, storm, served, quantisation_report(codes, fields),
-                        honesty(fields, w.nw_lat, w.nw_lon, hourly), ensure_dir(out_root / sid), formats)
+                        honesty(fields, w.nw_lat, w.nw_lon, hourly), ensure_dir(out_root / sid), formats, hourly)
 
 
 def repack(d: Path, hourly: pd.DataFrame, storm: dict[str, Any], formats: tuple[str, ...]) -> dict[str, Any]:
@@ -416,7 +497,7 @@ def repack(d: Path, hourly: pd.DataFrame, storm: dict[str, Any], formats: tuple[
     hourly = hourly.sort_values("time").reset_index(drop=True)
     assert len(hourly) == len(hours), f"{d.name}: track has {len(hourly)} hours, frames {len(hours)}"
     return write_frames(d.name, codes, hours, nw_lat, nw_lon, storm, meta["servedBy"], meta["quantisation"],
-                        honesty(fields, nw_lat, nw_lon, hourly), d, formats)
+                        honesty(fields, nw_lat, nw_lon, hourly), d, formats, hourly)
 
 
 def validate_storm(d: Path) -> None:

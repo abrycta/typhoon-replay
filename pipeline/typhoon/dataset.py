@@ -37,6 +37,7 @@ import math
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -47,7 +48,14 @@ import shapely
 from . import catalog, exposure, og, place_search, sources, stats, tables
 from . import places as places_mod
 from .config import BUILD, ERA5_HONESTY, HF_REPO, PROCESSED, ensure_dir
-from .frames import ENC, MAX_FILE_BYTES, parse_tyf, unsheet, var_meta
+from .frames import (
+    ENC,
+    MAX_FILE_BYTES,
+    centre_offsets_from_codes,
+    parse_tyf,
+    unsheet,
+    var_meta,
+)
 from .frames import OUT as FRAMES_DIR
 from .track import AGENCY_COLUMNS, lon180
 
@@ -314,6 +322,52 @@ def replay_storms() -> dict[str, dict[str, Any]]:
     return out
 
 
+def add_centre_offset(fr: dict[str, Any], hourly: pd.DataFrame, read: Any) -> bool:
+    """Give a frames record built before `centreOffset` existed its ERA5-centre-vs-track offsets, from the
+    lossless exact mslp sheet (`read(dataset-root path) -> bytes`); no ERA5 reads. False if it cannot."""
+    if "centreOffset" in fr:
+        return True
+    ex = fr.get("exact") or {}
+    v = next((v for v in ex.get("vars", []) if v["name"] == "mslp"), None)
+    h = hourly.sort_values("time").reset_index(drop=True)
+    if not v or not ex.get("frameIndex") or len(h) != fr["frames"]:
+        return False
+    try:
+        data = read(v["path"])
+    except Exception as e:  # noqa: BLE001  a missing sheet only loses the note, never the version
+        log.warning("centre offset: cannot read %s (%s)", v["path"], e)
+        return False
+    q = unsheet(data, ex["frames"], ex["tileHeight"], ex["tileWidth"], ex["cols"], ex["tileStride"])
+    fr["centreOffset"] = centre_offsets_from_codes(q, np.asarray(fr["nwLat"], float), np.asarray(fr["nwLon"], float) % 360,
+                                                   ex["resDeg"], h, ex["frameIndex"])
+    return True
+
+
+def frame_reader(root: str | None, local_dirs: dict[str, Path]) -> Any:
+    """read(dataset-root path) -> bytes: this run's frames from disk, earlier ones from the published root."""
+    import httpx
+
+    client = httpx.Client(follow_redirects=True, timeout=120)
+
+    def read(path: str) -> bytes:
+        sid, name = path.split("/")[-2:]
+        if sid in local_dirs and (local_dirs[sid] / name).exists():
+            return (local_dirs[sid] / name).read_bytes()
+        if not root:
+            raise FileNotFoundError(path)
+        if not root.startswith("https://"):
+            return (Path(root) / path).read_bytes()
+        for k in range(4):
+            r = client.get(f"{root.rstrip('/')}/{path}")
+            if r.status_code != 429 and r.status_code < 500:
+                break
+            time.sleep(5 * (k + 1))
+        r.raise_for_status()
+        return r.content
+
+    return read
+
+
 def track_hash(h: pd.DataFrame) -> str:
     """Fingerprint of an hourly track: frames must be rebuilt when it changes (IBTrACS revisions)."""
     a = np.column_stack([h.time.astype("int64").to_numpy() // 10**9, np.round(h.lat.to_numpy(float), 2),
@@ -389,6 +443,8 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
     frame_refs: dict[str, dict[str, Any]] = {}   # every frame file this version references
     replay: dict[str, dict[str, Any]] = {}
     reused_frames = 0
+    read_frame = frame_reader(previous, {sid: rp["dir"] for sid, rp in local.items()})
+    offsets_added = 0
     for row in st.sort_values(["season", "started_at", "sid"]).itertuples(index=False):
         s: Any = pd.Series(row._asdict())
         sid = s.sid
@@ -412,6 +468,8 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
                 frame_refs[path] = {"bytes": nbytes, "sha256": sha, "published": True}
             reused_frames += 1
         if fr:
+            if "centreOffset" not in fr and add_centre_offset(fr, hr_by[sid], read_frame):
+                offsets_added += 1
             h = fr["era5VsBestTrack"]
             replay[sid] = {"frames": fr["frames"], "ratio": h.get("headlineRatio"), "agency": h.get("headlineAgency")}
             frames_index.setdefault(int(s.season), {})[sid] = {"trackHash": th, "frames": fr}
@@ -470,8 +528,8 @@ def build(version: int, previous: str | None = None, out_root: Path = BUILD, *,
                                               "version (paths relative to the dataset root); exposure is split per season.",
                                               "tables": table_paths}))
     write_manifest(vdir, version, index, tinfo, local, frame_refs, len(replay), reused_frames)
-    log.info("built %s: %d storms, %d with frames (%d built now, %d reused)",
-             vdir, len(index_rows), len(replay), len(local), reused_frames)
+    log.info("built %s: %d storms, %d with frames (%d built now, %d reused, %d centre offsets added)",
+             vdir, len(index_rows), len(replay), len(local), reused_frames, offsets_added)
     return vdir
 
 
