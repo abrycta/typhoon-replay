@@ -54,6 +54,8 @@ Workers, which consume no Render hours.
 | Node | **Cloudflare Worker** `replay-api-node` (workers.dev + service binding from the edge) | Neon serverless HTTP | Fastify 5 cannot run on Workers: its boot generates code from strings (`EvalError: Code generation from strings disallowed`, measured with `nodejs_compat`). The Node backend takes the closest contract-first stack that fits (decided by its build, recorded in `api/node/`). |
 | Rust | **Cloudflare Worker** `replay-api-rust` (workers-rs, wasm) | Neon serverless HTTP via the Workers fetch API | Axum 0.8 routers run on workers-rs; SQLx needs Tokio sockets, which Workers lack, so queries go over Neon's HTTP endpoint. |
 
+**Rust stack** (2026-10-22, recorded in `api/rust/README.md`): workers-rs 0.8.7 + Axum 0.8.9 compiled to wasm (Rust 1.99.1), typify-generated contract types, Neon serverless HTTP through `worker::Fetch` (one batch per request, dataset version included) instead of SQLx. Measured: 554 KiB gzip bundle, 6 ms startup; SSE streams end after 90 s (subrequest cap), as on Node.
+
 **Node stack** (2026-10-22, recorded in `api/node/README.md`): Hono 4.13 on Workers; openapi-typescript types and Ajv
 validators generated from the contract at build time (standalone code, so nothing is compiled from strings at runtime);
 Kysely 0.29 only to compile SQL. Trade-off: no Fastify plugin ecosystem, and SSE streams end after 90 s (subrequest cap).

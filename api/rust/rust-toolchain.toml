@@ -1,0 +1,6 @@
+# Pinned toolchain (docs/architecture/DECISIONS.md, "Frozen showcase policy").
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

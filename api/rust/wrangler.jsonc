@@ -1,0 +1,21 @@
+// The Rust backend as a Cloudflare Worker (free plan): docs/architecture/DECISIONS.md, "Update 2026-10-22".
+// Build first (`npm run build`: worker-build → crates/server/build/). Secrets are set once with `wrangler secret put`
+// and never live in files: DATABASE_URL (Neon pooled URL), TR_EDGE_SECRET. TR_COMMIT is passed at deploy time
+// (`--var TR_COMMIT:<sha>`). Local runs and CI add NEON_HTTP_URL (Neon's open-source SQL-over-HTTP proxy).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "replay-api-rust",
+  "main": "crates/server/build/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "TR_SITE_ORIGIN": "https://replay.krtmtthw.dev",
+    "TR_TEST_HOOKS": "0",
+    "TR_RATE_LIMIT_PER_MINUTE": "600",
+    "TR_COMMIT": "dev"
+  },
+  // Per-IP limit on the public workers.dev URL (the edge proxy has its own). Free; namespace ids: 1002 node, 1003 rust.
+  "ratelimits": [{ "name": "RATE_LIMITER", "namespace_id": "1003", "simple": { "limit": 600, "period": 60 } }],
+  "observability": { "enabled": true }
+}
