@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { type FrameStore, type TyfHeader } from "@/data";
 import { hostPause } from "@/shared/ui/host-pause";
 import { FIELDS, fieldLut, type FieldLayer as FieldLayerId } from "@/shared/lib/fields";
+import { isLeavingPage, onPageExit } from "@/shared/lib/page-exit";
 import type { StormTrack, TrackHour } from "@/shared/model/types";
 
 import type { PlayerClock } from "../player";
@@ -103,6 +104,10 @@ export default function ReplayMap(props: ReplayMapProps) {
   const fallbackRef = useRef(false);
   const renderedRef = useRef(false);
   const [styleVersion, setStyleVersion] = useState(0);
+  // The reader is leaving: no map (its workers, style and tiles would only be cancelled or refused, and logged).
+  // Should they stay after all, it is built again.
+  const [leaving, setLeaving] = useState(isLeavingPage);
+  useEffect(() => onPageExit(setLeaving), []);
   const latest = useRef(props);
   useEffect(() => {
     latest.current = props;
@@ -112,6 +117,7 @@ export default function ReplayMap(props: ReplayMapProps) {
   useEffect(() => {
     const el = container.current;
     if (!el) return;
+    if (leaving) return;
     // The compact embed (phones, tablets): one worker is plenty for a still view, and each one costs memory (Safari
     // otherwise starts up to three). Only before the first map, which the embed's is.
     if (props.viewFrame) setWorkerCount(1);
@@ -149,14 +155,15 @@ export default function ReplayMap(props: ReplayMapProps) {
     // Fall back to the bundled coastline when the tile host fails before the style loads.
     let loaded = false;
     const switchToFallback = () => {
-      if (loaded || fallbackRef.current || latest.current.basemap) return;
+      // Leaving mid-load: the browser cancelled the style; loading the coastline now only logs an error.
+      if (loaded || fallbackRef.current || latest.current.basemap || isLeavingPage()) return;
       fallbackRef.current = true;
       map.setStyle(fallbackStyle(latest.current.themeKey));
     };
     const timer = setTimeout(switchToFallback, 8000);
     map.on("error", (e) => {
       if (!loaded) switchToFallback();
-      else console.warn("map:", e.error?.message);
+      else if (!isLeavingPage()) console.warn("map:", e.error?.message);
     });
     map.on("style.load", () => {
       loaded = true;
@@ -181,7 +188,7 @@ export default function ReplayMap(props: ReplayMapProps) {
       fieldRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [leaving]);
 
   // (Re)add overlays after each style load and when the track arrives.
   useEffect(() => {

@@ -2,6 +2,8 @@
 // React reads it through useSyncExternalStore (see useFrameStore in ../hooks.ts).
 import * as Comlink from "comlink";
 
+import { isLeavingPage, onPageExit } from "@/shared/lib/page-exit";
+
 import type { DecodeWorkerApi } from "./decode.worker";
 import type { DecodedFrames, FrameSink, Strategy } from "./loader";
 import { frameBytes, type TyfHeader } from "./tyf";
@@ -33,6 +35,7 @@ export class FrameStore {
   private listeners = new Set<() => void>();
   private worker?: Worker;
   private api?: Comlink.Remote<DecodeWorkerApi>;
+  private offPageExit?: () => void;
   private snap: FrameStoreSnapshot = { loadedFrames: 0, loadedBytes: 0, done: false };
   /** Bumped on every change; lets the map layer know when to re-upload. */
   version = 0;
@@ -48,6 +51,21 @@ export class FrameStore {
     if (source.kind === "webp") this.update({ header: source.header, strategy: "webp" });
     this.worker = new Worker(new URL("./decode.worker.ts", import.meta.url), { type: "module", name: "frame-decode" });
     this.api = Comlink.wrap<DecodeWorkerApi>(this.worker);
+    // Leaving the page: the worker stops loading (and must not answer cancelled sheets by loading the .tyf). Should the
+    // reader stay after all, the load starts again.
+    this.offPageExit = onPageExit((leaving) => {
+      void this.api?.pageExit(leaving);
+      if (!leaving && this.interrupted) {
+        this.interrupted = false;
+        this.load(source, focus);
+      }
+    });
+    this.load(source, focus);
+  }
+
+  private interrupted = false;
+
+  private load(source: FrameSource, focus: number) {
     const sink: FrameSink = {
       header: (header, strategy, totalBytes) => {
         // A WebP storm that fell back to its .tyf: another frame layout, so drop anything stored.
@@ -59,9 +77,12 @@ export class FrameStore {
       exact: (b) => this.addExact(b),
     };
     this.api
-      .open(source, Comlink.proxy(sink), { focus })
+      ?.open(source, Comlink.proxy(sink), { focus })
       .then(() => this.update({ done: true }))
-      .catch((e: unknown) => this.update({ error: e instanceof Error ? e.message : String(e), done: true }));
+      .catch((e: unknown) => {
+        if (isLeavingPage()) this.interrupted = true;
+        else this.update({ error: e instanceof Error ? e.message : String(e), done: true });
+      });
   }
 
   /** For tests and the static fallback: fill the store from an in-memory file. */
@@ -140,6 +161,7 @@ export class FrameStore {
   getSnapshot = () => this.snap;
 
   dispose() {
+    this.offPageExit?.();
     void this.api?.cancel();
     this.api?.[Comlink.releaseProxy]();
     this.worker?.terminate();

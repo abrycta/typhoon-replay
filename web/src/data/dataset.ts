@@ -11,6 +11,8 @@
 //                                         directory, e.g. ../../../frames/<sid>/...); see frames/source.ts
 import type { DatasetManifest, StormDetail, StormSummary, StormTrack, TrackFix, TrackHour } from "@/shared/model/types";
 
+import { isLeavingPage } from "@/shared/lib/page-exit";
+
 import { tyfSource } from "./frames/source";
 import { interpolateHourly } from "./track";
 
@@ -90,6 +92,8 @@ export async function resolveDataset(cfg: DataSourceConfig, f: Fetch = fetch): P
     primaryError = e instanceof Error ? e.message : String(e);
   }
   for (const base of cfg.fallbackBaseUrls) {
+    // Leaving mid-load: the browser cancelled the request; asking the fallback host now only logs an error.
+    if (isLeavingPage()) break;
     try {
       return { ...(await tryBase(base, cfg.pointer, f)), source: "fallback", primaryError };
     } catch {

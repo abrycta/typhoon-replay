@@ -6,6 +6,10 @@ import { type FrameSink, type LoadOptions, type Strategy, TyfLoader } from "./lo
 import { type FrameSource, WebpLoader } from "./webp";
 
 let current: { loader?: TyfLoader; abort: AbortController } | undefined;
+// The page is being left (main thread: shared/lib/page-exit.ts): its requests were cancelled, so do not fall back.
+let leaving = false;
+/** How long a failed WebP load waits for word that the page is being left before it loads the .tyf instead. */
+const LEAVING_GRACE_MS = 250;
 
 const api = {
   async open(source: FrameSource, sink: FrameSink, opts: Omit<LoadOptions, "signal" | "fetch" | "format">): Promise<Strategy> {
@@ -26,6 +30,9 @@ const api = {
         return await new WebpLoader(source, local, { signal: abort.signal }).run();
       } catch (e) {
         if (abort.signal.aborted || !source.fallback) throw e;
+        // A navigation away cancels the sheets first and tells this worker a moment later.
+        await new Promise((r) => setTimeout(r, LEAVING_GRACE_MS));
+        if (abort.signal.aborted || leaving) throw e;
         console.warn("WebP frames failed, loading the .tyf:", e instanceof Error ? e.message : e);
         tyf = source.fallback;
       }
@@ -35,6 +42,11 @@ const api = {
   },
   prioritise(frame: number) {
     current?.loader?.prioritise(frame);
+  },
+  /** The page is being left: stop loading now (an aborted request is quiet; one the browser cancels is logged). */
+  pageExit(value: boolean) {
+    leaving = value;
+    if (value) current?.abort.abort();
   },
   cancel() {
     current?.abort.abort();
