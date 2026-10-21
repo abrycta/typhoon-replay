@@ -146,8 +146,9 @@ jobs:
           docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
 
-      # The full contract config. Known contract-side gap (api/java/README.md "Conformance"): the shared cursor
-      # example and the season + from/to examples trip positive_data_acceptance.
+      # The full contract config. Known contract-side gap (api/java/README.md "Conformance"): generated data the
+      # schema can't rule out (a random cursor, season combined with from/to) trips positive_data_acceptance.
+      # The examples themselves are valid requests since contract 2.0.1.
       - name: Schemathesis (full config, informational)
         continue-on-error: true
         run: |

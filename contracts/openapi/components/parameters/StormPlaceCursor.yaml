@@ -4,7 +4,8 @@ description: |
   Opaque continuation token from `nextCursor`. Internally `base64url` (no padding) of the UTF-8 JSON array
   `[1, "<sort>", <keysetValue...>, "<lastId>"]`; cursors are interchangeable between backends. A malformed cursor,
   or one made for a different sort, returns 400 `invalid-cursor`.
+  Example: `[1,"closest",12.4,"PH-0831600000"]` (the only sort; the last id is a place id).
 schema:
   type: string
   pattern: '^[A-Za-z0-9_-]{1,512}$'
-example: WzEsInNlYXNvbi1kZXNjIiwyMDEzLCIyMDEzMzA2TjA3MTYyIl0
+example: WzEsImNsb3Nlc3QiLDEyLjQsIlBILTA4MzE2MDAwMDAiXQ

@@ -44,7 +44,7 @@ get:
         type: string
         enum: [season-desc, peak-wind-desc, name]
         default: season-desc
-    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/StormCursor.yaml
     - $ref: ../components/parameters/Limit.yaml
     - $ref: ../components/parameters/IfNoneMatch.yaml
   responses:

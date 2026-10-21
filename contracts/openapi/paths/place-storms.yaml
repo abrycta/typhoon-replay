@@ -12,7 +12,7 @@ get:
     - $ref: ../components/parameters/SeasonFrom.yaml
     - $ref: ../components/parameters/SeasonTo.yaml
     - $ref: ../components/parameters/HitSort.yaml
-    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/HitCursor.yaml
     - $ref: ../components/parameters/Limit.yaml
     - $ref: ../components/parameters/IfNoneMatch.yaml
   responses:

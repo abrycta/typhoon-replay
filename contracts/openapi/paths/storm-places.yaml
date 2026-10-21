@@ -9,7 +9,7 @@ get:
     - $ref: ../components/parameters/Sid.yaml
     - $ref: ../components/parameters/RadiusKm.yaml
     - $ref: ../components/parameters/Country.yaml
-    - $ref: ../components/parameters/Cursor.yaml
+    - $ref: ../components/parameters/StormPlaceCursor.yaml
     - $ref: ../components/parameters/Limit.yaml
     - $ref: ../components/parameters/IfNoneMatch.yaml
   responses:

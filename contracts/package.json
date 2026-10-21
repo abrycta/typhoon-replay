@@ -10,6 +10,7 @@
     "lint": "redocly lint source",
     "lint-dist": "redocly lint dist/openapi.json dist/openapi.3.0.json --extends minimal",
     "bundle": "node scripts/bundle.mjs",
+    "check-examples": "node scripts/check-examples.mjs",
     "mock": "prism mock dist/openapi.json --host 0.0.0.0 --port 4010",
     "typecheck": "tsc -p conformance/tsconfig.json",
     "conformance": "vitest run --config conformance/vitest.config.ts",

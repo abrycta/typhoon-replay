@@ -63,6 +63,10 @@ jobs:
           npm run bundle
           npm run lint-dist
 
+      - name: Examples valid against their schemas
+        working-directory: contracts
+        run: npm run check-examples
+
       - name: Breaking changes (oasdiff)
         env:
           # PR: the base branch tip. Push: the previous tip. Manual run: origin/main.
