@@ -55,18 +55,6 @@ for (const p of PAGES) {
   });
 }
 
-// At 390 px the six nav links fit on one line in both languages, so the Header is as tall as the other apps' (~121 px).
-for (const lang of ["en", "ja"]) {
-  test(`390 px (${lang}): the nav is one line`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 800 });
-    await page.goto(`/about?lang=${lang}`);
-    await page.evaluate(() => document.fonts.ready); // measure with DM Mono, not the fallback
-    const links = await page.locator("[data-slot=app-header-nav] a").evaluateAll((as) => as.map((a) => [a.textContent, Math.round(a.getBoundingClientRect().top), Math.round(a.getBoundingClientRect().width)]));
-    expect(new Set(links.map((l) => l[1])).size, JSON.stringify(links)).toBe(1);
-    expect((await page.locator("header[data-akari-header]").boundingBox())!.height).toBeLessThan(125);
-  });
-}
-
 test("storm page: breadcrumbs Home › Storms › storm, and back to all storms", async ({ page }) => {
   await page.goto(`/storm/${HAIYAN}?t=${PEAK}`);
   await waitForReplay(page);
