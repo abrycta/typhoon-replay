@@ -228,11 +228,11 @@ test("conformance table: measured figures, the others next", async ({ page }) =>
   const table = page.getByTestId("conformance").getByRole("table");
   await expect(table.getByRole("columnheader")).toHaveText(["Check", "Java", "Node", "Rust", "Go"]);
   const rows = table.getByRole("row");
-  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*next\s*next\s*86 \/ 86/);
-  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*next\s*next\s*1,444 \/ 1,444/);
+  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*86 \/ 86\s*next\s*86 \/ 86/);
+  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*1,444 \/ 1,444\s*next\s*1,444 \/ 1,444/);
   await expect(rows.nth(3)).toContainText("2.8 ms");
   await expect(rows.nth(4)).toContainText("≈ 100 s");
-  await expect(page.getByTestId("conformance")).toContainText("Node, Rust: built next, against the same suite.");
+  await expect(page.getByTestId("conformance")).toContainText("Rust: built next, against the same suite.");
 });
 
 test("Japanese: nav, page and footer", async ({ page }) => {
