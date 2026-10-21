@@ -222,17 +222,17 @@ test("explorer: request line, status, edge headers and JSON", async ({ page }) =
   await expect(page.getByTestId("explore-body")).toContainText('"code": "backend-not-deployed"');
 });
 
-test("conformance table: Java's figures, the others next", async ({ page }) => {
+test("conformance table: measured figures, the others next", async ({ page }) => {
   await mockLanes(page);
   await page.goto("/under-the-hood");
   const table = page.getByTestId("conformance").getByRole("table");
   await expect(table.getByRole("columnheader")).toHaveText(["Check", "Java", "Node", "Rust", "Go"]);
   const rows = table.getByRole("row");
-  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*next\s*next\s*next/);
-  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*next\s*next\s*next/);
+  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*next\s*next\s*86 \/ 86/);
+  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*next\s*next\s*1,444 \/ 1,444/);
   await expect(rows.nth(3)).toContainText("2.8 ms");
   await expect(rows.nth(4)).toContainText("≈ 100 s");
-  await expect(page.getByTestId("conformance")).toContainText("Node, Rust, Go: built next, against the same suite.");
+  await expect(page.getByTestId("conformance")).toContainText("Node, Rust: built next, against the same suite.");
 });
 
 test("Japanese: nav, page and footer", async ({ page }) => {
