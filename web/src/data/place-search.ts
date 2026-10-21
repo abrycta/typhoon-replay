@@ -21,9 +21,41 @@ export function jaKey(s: string): string {
   return s.normalize("NFKC").replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 }
 
+/** Latin search key: lower case, no accents, anything but letters and digits as single spaces. */
+export const foldLatin = (s: string) => searchKey(s).replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+
+/** places/search/manifest.json (pipeline `place_search.build`). */
+export interface SliceManifest {
+  keys: string[];
+  /** Letters sliced by two letters ("m" -> "ma", "mo"); the others by one. */
+  split: string[];
+  jaBuckets: number;
+}
+
+/**
+ * The slice of the place index a query needs (pipeline `place_search.query_key`, same folding): the first letter
+ * of the query's first word, or its first two letters for a split letter; a Japanese query's first character
+ * picks bucket `ja-<code point mod jaBuckets>`. Undefined: no slice can hold the answer, read the full index.
+ */
+export function queryShardKey(query: string, m: SliceManifest): string | undefined {
+  const j = jaKey(query).trim();
+  const c0 = j ? String.fromCodePoint(j.codePointAt(0)!) : "";
+  if (!c0) return undefined;
+  let key: string;
+  if (!/^[a-z0-9]/.test(foldLatin(c0))) {
+    key = `ja-${String(c0.codePointAt(0)! % m.jaBuckets).padStart(2, "0")}`;
+  } else {
+    const first = foldLatin(query).split(" ")[0] ?? "";
+    const split = m.split.includes(first.charAt(0));
+    key = split ? first.slice(0, 2) : first.charAt(0);
+    if (key.length !== (split ? 2 : 1)) return undefined;
+  }
+  return m.keys.includes(key) ? key : undefined;
+}
+
 export function preparePlaces(places: readonly PlaceEntry[]): PreparedPlace[] {
   return places.map((place) => {
-    const full = searchKey(place.name).replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+    const full = foldLatin(place.name);
     const short = full.replace(STRIP_EN, "").trim();
     const ja = place.nameJa ? jaKey(place.nameJa) : "";
     return {
@@ -77,7 +109,7 @@ function scoreKey(key: string, q: string): number {
 export function searchPlaces(prepared: readonly PreparedPlace[], query: string, limit = 10): PlaceEntry[] {
   const raw = query.trim();
   if (!raw) return [];
-  const q = searchKey(raw).replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+  const q = foldLatin(raw);
   const qj = jaKey(raw);
   const hasJa = /[぀-ヿ㐀-鿿]/.test(qj);
   const scored: { p: PlaceEntry; s: number }[] = [];

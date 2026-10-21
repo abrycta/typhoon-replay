@@ -7,8 +7,8 @@ import type { StormDetail } from "@/shared/model/types";
 import { loadIndex, loadManifest, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset, stormRoot } from "./dataset";
 import { frameSource, sourceKey } from "./frames/source";
 import { FrameStore } from "./frames/store";
-import { preparePlaces } from "./place-search";
-import { loadPlaceIndex, loadPlaceShard } from "./places";
+import { type PreparedPlace, preparePlaces, queryShardKey, searchPlaces } from "./place-search";
+import { loadPlaceIndex, loadPlaceShard, loadPlaceSlice, loadSliceManifest, type PlaceEntry } from "./places";
 
 const STATIC = { staleTime: Infinity, gcTime: 30 * 60_000, retry: 1 } as const;
 
@@ -65,6 +65,41 @@ export function usePlaceIndex(enabled = true) {
     ...STATIC,
   });
   return { ...q, error: ds.error ?? q.error, isPending: ds.isPending || q.isPending };
+}
+
+/**
+ * Place search for "my town": reads only the slice of the index the query's first letters need (a few kB), and
+ * falls back to the full index when the dataset has no slices, a slice fails, the slice finds nothing (the full
+ * search also matches inside words and forgives a typo in the first letter) or the selected place is elsewhere.
+ */
+export function usePlaceSearch(q: string, placeId?: string, limit = 10) {
+  const ds = useDataset();
+  const active = q.length >= 2;
+  const manifest = useQuery({
+    queryKey: ["place-slices", ds.data?.root],
+    queryFn: () => loadSliceManifest(ds.data as ResolvedDataset),
+    enabled: !!ds.data && (active || !!placeId),
+    ...STATIC,
+  });
+  const key = active && manifest.data ? queryShardKey(q, manifest.data) : undefined;
+  const slice = useQuery({
+    queryKey: ["place-slice", ds.data?.root, key],
+    queryFn: async () => preparePlaces(await loadPlaceSlice(ds.data as ResolvedDataset, key as string)),
+    enabled: !!ds.data && !!key,
+    ...STATIC,
+  });
+  const sliceHits = useMemo(() => (active && slice.data ? searchPlaces(slice.data, q, limit) : undefined), [active, slice.data, q, limit]);
+  const sliceSelected = placeId ? slice.data?.find((e) => e.place.id === placeId)?.place : undefined;
+  const manifestDone = manifest.isSuccess || manifest.isError;
+  const sliceDone = !key || slice.isSuccess || slice.isError;
+  const needFull =
+    manifestDone && sliceDone && ((active && (!key || slice.isError || sliceHits?.length === 0)) || (!!placeId && !sliceSelected));
+  const full = usePlaceIndex(needFull);
+  const fullHits = useMemo(() => (needFull && active && full.data ? searchPlaces(full.data, q, limit) : undefined), [needFull, active, full.data, q, limit]);
+  const results: PlaceEntry[] = (needFull ? fullHits : sliceHits) ?? [];
+  const selected = sliceSelected ?? (placeId ? full.data?.find((e: PreparedPlace) => e.place.id === placeId)?.place : undefined);
+  const isPending = ds.isPending || (!manifestDone && (active || !!placeId)) || (!!key && slice.isPending) || (needFull && full.isPending);
+  return { results, selected, isPending, error: needFull ? full.error : (ds.error ?? null) };
 }
 
 /** One place shard (its places and their storm exposure). */

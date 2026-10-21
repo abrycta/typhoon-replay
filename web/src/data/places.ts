@@ -3,6 +3,8 @@
 //
 //   v<N>/places/index.json      {shards: [{shard, country, admin1, admin2?, places, hits, bbox, path}], search?}
 //   v<N>/places/search.json     compact search index: {columns, rows, shards?}   (falls back to the shards)
+//   v<N>/places/search/manifest.json  {keys, split, jaBuckets}: slices of search.json by the query's first letter(s)
+//   v<N>/places/search/<key>.json     one slice, same shape as search.json (the first search reads only this)
 //   v<N>/places/<shard>.json    {country, admin1, places: [...], hits: {columns, rows}, storms: {sid: [name, season]}}
 //
 // Paths inside the files are dataset-root relative: "v1/places/ph-leyte.json", or the content-addressed shards the
@@ -12,6 +14,7 @@
 import type { Country, PlaceSummary } from "@/shared/model/types";
 
 import { getJson, type ResolvedDataset } from "./dataset";
+import type { SliceManifest } from "./place-search";
 
 type Fetch = typeof fetch;
 
@@ -131,11 +134,12 @@ async function shardList(ds: ResolvedDataset, f: Fetch): Promise<{ shards: Shard
 }
 
 /** The compact index ({columns, rows, shards?}); undefined when the dataset does not publish one. */
-async function loadSearchFile(ds: ResolvedDataset, url: string, f: Fetch): Promise<PlaceEntry[] | undefined> {
+async function loadSearchFile(ds: ResolvedDataset, url: string, f: Fetch, rethrow = false): Promise<PlaceEntry[] | undefined> {
   let raw: unknown;
   try {
     raw = await getJson<unknown>(url, f, 15000);
-  } catch {
+  } catch (e) {
+    if (rethrow) throw e;
     return undefined;
   }
   const shardPaths = isObj(raw) && Array.isArray(raw.shards) ? raw.shards.map((s) => (typeof s === "string" ? s : "")) : [];
@@ -147,6 +151,26 @@ async function loadSearchFile(ds: ResolvedDataset, url: string, f: Fetch): Promi
     if (p) out.push(p);
   }
   return out.length ? out : undefined;
+}
+
+/** The slice manifest, or undefined when the dataset has none (older versions): then search the full index. */
+export async function loadSliceManifest(ds: ResolvedDataset, f: Fetch = fetch): Promise<SliceManifest | null> {
+  try {
+    const raw = await getJson<unknown>(`${ds.root}places/search/manifest.json`, f);
+    if (!isObj(raw) || !Array.isArray(raw.keys)) return null;
+    const jaBuckets = num(raw.jaBuckets);
+    return { keys: raw.keys.map(String), split: Array.isArray(raw.split) ? raw.split.map(String) : [], jaBuckets: jaBuckets && jaBuckets > 0 ? jaBuckets : 32 };
+  } catch {
+    return null;
+  }
+}
+
+/** One slice of the place index (throws when it cannot be read, so the caller falls back to the full index). */
+export async function loadPlaceSlice(ds: ResolvedDataset, key: string, f: Fetch = fetch): Promise<PlaceEntry[]> {
+  const url = `${ds.root}places/search/${encodeURIComponent(key)}.json`;
+  const places = await loadSearchFile(ds, url, f, true);
+  if (!places) throw new Error(`${url}: no places`);
+  return places;
 }
 
 /** Fetch many URLs with a small concurrency limit; failures are skipped. */

@@ -1,0 +1,1 @@
+{"schema":"typhoon-replay/places-search@1","columns":["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"],"shards":["v1/places/jp-27-osaka.json","v1/places/jp-47-okinawa.json"],"rows":[["JP-27100","city","Osaka","大阪市","Osaka","大阪府",null,135.5023,34.6937,0,2],["JP-47201","city","Naha","那覇市","Okinawa","沖縄県",null,127.6809,26.2124,1,0]]}

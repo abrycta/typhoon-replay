@@ -1,0 +1,1 @@
+{"schema":"typhoon-replay/places-search@1","columns":["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"],"shards":["v1/places/ph-catanduanes.json"],"rows":[["PH-0502011000","municipality","Virac",null,"Bicol Region",null,"Catanduanes",124.2306,13.58,0,2]]}

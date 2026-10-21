@@ -4,7 +4,7 @@ export { CATALOG_SORTS, decades, DEFAULT_SORT, filterStorms, seasons, sortStorms
 export { DataError, framesUrl, loadManifest, ogImageUrl, resolveDataset, type ResolvedDataset } from "./dataset";
 export { FrameStore, type FrameStoreSnapshot } from "./frames/store";
 export { decoder, frameBounds, maxNear, UV_SCALE, type TyfHeader, type TyfVar } from "./frames/tyf";
-export { useDataset, useFrameStore, useManifest, usePlaceIndex, usePlaceShard, useStormDetail, useStormIndex, useStormTrack } from "./hooks";
-export { searchPlaces, type PreparedPlace } from "./place-search";
+export { useDataset, useFrameStore, useManifest, usePlaceIndex, usePlaceSearch, usePlaceShard, useStormDetail, useStormIndex, useStormTrack } from "./hooks";
+export { queryShardKey, searchPlaces, type PreparedPlace, type SliceManifest } from "./place-search";
 export { EXPOSURE_RADII, exposureWithin, type ExposureRadiusKm, type PlaceEntry, type PlaceExposure, type PlaceShard } from "./places";
 export { bestWind, hourAt, interpolateHourly } from "./track";

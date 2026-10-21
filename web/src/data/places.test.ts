@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResolvedDataset } from "./dataset";
-import { boundedDistance, preparePlaces, searchPlaces } from "./place-search";
-import { datasetUrl, exposureWithin, loadPlaceIndex, loadPlaceShard, parseShard } from "./places";
+import { boundedDistance, foldLatin, preparePlaces, queryShardKey, searchPlaces } from "./place-search";
+import { datasetUrl, exposureWithin, loadPlaceIndex, loadPlaceShard, loadPlaceSlice, loadSliceManifest, parseShard } from "./places";
 
 // The bundled fixture's place files, by path relative to web/fixtures/.
 const FILES = Object.fromEntries(
-  Object.entries(import.meta.glob("../../fixtures/v1/places/*.json", { eager: true, query: "?raw", import: "default" })).map(([k, v]) => [k.replace("../../fixtures/", ""), v as string]),
+  Object.entries(import.meta.glob("../../fixtures/v1/places/**/*.json", { eager: true, query: "?raw", import: "default" })).map(([k, v]) => [k.replace("../../fixtures/", ""), v as string]),
 );
 const ds: ResolvedDataset = { root: "/fixtures/v1/", baseUrl: "/fixtures/", version: 1, source: "fallback" };
 
@@ -102,5 +102,38 @@ describe("static place index", () => {
   it("bounded edit distance gives up early", () => {
     expect(boundedDistance("tacloban", "tacloben", 1)).toBe(1);
     expect(boundedDistance("naha", "osaka", 1)).toBe(2);
+  });
+
+  it("folds queries like the pipeline and picks the slice by the first letter(s) or Japanese character", () => {
+    expect(foldLatin("  City of SAN JOSÉ-del Monte ")).toBe("city of san jose del monte");
+    const m = { keys: ["p", "ma", "mo", "ja-17"], split: ["m"], jaBuckets: 32 };
+    expect(queryShardKey("Parañaque", m)).toBe("p");
+    expect(queryShardKey("MAKATI", m)).toBe("ma");
+    expect(queryShardKey("m a", m)).toBeUndefined(); // a one-letter word on a split letter: the full index
+    expect(queryShardKey("xyz", m)).toBeUndefined();
+    // 覇 is U+8987: 35207 % 32 = 7; ナ/な both land on な (U+306A = 12394, % 32 = 10).
+    expect(queryShardKey("覇", { ...m, keys: ["ja-07"] })).toBe("ja-07");
+    expect(queryShardKey("ナハ", { ...m, keys: ["ja-10"] })).toBe("ja-10");
+  });
+
+  it("answers a search from one small slice, with the same results as the full index", async () => {
+    const { f, seen } = fixtureHost();
+    const m = await loadSliceManifest(ds, f);
+    expect(m?.keys).toContain("t");
+    const full = preparePlaces(await loadPlaceIndex(ds, f));
+    for (const q of ["tacloban", "taclobn", "manila", "naha", "那覇", "leyte", "kagosima"]) {
+      const key = queryShardKey(q, m!);
+      expect(key, q).toBeDefined();
+      const slice = preparePlaces(await loadPlaceSlice(ds, key!, f));
+      expect(searchPlaces(slice, q).map((p) => p.id), q).toEqual(searchPlaces(full, q).map((p) => p.id));
+      expect(slice.find((e) => e.place.id === searchPlaces(full, q)[0]!.id)?.place.shard).toMatch(/^\/fixtures\/v1\/places\/(ph|jp)-/);
+    }
+    expect(seen).toContain("/fixtures/v1/places/search/t.json");
+  });
+
+  it("has no slices on older datasets (the caller reads the full index)", async () => {
+    const { f } = fixtureHost([/search\//]);
+    expect(await loadSliceManifest(ds, f)).toBeNull();
+    await expect(loadPlaceSlice(ds, "t", f)).rejects.toThrow();
   });
 });

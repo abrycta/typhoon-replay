@@ -1,0 +1,1 @@
+{"schema":"typhoon-replay/places-search@1","columns":["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"],"shards":["v1/places/jp-47-okinawa.json"],"rows":[["JP-47201","city","Naha","那覇市","Okinawa","沖縄県",null,127.6809,26.2124,0,0],["JP-47207","city","Ishigaki","石垣市","Okinawa","沖縄県",null,124.1557,24.3448,0,0]]}

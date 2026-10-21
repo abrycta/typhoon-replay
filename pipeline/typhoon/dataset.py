@@ -15,6 +15,7 @@ Layout (relative to the dataset root; every path is immutable once published):
     v<N>/storms/<sid>/<sid>.s<k>.<var>.webp   the same frames as lossless WebP sprite sheets
     v<N>/places/index.json              shards with bbox and place count
     v<N>/places/search.json             compact search index for "My town" (one row per place)
+    v<N>/places/search/<key>.json       slices of search.json by first letter(s) / Japanese character, + manifest.json
     places/<shard>/<hash>.json          places of one PH province / JP prefecture + their storm exposure (shared)
     places/<shard>/<hash>.geojson       display geometry (<= 1,500 vertices per place) (shared)
     v<N>/tables/*.parquet               contract-shaped tables (typhoon.tables; loaded by typhoon.dbload)
@@ -43,7 +44,7 @@ import numpy as np
 import pandas as pd
 import shapely
 
-from . import catalog, exposure, og, sources, stats, tables
+from . import catalog, exposure, og, place_search, sources, stats, tables
 from . import places as places_mod
 from .config import BUILD, ERA5_HONESTY, HF_REPO, PROCESSED, ensure_dir
 from .frames import ENC, MAX_FILE_BYTES, parse_tyf, unsheet, var_meta
@@ -589,10 +590,17 @@ def write_places(vdir: Path, base_v: str, pl: pd.DataFrame, ex: pd.DataFrame, st
                                   "relative to the dataset root.", "shards": shards,
         "search": f"{base_v}places/search.json"}))
     # The search box needs names and centroids only; without this file the app fetches every shard (~9 MB).
-    (pdir / "search.json").write_bytes(dumps({
+    search = {
         "schema": "typhoon-replay/places-search@1", "columns": ["id", "kind", "name", "nameJa", "admin1", "admin1Ja", "admin2", "lon", "lat",
                                       "shard", "storms100"],
-        "shards": [x["path"] for x in shards], "rows": search_rows}))
+        "shards": [x["path"] for x in shards], "rows": search_rows}
+    (pdir / "search.json").write_bytes(dumps(search))
+    # The first search reads one small slice (by the query's first letters) instead of the whole list.
+    manifest, slices = place_search.build(clean(search))
+    sdir = ensure_dir(pdir / "search")
+    for key, doc in slices.items():
+        (sdir / f"{key}.json").write_bytes(dumps(doc))
+    (sdir / "manifest.json").write_bytes(dumps(manifest))
 
 
 def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[str, Any],

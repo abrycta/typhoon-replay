@@ -1,0 +1,1 @@
+{"schema":"typhoon-replay/places-search@1","columns":["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"],"shards":["v1/places/jp-46-kagoshima.json"],"rows":[["JP-46201","city","Kagoshima","鹿児島市","Kagoshima","鹿児島県",null,130.5571,31.5966,0,1]]}

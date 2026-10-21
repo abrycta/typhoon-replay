@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
-import { EXPOSURE_RADII, type ExposureRadiusKm, exposureWithin, type PlaceEntry, searchPlaces, usePlaceIndex, usePlaceShard, useStormIndex } from "@/data";
+import { EXPOSURE_RADII, type ExposureRadiusKm, exposureWithin, type PlaceEntry, usePlaceSearch, usePlaceShard, useStormIndex } from "@/data";
 import { formatDate } from "@/shared/lib/time";
 import type { StormSummary } from "@/shared/model/types";
 import { useStormName } from "@/shared/ui/use-storm-name";
@@ -45,9 +45,8 @@ export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<T
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
-  const index = usePlaceIndex();
-  const results = useMemo(() => (index.data && q.length >= 2 ? searchPlaces(index.data, q, 10) : []), [index.data, q]);
-  const selected = useMemo(() => index.data?.find((e) => e.place.id === url.place)?.place, [index.data, url.place]);
+  const index = usePlaceSearch(q, url.place);
+  const { results, selected } = index;
   const shard = usePlaceShard(selected?.shard);
   const storms = useStormIndex();
   const bySid = useMemo(() => new Map((storms.data ?? []).map((s) => [s.sid, s])), [storms.data]);

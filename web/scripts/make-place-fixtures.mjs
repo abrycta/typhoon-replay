@@ -152,3 +152,5 @@ write("search.json", {
   rows: search.sort((a, b) => a[0].localeCompare(b[0])),
 });
 console.log(`places: ${PLACES.length} places in ${shards.length} shards, ${shards.reduce((n, s) => n + s.hits, 0)} exposure rows -> ${OUT}`);
+// The search slices (places/search/*.json) come from the pipeline's own code, so the two never drift:
+console.log("then: uv run --project ../pipeline python -m typhoon.place_search fixtures/v1/places");

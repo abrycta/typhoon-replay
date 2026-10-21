@@ -95,8 +95,13 @@ test("storm load error offers retry, the catalogue and home", async ({ page }) =
 
 test("every API blocked: the town page still works and has the header nav", async ({ page }) => {
   await page.route("**/api/**", (r) => r.abort());
+  const places: string[] = [];
+  page.on("request", (r) => void (/\/places\//.test(r.url()) && places.push(new URL(r.url()).pathname)));
   await page.goto("/town?q=tacloban&place=PH-0831600000");
   await expect(page.getByTestId("town-hits")).toContainText("Haiyan (Yolanda) 2013");
+  // The search reads one slice of the place index (by its first letter), never the whole list.
+  expect(places).toContain("/fixtures/v1/places/search/t.json");
+  expect(places).not.toContain("/fixtures/v1/places/search.json");
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
 });

@@ -1,0 +1,1 @@
+{"schema":"typhoon-replay/places-search@1","columns":["id","kind","name","nameJa","admin1","admin1Ja","admin2","lon","lat","shard","storms100"],"shards":["v1/places/ph-eastern-samar.json"],"rows":[["PH-0802616000","municipality","Guiuan",null,"Eastern Visayas",null,"Eastern Samar",125.7247,11.0333,0,2]]}
