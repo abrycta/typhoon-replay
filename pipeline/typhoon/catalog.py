@@ -31,6 +31,10 @@ from .track import AGENCY_COLUMNS, PREFERRED, hourly, hourly_frame, is_observed,
 log = logging.getLogger("typhoon.catalog")
 OUT = PROCESSED / "catalog"
 MAX_LANDFALLS = 20
+KM_PER_DEG = 111.32
+# A landfall is land reached after at least this much open water along the track (km). Shorter gaps are
+# boundary slivers, river mouths and islets of one coast; longer ones are a new island or coast.
+MIN_SEA_KM = 10.0
 NATURE = {"DS": "disturbance", "TS": "tropical", "ET": "extratropical", "SS": "subtropical",
           "NR": "not-reported", "MX": "mixed"}
 
@@ -76,7 +80,11 @@ class Land:
         return out
 
     def entries(self, lon: np.ndarray, lat: np.ndarray, t: np.ndarray) -> list[dict[str, Any]]:
-        """Sea-to-land crossings along an hourly track (including islands crossed within an hour)."""
+        """Sea-to-land crossings along an hourly track, including every island crossed within one hour.
+
+        Land is followed along the whole track, not hour by hour: a crossing counts when at least
+        MIN_SEA_KM of water lies between it and the last land, wherever the hourly points fall.
+        """
         x = lon180(np.asarray(lon, float))
         land = self.on_land(lon, lat)
         segs = shapely.linestrings(np.stack([np.stack([x[:-1], x[1:]], 1), np.stack([lat[:-1], lat[1:]], 1)], 2))
@@ -86,29 +94,30 @@ class Land:
         for s, g in zip(i_seg, i_g, strict=True):
             if not far[s]:
                 hits.setdefault(int(s), []).append(int(g))
-        out = []
+        # Land along the track as [from, to] km from its start, one span per polygon piece crossed.
+        km = np.hypot((x[1:] - x[:-1]) * np.cos(np.radians((lat[1:] + lat[:-1]) / 2)), lat[1:] - lat[:-1]) * KM_PER_DEG
+        at_km = np.concatenate([[0.0], np.cumsum(km)])
+        spans: list[tuple[float, float, int, int, float]] = []   # from_km, to_km, place, segment, fraction
         for s in sorted(hits):
-            if land[s] >= 0:          # segment starts on land: still over land (or lake/bay), not an entry
-                continue
-            start = shapely.points(x[s], lat[s])
-            best: tuple[float, int, shapely.Point] | None = None
+            seg_len = float(shapely.length(segs[s]))
             for g in hits[s]:
-                inter = shapely.intersection(segs[s], self.geoms[g])
-                if inter.is_empty:
-                    continue
-                d = float(shapely.distance(start, inter))
-                if best is None or d < best[0]:
-                    p = shapely.get_coordinates(inter)
-                    k = int(np.argmin(np.hypot(p[:, 0] - x[s], p[:, 1] - lat[s])))
-                    best = (d, g, shapely.points(p[k, 0], p[k, 1]))
-            if best is None:
-                continue
-            seg_len = float(shapely.length(segs[s])) or 1.0
-            frac = min(max(best[0] / seg_len, 0.0), 1.0)
-            at = t[s] + (t[s + 1] - t[s]) * frac
-            out.append({"at": pd.Timestamp(at).tz_localize("UTC").floor("min"), "country": str(self.country[best[1]]),
-                        "lon": round(float(best[2].x), 4), "lat": round(float(best[2].y), 4),
-                        "place_id": str(self.ids[best[1]])})
+                for part in shapely.get_parts(shapely.intersection(segs[s], self.geoms[g])):
+                    if part.is_empty:
+                        continue
+                    d = shapely.line_locate_point(segs[s], shapely.points(shapely.get_coordinates(part)))
+                    f0, f1 = (float(d.min()) / seg_len, float(d.max()) / seg_len) if seg_len else (0.0, 0.0)
+                    spans.append((at_km[s] + f0 * km[s], at_km[s] + f1 * km[s], g, s, f0))
+        spans.sort()
+        out = []
+        reach = 0.0 if land[0] >= 0 else -np.inf     # a track that starts on land has not made landfall yet
+        for k0, k1, g, s, f in spans:
+            if k0 > reach + MIN_SEA_KM:     # open water since the last land: a new landfall
+                at = t[s] + (t[s + 1] - t[s]) * f
+                xy = shapely.line_interpolate_point(segs[s], f, normalized=True)
+                out.append({"at": pd.Timestamp(at).tz_localize("UTC").floor("min"), "country": str(self.country[g]),
+                            "lon": round(float(xy.x), 4), "lat": round(float(xy.y), 4),
+                            "place_id": str(self.ids[g])})
+            reach = max(reach, k1)
         return out
 
 
