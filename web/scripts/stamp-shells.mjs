@@ -85,7 +85,8 @@ function headTags({ title, text, url, image }) {
 function stamp(template, tags, noscript) {
   let html = template.replace(/<title>[\s\S]*?<\/title>/, "").replace(/<meta name="description"[^>]*>\s*/, "");
   html = html.replace("</head>", `  ${tags}\n  </head>`);
-  if (noscript) html = html.replace(/<div id="root">(?:<div class="glyph-seal"[^>]*>[^<]*<\/div>)?<\/div>/, (m) => `${m}\n    <noscript><p>${esc(noscript)}</p></noscript>`);
+  // After #root: its end is marked by scripts/prerender-shell.mjs (the static shell inside it), else the empty div.
+  if (noscript) html = html.replace(/<!--\/root-->|<div id="root"><\/div>/, (m) => `${m}\n    <noscript><p>${esc(noscript)}</p></noscript>`);
   return html;
 }
 

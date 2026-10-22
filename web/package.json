@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/stamp-shells.mjs",
+    "build": "vite build && node scripts/prerender-shell.mjs && node scripts/stamp-shells.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
