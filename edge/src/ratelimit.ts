@@ -1,6 +1,9 @@
-// Per-IP rate limiting. Pages Functions can't declare the Workers Rate Limiting binding, so the default is an
-// in-memory token bucket per isolate: best-effort (each isolate and each data centre counts separately, and
-// isolates are recycled), but enough to stop a single client looping on the API and draining Render egress.
+// Per-IP rate limiting, in two layers:
+// 1. An in-memory token bucket per isolate (burst 60, 120/min): stops a single client looping on the API. It is
+//    best-effort: each isolate and each data centre counts separately, and isolates are recycled.
+// 2. When bound, the RATE_LIMITER service (the replay-ratelimit Worker, edge/limiter/), which holds the free Workers
+//    Rate Limiting binding that Pages Functions can't declare: one count per IP and Cloudflare location across all
+//    isolates (240/min), so a client can't spread a flood over isolates. If it errors, the bucket alone decides.
 
 import type { Env, Settings } from "./env";
 
@@ -30,15 +33,14 @@ export function takeToken(key: string, perMinute: number, burst: number, now = D
 }
 
 export async function checkRate(env: Env, settings: Settings, ip: string): Promise<RateDecision> {
-  if (env.RATE_LIMITER) {
-    try {
-      const { success } = await env.RATE_LIMITER.limit({ key: ip });
-      return success ? { ok: true } : { ok: false, retryAfterS: 60 };
-    } catch {
-      /* fall back to the local bucket */
-    }
+  const local = takeToken(ip, settings.ratePerMinute, settings.rateBurst);
+  if (!local.ok || !env.RATE_LIMITER) return local;
+  try {
+    const res = await env.RATE_LIMITER.fetch(`https://replay-ratelimit/limit?key=${encodeURIComponent(ip)}`);
+    return res.status === 429 ? { ok: false, retryAfterS: 60 } : local;
+  } catch {
+    return local; // the global limiter is an extra layer; never fail closed on it
   }
-  return takeToken(ip, settings.ratePerMinute, settings.rateBurst);
 }
 
 /** Test helper. */

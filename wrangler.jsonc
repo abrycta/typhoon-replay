@@ -24,9 +24,12 @@
     "RATE_LIMIT_PER_MINUTE": "120",
     "RATE_LIMIT_BURST": "60"
   },
-  // Service bindings to the backends that run as Workers (edge/src/proxy.ts upstreamFetch; DECISIONS "Edge routing").
+  // Service bindings to the backends that run as Workers (edge/src/proxy.ts upstreamFetch; DECISIONS "Edge routing"),
+  // and to replay-ratelimit (edge/limiter/), the global per-IP limit that Pages can't declare itself. Deploy a Worker
+  // before adding its binding.
   "services": [
     { "binding": "API_NODE", "service": "replay-api-node" },
-    { "binding": "API_RUST", "service": "replay-api-rust" }
+    { "binding": "API_RUST", "service": "replay-api-rust" },
+    { "binding": "RATE_LIMITER", "service": "replay-ratelimit" }
   ]
 }

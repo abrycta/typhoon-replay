@@ -1,0 +1,17 @@
+// replay-ratelimit: a tiny Worker that holds the free Workers Rate Limiting binding for the Pages edge proxy.
+// Pages Functions can't declare `ratelimits` themselves, so wrangler.jsonc (repo root) binds this Worker as the
+// service RATE_LIMITER and calls its `limit({ key })` method over RPC (edge/src/ratelimit.ts checkRate).
+// It has no public URL (workers_dev false, no routes): only the service binding can reach it.
+// Deploy before the Pages project that binds it: `npx wrangler deploy -c edge/limiter/wrangler.jsonc`.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "replay-ratelimit",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  // Per client IP, per Cloudflare location: 240 requests per 60 s across every isolate (namespace ids: 1002 node,
+  // 1003 rust, 1004 edge). The proxy's own per-isolate bucket (60 burst, 120/min) still applies first, so normal use
+  // never comes near this; it stops one client spreading a flood over many isolates.
+  "ratelimits": [{ "name": "LIMITER", "namespace_id": "1004", "simple": { "limit": 240, "period": 60 } }]
+}

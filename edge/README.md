@@ -9,7 +9,8 @@ The same-origin proxy from `docs/architecture/DECISIONS.md` (System A): a Cloudf
 | `edge/src/proxy.ts` | Routing, rewrite, cold-start handling, SSE, static mode, body cap. |
 | `edge/src/cache.ts` | Edge cache on `caches.default` (freshness, SWR, stale-if-error, 304s). |
 | `edge/src/http.ts` | Header hygiene, request ids, RFC 9457 problems. |
-| `edge/src/ratelimit.ts` | Per-IP token bucket (or a rate limiting binding, if one is ever bound). |
+| `edge/src/ratelimit.ts` | Per-IP token bucket, plus the global `RATE_LIMITER` service when bound. |
+| `edge/limiter/` | replay-ratelimit: the Worker that holds the Workers Rate Limiting binding for the proxy. |
 | `edge/src/env.ts` | Settings from the environment. |
 | `web/public/_routes.json` | `include: ["/api/*"]`: static assets never invoke a Function. Vite copies it into `web/dist`. |
 
@@ -171,15 +172,21 @@ millisecond of CPU to set up and nothing per frame. It can stay open as long as 
 
 ## Rate limiting
 
-- Pages Functions can't declare the Workers Rate Limiting binding. The Pages bindings list (KV, Durable Objects, R2,
-  D1, Vectorize, AI, services, queues, Hyperdrive, Analytics Engine, vars, secrets) doesn't include it.
-- The proxy therefore uses an **in-memory token bucket per isolate**, keyed by `CF-Connecting-IP`. The defaults are
-  `RATE_LIMIT_BURST` = 60 and `RATE_LIMIT_PER_MINUTE` = 120.
-- The bucket is **best-effort**: each isolate and each PoP counts separately, and isolates are recycled. It stops a
-  single client looping on the API; it does not stop a distributed one.
-- Over the limit, the proxy answers 429 `rate-limited` with `Retry-After`.
-- If a `RATE_LIMITER` binding ever becomes available (for example through a service binding to a small Worker), it
-  takes over automatically.
+Two layers, both keyed by `CF-Connecting-IP`:
+
+1. **In-memory token bucket per isolate** (`RATE_LIMIT_BURST` = 60, `RATE_LIMIT_PER_MINUTE` = 120). Best-effort: each
+   isolate and each PoP counts separately, and isolates are recycled. It stops a single client looping on the API.
+2. **`RATE_LIMITER`, the replay-ratelimit Worker** (`edge/limiter/`), bound as a service in `wrangler.jsonc`. Pages
+   Functions can't declare the Workers Rate Limiting binding themselves (the Pages bindings list doesn't include it),
+   so this tiny Worker holds it (240 requests per 60 s per IP) and the proxy asks it with
+   `GET /limit?key=<ip>` (204 allowed, 429 over). It counts across isolates within a Cloudflare location, so a client
+   can't spread a flood over isolates. Cloudflare documents the binding as approximate and eventually consistent
+   (each check uses a locally cached count), so it bites on sustained floods, not on short bursts; the bucket covers
+   those. If the limiter errors, the bucket alone decides (fail open).
+
+- Over either limit, the proxy answers 429 `rate-limited` with `Retry-After` (60 s from the global limiter).
+- The limiter has no public URL (`workers_dev` false, no routes). Deploy it before any Pages deploy that binds it:
+  `npx wrangler deploy -c edge/limiter/wrangler.jsonc`.
 
 ## Static mode (manual emergency switch)
 
@@ -209,7 +216,7 @@ Defaults are committed in `wrangler.jsonc` under `vars`:
 | `STALE_IF_ERROR_S` | `604800` | edge stale-if-error window when the origin sends none |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_BURST` | `120` / `60` | per-IP token bucket |
 
-Optional bindings: `EDGE_FLAGS` (KV, static-mode flag) and `RATE_LIMITER`. Optional secret: `EDGE_SECRET`
+Optional bindings: `EDGE_FLAGS` (KV, static-mode flag) and `RATE_LIMITER` (service: replay-ratelimit). Optional secret: `EDGE_SECRET`
 (`wrangler pages secret put EDGE_SECRET --project-name typhoon-replay`), the same value as each backend's `TR_EDGE_SECRET`.
 
 ## Tests

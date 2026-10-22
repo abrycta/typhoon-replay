@@ -5,11 +5,6 @@
 export const KNOWN_IMPLS = ["java", "node", "rust", "go"] as const;
 export type Impl = (typeof KNOWN_IMPLS)[number];
 
-/** Optional Workers Rate Limiting binding (not available to Pages Functions today; see edge/README.md). */
-export interface RateLimitBinding {
-  limit(options: { key: string }): Promise<{ success: boolean }>;
-}
-
 export interface Env {
   /** JSON map impl → origin, e.g. `{"java":"https://typhoon-replay-java.onrender.com"}`. A string or an object (wrangler vars allow both). */
   BACKEND_ORIGINS?: string | Record<string, unknown>;
@@ -24,8 +19,8 @@ export interface Env {
   /** Per-IP token bucket: sustained requests per minute (default 120) and burst size (default 60). */
   RATE_LIMIT_PER_MINUTE?: string | number;
   RATE_LIMIT_BURST?: string | number;
-  /** Optional rate limiting binding; when present it replaces the in-memory bucket. */
-  RATE_LIMITER?: RateLimitBinding;
+  /** Optional service binding to replay-ratelimit (edge/limiter/): a cross-isolate per-IP limit on top of the bucket. */
+  RATE_LIMITER?: Fetcher;
   /** Optional KV namespace with a `static_mode` key ("true"/"false"): flips static mode without a redeploy. */
   EDGE_FLAGS?: KVNamespace;
   /** Pages secret shared with the backends (`TR_EDGE_SECRET`), sent as `X-Edge-Secret` so they trust `X-Forwarded-For`. */

@@ -550,11 +550,21 @@ describe("rate limiting", () => {
     expect((await h.call("/api/java/healthz", { headers: { "CF-Connecting-IP": "192.0.2.1" } }, env)).res.status).toBe(200);
   });
 
-  it("uses a rate limiting binding when one is bound", async () => {
-    const limit = vi.fn(async () => ({ success: false }));
-    const { res } = await h.call("/api/java/healthz", {}, { RATE_LIMITER: { limit } });
+  it("also asks the global RATE_LIMITER service when one is bound", async () => {
+    const fetch = vi.fn(async (_url: string) => new Response(null, { status: 429 }));
+    const { res } = await h.call("/api/java/healthz", {}, { RATE_LIMITER: { fetch } as unknown as Fetcher });
     expect(res.status).toBe(429);
-    expect(limit).toHaveBeenCalledWith({ key: "203.0.113.7" });
+    expect(Number(res.headers.get("Retry-After"))).toBe(60);
+    expect(fetch).toHaveBeenCalledWith("https://replay-ratelimit/limit?key=203.0.113.7");
+  });
+
+  it("keeps the local bucket when the global limiter allows, and ignores a failing limiter", async () => {
+    const env = { RATE_LIMIT_BURST: "1", RATE_LIMIT_PER_MINUTE: "6", RATE_LIMITER: { fetch: vi.fn(async () => new Response(null, { status: 204 })) } as unknown as Fetcher };
+    expect((await h.call("/api/java/healthz", {}, env)).res.status).toBe(200);
+    expect((await h.call("/api/java/healthz", {}, env)).res.status).toBe(429);
+    const broken = { RATE_LIMITER: { fetch: vi.fn(async () => { throw new Error("down"); }) } as unknown as Fetcher };
+    const ip = { headers: { "CF-Connecting-IP": "192.0.2.9" } };
+    expect((await h.call("/api/java/healthz", ip, broken)).res.status).toBe(200);
   });
 });
 
