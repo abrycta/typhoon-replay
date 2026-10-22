@@ -9,6 +9,8 @@ const PORT = Number(process.env.E2E_PORT ?? 4317);
 export default defineConfig({
   testDir: "e2e",
   timeout: 45_000,
+  // CI: a hung test or browser fails the run with a message after 7 minutes (the suite takes about 3) instead of using up the job.
+  globalTimeout: process.env.CI ? 7 * 60_000 : 0,
   expect: { timeout: 10_000 },
   fullyParallel: true,
   workers: process.env.CI ? 2 : 2,
