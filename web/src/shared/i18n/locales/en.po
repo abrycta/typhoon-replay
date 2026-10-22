@@ -310,6 +310,14 @@ msgstr "All"
 msgid "All {0} storms"
 msgstr "All {0} storms"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "All four backends read the same Neon Postgres database with PostGIS, which also scales to zero when idle."
+msgstr "All four backends read the same Neon Postgres database with PostGIS, which also scales to zero when idle."
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception."
+msgstr "Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception."
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Answers are cached at Cloudflare, so repeat queries are instant"
 msgstr "Answers are cached at Cloudflare, so repeat queries are instant"
@@ -363,6 +371,7 @@ msgid "Back to all storms"
 msgstr "Back to all storms"
 
 #: src/features/under-the-hood/Explorer.tsx
+#: src/features/under-the-hood/HowItWorks.tsx
 msgid "Backend"
 msgstr "Backend"
 
@@ -382,7 +391,12 @@ msgstr "Before weather satellites (the 1960s), positions and winds come from shi
 msgid "Before weather satellites: positions from ships, land stations and aircraft"
 msgstr "Before weather satellites: positions from ships, land stations and aircraft"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Behind it sits a small API: a service that answers questions such as \"Which storms passed near Tacloban?\" We wrote down exactly how its answers must look in a single shared rulebook, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules."
+msgstr "Behind it sits a small API: a service that answers questions such as \"Which storms passed near Tacloban?\" We wrote down exactly how its answers must look in a single shared rulebook, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules."
+
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "Best track"
 
@@ -482,6 +496,10 @@ msgstr "Closest (km)"
 msgid "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
 msgstr "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Cloudflare Worker"
+msgstr "Cloudflare Worker"
+
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Cold start on free hosting"
 msgstr "Cold start on free hosting"
@@ -533,6 +551,10 @@ msgstr "Data sources"
 msgid "Data v{0}"
 msgstr "Data v{0}"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Database access"
+msgstr "Database access"
+
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "Dataset unavailable"
 msgstr "Dataset unavailable"
@@ -553,6 +575,10 @@ msgstr "Does each backend keep the contract?"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Duration"
 msgstr "Duration"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Each backend is pinned once built (exact dependency versions, lockfiles and toolchains) and receives only security fixes, so the race always compares the same code."
+msgstr "Each backend is pinned once built (exact dependency versions, lockfiles and toolchains) and receives only security fixes, so the race always compares the same code."
 
 #: src/features/compare/AboutComparison.tsx
 msgid "each storm's official best track (IBTrACS), with dots at the observed fixes and the hours between interpolated."
@@ -661,9 +687,13 @@ msgstr "error"
 msgid "Error"
 msgstr "Error"
 
-#: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree."
-msgstr "Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree."
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike: it caches public answers, serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
+msgstr "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike: it caches public answers, serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Everything runs on free plans. A daily check reads hosting hours, bandwidth, requests and database usage and opens an issue when a meter passes 70 %."
+msgstr "Everything runs on free plans. A daily check reads hosting hours, bandwidth, requests and database usage and opens an issue when a meter passes 70 %."
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
@@ -736,6 +766,10 @@ msgstr "frames {progress}%"
 msgid "Free tier: servers sleep when idle and wake on demand"
 msgstr "Free tier: servers sleep when idle and wake on demand"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Free tiers only"
+msgstr "Free tiers only"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "From {firstLabel}. No other backend has answered yet."
 msgstr "From {firstLabel}. No other backend has answered yet."
@@ -752,6 +786,10 @@ msgstr "From the CI run on main, {0}."
 #: src/features/replay/IntensityPanel.tsx
 msgid "From the lossless 3-hourly grid (0.5°)."
 msgstr "From the lossless 3-hourly grid (0.5°)."
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Frozen code"
+msgstr "Frozen code"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "Gaps for this pair"
@@ -802,6 +840,7 @@ msgstr "home"
 msgid "Home"
 msgstr "Home"
 
+#: src/features/under-the-hood/HowItWorks.tsx
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Hosting"
 msgstr "Hosting"
@@ -834,6 +873,7 @@ msgstr "Hour-by-hour track, best-track intensity and ERA5 field wind. Choose a t
 msgid "Hours within 100 km"
 msgstr "Hours within 100 km"
 
+#: src/features/under-the-hood/HowItWorks.tsx
 #: src/routes/about.tsx
 msgid "How it works"
 msgstr "How it works"
@@ -903,6 +943,10 @@ msgstr "Japan {dates}"
 #: src/features/compare/SuggestedPairs.tsx
 msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 msgstr "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "JDBC to Neon, pooled connection"
+msgstr "JDBC to Neon, pooled connection"
 
 #: src/features/replay/labels.ts
 msgid "JMA (10-min mean)"
@@ -1131,6 +1175,10 @@ msgstr "Name, A–Z (unnamed last)"
 msgid "Name, PAGASA name, 台風第…号, year or ID"
 msgstr "Name, PAGASA name, 台風第…号, year or ID"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Neon serverless SQL over HTTP"
+msgstr "Neon serverless SQL over HTTP"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
 msgstr "Newest first"
@@ -1324,6 +1372,22 @@ msgstr "One API, four languages"
 msgid "One conformance suite runs against every backend"
 msgstr "One conformance suite runs against every backend"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One contract"
+msgstr "One contract"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One contract, four builds, one edge"
+msgstr "One contract, four builds, one edge"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One database"
+msgstr "One database"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One language-neutral test suite runs against every backend in CI: scenario tests plus cases generated from the contract with Schemathesis. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
+msgstr "One language-neutral test suite runs against every backend in CI: scenario tests plus cases generated from the contract with Schemathesis. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
+
 #: src/features/under-the-hood/Race.tsx
 msgid "Only answer so far"
 msgstr "Only answer so far"
@@ -1434,6 +1498,10 @@ msgstr "play/pause"
 msgid "Playback speed"
 msgstr "Playback speed"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Press \"Run on all four\" to send the same question to every version and compare the answers. They should match. Some versions run on free hosting that sleeps when nobody is using it, so the first answer can be slow while a server wakes up. The page waits for it on its own."
+msgstr "Press \"Run on all four\" to send the same question to every version and compare the answers. They should match. Some versions run on free hosting that sleeps when nobody is using it, so the first answer can be slow while a server wakes up. The page waits for it on its own."
+
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Press Send to see the response."
 msgstr "Press Send to see the response."
@@ -1443,6 +1511,7 @@ msgstr "Press Send to see the response."
 msgid "Pressure"
 msgstr "Pressure"
 
+#: src/features/under-the-hood/HowItWorks.tsx
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Proof"
 msgstr "Proof"
@@ -1486,6 +1555,14 @@ msgstr "Recent storms"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Region"
 msgstr "Region"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Render free plan; sleeps after 15 minutes idle"
+msgstr "Render free plan; sleeps after 15 minutes idle"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. Node and Rust run as Cloudflare Workers. Go was tried on Workers first, but it used more CPU per request than the free plan allows."
+msgstr "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. Node and Rust run as Cloudflare Workers. Go was tried on Workers first, but it used more CPU per request than the free plan allows."
 
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
@@ -1629,6 +1706,14 @@ msgstr "south-west"
 msgid "Speed"
 msgstr "Speed"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Stack"
+msgstr "Stack"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Static first"
+msgstr "Static first"
+
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Storm"
 msgstr "Storm"
@@ -1697,6 +1782,10 @@ msgstr "Tacloban, Naha, 那覇…"
 msgid "Tech"
 msgstr "Tech"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
+msgstr "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
+
 #. placeholder {0}: res.retryAfterS ?? 20
 #: src/features/under-the-hood/Explorer.tsx
 msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
@@ -1713,6 +1802,10 @@ msgstr "The cards and the timeline use JTWC when it reported, else JMA. 1 kt = 0
 #: src/features/compare/AboutComparison.tsx
 msgid "The colours:"
 msgstr "The colours:"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "The edge"
+msgstr "The edge"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "The line:"
@@ -1871,6 +1964,10 @@ msgstr "Unnamed storm · {month}"
 msgid "Value"
 msgstr "Value"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Visitor pages read prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep. Only this page calls the API."
+msgstr "Visitor pages read prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep. Only this page calls the API."
+
 #: src/features/under-the-hood/Race.tsx
 msgid "waking up"
 msgstr "waking up"
@@ -1898,6 +1995,10 @@ msgstr "Where the data comes from, what it can and cannot tell you, and the lice
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
 msgstr "Why is the field weaker than the storm?"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Why two hosts"
+msgstr "Why two hosts"
 
 #: src/features/replay/labels.ts
 msgid "Wind"
