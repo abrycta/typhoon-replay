@@ -56,7 +56,7 @@ export interface ReplayMapProps {
   /** MapLibre pixelRatio (the embed is shown scaled down); default devicePixelRatio. */
   pixelRatio?: number;
   /** Called once, on the first idle map after the basemap, the track and (when one is expected) the current field
-   * frame are drawn (the embed posts its ready signal then). */
+   * frame are drawn: the parent lifts its glyph still then. */
   onRendered?: () => void;
   /** A field frame is on its way (the storm has frames and none failed): wait for it before `onRendered`. */
   awaitField?: boolean;

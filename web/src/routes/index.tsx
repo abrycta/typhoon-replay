@@ -6,6 +6,7 @@ import { useState } from "react";
 import { decades, sortStorms, useStormDetail, useStormIndex } from "@/data";
 import { StormReplay } from "@/features/replay";
 import { StormList } from "@/features/storm-search";
+import { MapGlyph } from "@/shared/ui/map-glyph";
 import { useStormName } from "@/shared/ui/use-storm-name";
 import { useDocumentTitle } from "@/shared/ui/use-title";
 
@@ -17,7 +18,7 @@ function Featured() {
   const { t } = useLingui();
   const stormName = useStormName();
   const d = useStormDetail(FEATURED_SID);
-  if (!d.data || !d.dataset) return <Skeleton className="aspect-[4/3] w-full sm:aspect-[16/10]" />;
+  if (!d.data || !d.dataset) return <MapGlyph className="aspect-[4/3] w-full rounded-sm sm:aspect-[16/10]" />;
   return (
     <figure className="m-0 grid gap-2" aria-label={t`Featured replay`}>
       <StormReplay
