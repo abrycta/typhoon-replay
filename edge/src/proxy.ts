@@ -28,7 +28,7 @@ export const MAX_BODY_BYTES = 64 * 1024;
 const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 const SSE_PATH = "/v1/live/stream";
 const HEALTH_PATHS = new Set(["/healthz", "/readyz"]);
-/** Health probes answer quickly either way: the SPA aborts its own probe after 3 s (web/src/api/backends.ts). */
+/** Health probes answer quickly either way: a sleeping origin gets a "waking" answer after 2.5 s instead of a long hang. */
 const HEALTH_TIMEOUT_MS = 2500;
 /** Unsafe methods are never cut short with "waking" (the write may still happen); they wait this long at most. */
 const UNSAFE_TIMEOUT_MS = 100_000;
@@ -377,7 +377,22 @@ function decorate(response: Response, o: { label: EdgeCacheLabel; impl: string; 
   if (o.impl) headers.set("X-Edge-Route", o.impl);
   headers.set("X-Request-Id", o.requestId);
   headers.append("Server-Timing", `edge;dur=${Date.now() - o.t0}`);
+  const vary = headers.get("Vary");
+  if (vary) headers.set("Vary", dedupeTokens(vary));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+/**
+ * Render's front adds its own `Vary: Accept-Encoding` next to the one the backend already sends, so the Go origin
+ * answers `Vary: Accept-Encoding, Accept-Encoding`. Keep one of each token (case-insensitive, first spelling wins).
+ */
+export function dedupeTokens(value: string): string {
+  const seen = new Map<string, string>();
+  for (const raw of value.split(",")) {
+    const token = raw.trim();
+    if (token && !seen.has(token.toLowerCase())) seen.set(token.toLowerCase(), token);
+  }
+  return [...seen.values()].join(", ");
 }
 
 async function readCapped(request: Request): Promise<ArrayBuffer | undefined | "too-large"> {

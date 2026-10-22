@@ -8,7 +8,6 @@
       "status": "measured",
       "scenarios": { "passed": 99, "total": 99 },
       "generated": { "passed": 2150, "total": 2150 },
-      "p95StormsListMs": 2.8,
       "coldStartS": 100
     },
     "node": {

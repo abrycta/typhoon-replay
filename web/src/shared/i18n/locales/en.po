@@ -1503,10 +1503,6 @@ msgstr "Replay time"
 msgid "Response body"
 msgstr "Response body"
 
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Response time, storms list (p95, local)"
-msgstr "Response time, storms list (p95, local)"
-
 #: src/features/under-the-hood/Race.tsx
 msgid "Run again"
 msgstr "Run again"

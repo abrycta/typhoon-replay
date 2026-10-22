@@ -18,7 +18,6 @@ export function ConformanceTable({ labels }: { labels: Record<BackendId, string>
   const rows: { label: string; cell: (b: BackendConformance) => ReactNode }[] = [
     { label: t`Scenario tests (paging, caching, errors, live stream)`, cell: (b) => pass(b.scenarios) ?? next },
     { label: t`Generated API cases (Schemathesis)`, cell: (b) => pass(b.generated) ?? next },
-    { label: t`Response time, storms list (p95, local)`, cell: (b) => (b.p95StormsListMs !== undefined ? `${b.p95StormsListMs} ms` : none) },
     { label: t`Cold start on free hosting`, cell: (b) => (b.coldStartS !== undefined ? `≈ ${b.coldStartS} s` : none) },
   ];
   const pending = RACE_BACKENDS.filter((id) => CONFORMANCE.backends[id]?.status !== "measured").map((id) => labels[id]);
