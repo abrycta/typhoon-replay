@@ -165,6 +165,10 @@ msgid "{label} is paused until next month to stay within its free hosting hours.
 msgstr "{label} は無料ホスティングの利用時間内に収めるため、来月まで一時停止中です。"
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
+msgstr "{label} はアクセス制限中です（このアドレスからのリクエストが多すぎます）。{waitS} 秒後にもう一度お試しください。"
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 msgstr "{label} はスリープから起動中です（無料ホスティングで約 1 分）。このページが再試行を続けます。"
 
@@ -1464,6 +1468,10 @@ msgid "Rainfall rate"
 msgstr "降水強度"
 
 #: src/features/under-the-hood/Race.tsx
+msgid "rate limited"
+msgstr "アクセス制限中"
+
+#: src/features/under-the-hood/Race.tsx
 msgid "ready"
 msgstr "待機中"
 
@@ -1802,6 +1810,10 @@ msgstr "タイムライン"
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
 msgstr "タイムライン表"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Too many requests from this address. Try again in {waitS} s."
+msgstr "このアドレスからのリクエストが多すぎます。{waitS} 秒後にもう一度お試しください。"
 
 #: src/features/compare/DataCard.tsx
 msgid "Track"

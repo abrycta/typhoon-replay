@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { type ApiResult, type MatchState, matchStates, sendRequest, sendUntilAwake } from "@/api";
 import type { BackendId } from "@/shared/config/config";
 
-export type LaneStatus = "idle" | "running" | "waking" | "ok" | "not-deployed" | "paused" | "error";
+export type LaneStatus = "idle" | "running" | "waking" | "ok" | "not-deployed" | "paused" | "rate-limited" | "error";
 
 export interface LaneState {
   id: BackendId;
@@ -20,8 +20,10 @@ export interface LaneState {
   reason?: string;
   /** HTTP status of the final answer (0 for a network failure). */
   httpStatus?: number;
+  /** Retry-After of a rate-limited final answer, in seconds. */
+  retryAfterS?: number;
   /** Before any run: what the wake-up ping found (shown on the chip only; not an answer). */
-  hint?: "ok" | "waking" | "not-deployed" | "paused";
+  hint?: "ok" | "waking" | "not-deployed" | "paused" | "rate-limited";
   /** Order in which lanes answered (1 = first). */
   answeredRank?: number;
 }
@@ -100,6 +102,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
                 body: o.outcome === "ok" ? last.body : undefined,
                 reason: o.reason,
                 httpStatus: last.status,
+                retryAfterS: last.retryAfterS,
               },
             });
           })

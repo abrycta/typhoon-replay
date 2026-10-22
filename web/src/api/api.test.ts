@@ -123,4 +123,18 @@ describe("response classification", () => {
     const down = await sendRequest("/api/go", "/v1/meta", { fetchImpl: (async () => Promise.reject(new TypeError("offline"))) as typeof fetch });
     expect(down).toMatchObject({ kind: "error", status: 0, detail: "offline" });
   });
+
+  it("a 429 is rate limited, not a sleeping backend: no retry, no wake-up, Retry-After kept", async () => {
+    expect(classify(429, "application/problem+json", { type: "x", title: "Too many requests", status: 429, code: "rate-limited" }).kind).toBe("rate-limited");
+    expect(classify(429, "text/plain", undefined).kind).toBe("rate-limited");
+    const f = (async () =>
+      new Response(JSON.stringify({ type: "x", title: "Too many requests", status: 429, code: "rate-limited" }), {
+        status: 429,
+        headers: { "Content-Type": "application/problem+json", "Retry-After": "12" },
+      })) as typeof fetch;
+    let calls = 0;
+    const o = await sendUntilAwake(() => (calls++, sendRequest("/api/java", "/v1/meta", { fetchImpl: f })), { sleep: async () => {} });
+    expect(calls).toBe(1);
+    expect(o).toMatchObject({ outcome: "rate-limited", woke: false, last: { kind: "rate-limited", status: 429, retryAfterS: 12 } });
+  });
 });

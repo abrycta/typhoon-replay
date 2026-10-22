@@ -206,6 +206,21 @@ test("race: a contract error (404) is shown with its status and time, not retrie
   expect(calls).toBe(1);
 });
 
+test("race: a 429 is shown as rate limited with Retry-After, not as waking up, and not retried", async ({ page }) => {
+  let calls = 0;
+  await page.route(/\/api\/(java|node|rust|go)\//, (r) => {
+    if (r.request().url().includes("/healthz")) return json(r, { status: "ok" }, "java");
+    if (!r.request().url().includes("/api/java/")) return problemReply(r, "backend-not-deployed");
+    calls++;
+    return r.fulfill({ status: 429, contentType: PROBLEM, headers: { "Retry-After": "17" }, body: JSON.stringify(problem("rate-limited", 429)) });
+  });
+  await page.goto("/under-the-hood");
+  await page.getByTestId("race-run").click();
+  await expect(page.getByTestId("lane-java-state")).toHaveText("rate limited");
+  await expect(page.getByTestId("lane-java-note")).toHaveText("Java is rate limited: too many requests from this address. Try again in 17 s.");
+  expect(calls).toBe(1);
+});
+
 test("explorer: request line, status, edge headers and JSON", async ({ page }) => {
   await mockLanes(page);
   await page.goto("/under-the-hood");
