@@ -25,6 +25,7 @@ type Config struct {
 	TestHooks        bool        // TR_TEST_HOOKS
 	Limiter          web.Limiter // per-IP limit; nil when TR_RATE_LIMIT_PER_MINUTE=0
 	MaxStreams       int         // TR_MAX_STREAMS (at least 50)
+	MaxPerClient     int         // TR_MAX_STREAMS_PER_CLIENT; 0: no per-client cap
 	EdgeSecret       string      // TR_EDGE_SECRET
 	Commit           string      // TR_COMMIT
 	MinSchemaVersion string
@@ -52,7 +53,7 @@ func New(cfg Config) *Server {
 	s := &Server{
 		cfg: cfg, db: db, dbErr: err,
 		startedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
-		streams:   &streamCounter{max: max(50, cfg.MaxStreams)},
+		streams:   &streamCounter{max: max(50, cfg.MaxStreams), perClient: cfg.MaxPerClient},
 	}
 	s.wrapper = &api.ServerInterfaceWrapper{Handler: s, ErrorHandlerFunc: bindError}
 	return s
@@ -139,6 +140,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, c))
 	c.R = r
 
+	if !web.EdgeOnly(c, s.cfg.EdgeSecret) {
+		return
+	}
 	if p := web.RateLimit(c, s.cfg.Limiter, s.cfg.EdgeSecret); p != nil {
 		c.Fail(p)
 		return

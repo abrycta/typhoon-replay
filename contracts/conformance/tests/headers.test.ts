@@ -1,7 +1,7 @@
 // CONTRACT-GUIDE §4: headers every response MUST carry, on success, error and 304 alike.
 import { describe, expect, it } from 'vitest';
 import { CONTRACT_VERSION, responseErrors } from '../src/contract.ts';
-import { BASE_URL, IMPL, IS_MOCK } from '../src/env.ts';
+import { BASE_URL, EDGE_HEADERS, IMPL, IS_MOCK } from '../src/env.ts';
 import { get } from '../src/http.ts';
 import { HAIYAN, TACLOBAN } from '../src/fixtures.ts';
 
@@ -58,7 +58,7 @@ describe('required headers and contract shape [c1.0.0]', () => {
   });
 
   it.skipIf(IS_MOCK)('compresses responses over 1 KB when gzip is accepted', async () => {
-    const res = await fetch(`${BASE_URL}/v1/storms?limit=20`, { headers: { 'Accept-Encoding': 'gzip' } });
+    const res = await fetch(`${BASE_URL}/v1/storms?limit=20`, { headers: { 'Accept-Encoding': 'gzip', ...EDGE_HEADERS } });
     expect(res.headers.get('content-encoding')).toMatch(/gzip|br/);
   });
 

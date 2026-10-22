@@ -53,7 +53,8 @@ func snapshotJSON(row neon.Row) []byte {
 
 // Stream limits (CONTRACT-GUIDE §7). Each open stream polls live.revision (one HTTPS round trip to Neon) every 2 s,
 // well inside the 5 s delivery rule; with no stream open, nothing touches the database. A stream ends after 30 min
-// (the browser reconnects with Last-Event-ID and resumes), and at most maxStreams are open at once.
+// (the browser reconnects with Last-Event-ID and resumes), and at most maxStreams are open at once, at most perClient
+// of them from one client address (so one client cannot fill every slot).
 const (
 	pollEvery      = 2 * time.Second
 	heartbeatEvery = 15 * time.Second
@@ -62,24 +63,40 @@ const (
 )
 
 type streamCounter struct {
-	mu  sync.Mutex
-	n   int
-	max int
+	mu        sync.Mutex
+	n         int
+	max       int
+	perClient int // 0: no per-client cap
+	byClient  map[string]int
 }
 
-func (sc *streamCounter) acquire() bool {
+// acquire takes a slot for client: nil, or the problem to answer (stream-capacity, or rate-limited for a client that
+// already holds perClient streams).
+func (sc *streamCounter) acquire(client string) *web.Problem {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 	if sc.n >= sc.max {
-		return false
+		return &web.Problem{Type: web.StreamCapacity, Detail: "Too many live streams on this instance; retry shortly.",
+			Headers: map[string]string{"Retry-After": "10"}}
+	}
+	if sc.perClient > 0 && sc.byClient[client] >= sc.perClient {
+		return &web.Problem{Type: web.RateLimited, Detail: "Too many live streams from this address; close one first.",
+			Headers: map[string]string{"Retry-After": "10"}}
+	}
+	if sc.byClient == nil {
+		sc.byClient = map[string]int{}
 	}
 	sc.n++
-	return true
+	sc.byClient[client]++
+	return nil
 }
 
-func (sc *streamCounter) release() {
+func (sc *streamCounter) release(client string) {
 	sc.mu.Lock()
 	sc.n--
+	if sc.byClient[client]--; sc.byClient[client] <= 0 {
+		delete(sc.byClient, client)
+	}
 	sc.mu.Unlock()
 }
 
@@ -103,12 +120,12 @@ func (s *Server) StreamLiveEvents(w http.ResponseWriter, r *http.Request, p api.
 		}
 		last = &v
 	}
-	if !s.streams.acquire() {
-		c.Fail(&web.Problem{Type: web.StreamCapacity, Detail: "Too many live streams on this instance; retry shortly.",
-			Headers: map[string]string{"Retry-After": "10"}})
+	client := web.ClientIP(r, s.cfg.EdgeSecret)
+	if prob := s.streams.acquire(client); prob != nil {
+		c.Fail(prob)
 		return
 	}
-	defer s.streams.release()
+	defer s.streams.release(client)
 
 	// Snapshot or resume is decided before the stream opens, so a failing database gives a problem response.
 	var first strings.Builder

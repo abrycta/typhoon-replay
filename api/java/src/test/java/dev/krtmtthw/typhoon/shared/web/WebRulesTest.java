@@ -9,8 +9,11 @@ import java.util.Base64;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
+import dev.krtmtthw.typhoon.shared.TrProperties;
 import dev.krtmtthw.typhoon.shared.problem.ApiException;
 import dev.krtmtthw.typhoon.shared.problem.ProblemType;
 
@@ -100,6 +103,31 @@ class WebRulesTest {
         direct.addHeader("X-Edge-Secret", "guess");
         assertThat(RateLimitFilter.clientIp(direct, secret)).isEqualTo("10.0.0.9");
         assertThat(RateLimitFilter.clientIp(edge, null)).isEqualTo("10.0.0.9");
+    }
+
+    @Test
+    void edgeSecretGuardsOnlyV1AndOnlyWhenConfigured() throws Exception {
+        EdgeSecretFilter guarded = new EdgeSecretFilter(props("s3cret"));
+        assertThat(status(guarded, "/v1/meta", null)).isEqualTo(403);
+        assertThat(status(guarded, "/v1/meta", "guess")).isEqualTo(403);
+        assertThat(status(guarded, "/v1/meta", "s3cret")).isEqualTo(200);
+        assertThat(status(guarded, "/healthz", null)).isEqualTo(200);
+        assertThat(status(guarded, "/readyz", null)).isEqualTo(200);
+        assertThat(status(new EdgeSecretFilter(props("")), "/v1/meta", null)).isEqualTo(200);
+    }
+
+    private static TrProperties props(String edgeSecret) {
+        return new TrProperties("java", "https://replay.krtmtthw.dev", false, "0", "test", 600, 200, 6, edgeSecret);
+    }
+
+    private static int status(EdgeSecretFilter filter, String path, String secret) throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+        if (secret != null) {
+            request.addHeader("X-Edge-Secret", secret);
+        }
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, new MockFilterChain());
+        return response.getStatus();
     }
 
     @Test

@@ -12,12 +12,38 @@ export async function rateLimit(rq: Rq): Promise<Problem | undefined> {
   return new Problem('rate-limited', 'Too many requests from this address; retry later.', [], { 'Retry-After': '60' });
 }
 
+/** Whether the request carries the edge proxy's secret (X-Edge-Secret = TR_EDGE_SECRET). */
+export function fromEdge(rq: Rq): boolean {
+  const secret = rq.env.TR_EDGE_SECRET?.trim();
+  const sent = rq.request.headers.get('X-Edge-Secret')?.trim();
+  return !!secret && !!sent && sameSecret(sent, secret);
+}
+
+const FORBIDDEN = JSON.stringify({
+  type: 'about:blank',
+  title: 'Forbidden',
+  status: 403,
+  detail: "Requests must come through the site's edge proxy.",
+});
+
+/**
+ * When TR_EDGE_SECRET is set, /v1/* answers only requests that carry it (the edge proxy adds it; it reaches this
+ * Worker through a service binding). A direct call to the public workers.dev URL would skip the edge cache and query
+ * Neon, so it gets a small 403. /healthz and /readyz stay open; with no secret configured nothing is refused.
+ */
+export function edgeOnly(rq: Rq): Response | undefined {
+  if (!rq.env.TR_EDGE_SECRET?.trim() || !rq.path.startsWith('/v1/') || fromEdge(rq)) return;
+  rq.status = 403;
+  return new Response(FORBIDDEN, {
+    status: 403,
+    headers: { 'Content-Type': 'application/problem+json', 'Cache-Control': 'no-store' },
+  });
+}
+
 /** Behind the edge proxy (proved by X-Edge-Secret) the first X-Forwarded-For entry; otherwise CF-Connecting-IP. */
 export function clientIp(rq: Rq): string {
   const h = rq.request.headers;
-  const secret = rq.env.TR_EDGE_SECRET;
-  const sent = h.get('X-Edge-Secret')?.trim();
-  if (secret && sent && sameSecret(sent, secret)) {
+  if (fromEdge(rq)) {
     const first = (h.get('X-Forwarded-For') ?? '').split(',')[0]!.trim();
     if (first) return first;
   }

@@ -240,3 +240,5 @@ jobs:
     uses: ./.github/workflows/live.yml
     with:
       impl: go
+    secrets:
+      TR_EDGE_SECRET: ${{ secrets.TR_EDGE_SECRET }}

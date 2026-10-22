@@ -2,6 +2,8 @@ package dev.krtmtthw.typhoon.live.web;
 
 import java.util.regex.Pattern;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -13,8 +15,10 @@ import dev.krtmtthw.typhoon.contract.api.LiveApi;
 import dev.krtmtthw.typhoon.contract.model.LiveSnapshot;
 import dev.krtmtthw.typhoon.live.internal.LiveBroadcaster;
 import dev.krtmtthw.typhoon.live.internal.LiveQueries;
+import dev.krtmtthw.typhoon.shared.TrProperties;
 import dev.krtmtthw.typhoon.shared.problem.ApiException;
 import dev.krtmtthw.typhoon.shared.web.Etags;
+import dev.krtmtthw.typhoon.shared.web.RateLimitFilter;
 
 /**
  * Active storms (tag {@code live}). The snapshot implements the generated interface; the stream
@@ -28,10 +32,12 @@ class LiveController implements LiveApi {
 
     private final LiveQueries live;
     private final LiveBroadcaster broadcaster;
+    private final byte[] edgeSecret;
 
-    LiveController(LiveQueries live, LiveBroadcaster broadcaster) {
+    LiveController(LiveQueries live, LiveBroadcaster broadcaster, TrProperties props) {
         this.live = live;
         this.broadcaster = broadcaster;
+        this.edgeSecret = props.edgeSecretBytes();
     }
 
     /** {@code Cache-Control: no-cache} (request filter), ETag {@code W/"s{seq}"}. */
@@ -50,7 +56,7 @@ class LiveController implements LiveApi {
     /** {@code GET /v1/live/stream}: CONTRACT-GUIDE §7. The header {@code Last-Event-ID} wins over {@code ?lastEventId=}. */
     @GetMapping("/v1/live/stream")
     ResponseEntity<SseEmitter> stream(@RequestHeader(value = "Last-Event-ID", required = false) String header,
-            @RequestParam(value = "lastEventId", required = false) String query) {
+            @RequestParam(value = "lastEventId", required = false) String query, HttpServletRequest request) {
         Long lastEventId = null;
         if (query != null) {
             lastEventId = parse(query, "#/query/lastEventId");
@@ -61,7 +67,7 @@ class LiveController implements LiveApi {
         return ResponseEntity.ok()
                 .header("X-Accel-Buffering", "no")
                 .header("Cache-Control", "no-cache")
-                .body(broadcaster.open(lastEventId));
+                .body(broadcaster.open(lastEventId, RateLimitFilter.clientIp(request, edgeSecret)));
     }
 
     private static Long parse(String raw, String pointer) {

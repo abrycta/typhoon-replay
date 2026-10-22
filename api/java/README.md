@@ -21,7 +21,9 @@ Configuration comes only from the environment, with the names every backend shar
 (default `https://replay.krtmtthw.dev`; the origin of absolute `Link` headers), `TR_TEST_HOOKS`, `TR_LOG_LEVEL`, `PORT`.
 Java-only extras: `TR_RATE_LIMIT_PER_MINUTE` (default 600, 0 disables), `TR_MAX_STREAMS` (default 200), `TR_COMMIT`,
 `TR_EDGE_SECRET` (shared with the edge proxy's `EDGE_SECRET`: only requests carrying it in `X-Edge-Secret` have their
-`X-Forwarded-For` trusted, so the per-IP limiter keys on the visitor; anything else is keyed on the connecting address).
+`X-Forwarded-For` trusted, so the per-IP limiter keys on the visitor; anything else is keyed on the connecting address.
+When it is set, `/v1/*` without it gets a small 403, so the public Render URL serves only the edge; `/healthz` and
+`/readyz` stay open), `TR_MAX_STREAMS_PER_CLIENT` (default 6 live streams per client address, 429 above it; 0 disables).
 Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.pages.dev`) only change the defaults.
 
 ## Layout

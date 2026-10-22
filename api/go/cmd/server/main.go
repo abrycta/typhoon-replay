@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -48,6 +49,7 @@ func config(impl replay.Impl, contract string) app.Config {
 		limiter = web.TokenBucket(rate)
 	}
 	streams, _ := strconv.Atoi(env("TR_MAX_STREAMS", "200"))
+	perClient, _ := strconv.Atoi(env("TR_MAX_STREAMS_PER_CLIENT", "6"))
 	hooks := os.Getenv("TR_TEST_HOOKS")
 	return app.Config{
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
@@ -56,7 +58,8 @@ func config(impl replay.Impl, contract string) app.Config {
 		TestHooks:        hooks == "1" || hooks == "true",
 		Limiter:          limiter,
 		MaxStreams:       streams,
-		EdgeSecret:       os.Getenv("TR_EDGE_SECRET"),
+		MaxPerClient:     perClient,
+		EdgeSecret:       strings.TrimSpace(os.Getenv("TR_EDGE_SECRET")),
 		Commit:           env("TR_COMMIT", env("RENDER_GIT_COMMIT", "unknown")),
 		MinSchemaVersion: impl.MinSchemaVersion,
 		ID:               web.Identity{Impl: impl.Impl, ImplVersion: impl.ImplVersion, ContractVersion: contract},
