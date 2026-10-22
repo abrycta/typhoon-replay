@@ -26,7 +26,7 @@ export function StormHeading({ s, children }: { s: StormDetail; children?: React
       <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">
         Replay · {s.season} · {s.sid}
       </p>
-      <h1 className="font-heading text-[clamp(28px,4vw,40px)] leading-tight font-semibold">
+      <h1 className="font-heading text-ak-title font-semibold">
         <StormName s={s} />
       </h1>
       {s.localNames?.ja && stormLabel(s).kind !== "jma" ? (

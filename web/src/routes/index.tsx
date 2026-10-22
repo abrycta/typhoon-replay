@@ -53,7 +53,7 @@ function Home() {
       <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="grid gap-5">
           <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Philippines · Japan · since 1940`}</p>
-          <h1 className="font-heading text-[clamp(32px,5vw,52px)] leading-[1.1] font-semibold text-balance">{t`Replay any typhoon, hour by hour`}</h1>
+          <h1 className="font-heading text-ak-display font-semibold text-balance">{t`Replay any typhoon, hour by hour`}</h1>
           <p className="text-muted-foreground">
             {t`Wind, gusts, rain and pressure from ERA5 reanalysis, with the official best track beside them. Search a storm, compare two, or see which typhoons passed your town.`}
           </p>
