@@ -1,0 +1,264 @@
+{
+  "base": "https://replay.krtmtthw.dev",
+  "date": "2026-10-22T17:52:37.555Z",
+  "runs": 3,
+  "results": {
+    "desktop/home": {
+      "median": {
+        "ttfb": 158,
+        "fcp": 472,
+        "app": 440,
+        "lcp": 2324,
+        "frame": 2518,
+        "list": 1411,
+        "requests": 80,
+        "kb": 1443
+      },
+      "samples": [
+        {
+          "app": 456,
+          "fcp": 520,
+          "list": 1411,
+          "frame": 3540,
+          "lcp": 3104,
+          "ttfb": 179,
+          "requests": 80,
+          "kb": 1443
+        },
+        {
+          "app": 421,
+          "fcp": 428,
+          "list": 1392,
+          "frame": 2482,
+          "lcp": 2012,
+          "ttfb": 148,
+          "requests": 80,
+          "kb": 1443
+        },
+        {
+          "app": 440,
+          "fcp": 472,
+          "list": 1412,
+          "frame": 2518,
+          "lcp": 2324,
+          "ttfb": 158,
+          "requests": 87,
+          "kb": 2908
+        }
+      ]
+    },
+    "desktop/storm": {
+      "median": {
+        "ttfb": 203,
+        "fcp": 592,
+        "app": 503,
+        "lcp": 2484,
+        "frame": 2979,
+        "requests": 78,
+        "kb": 1253
+      },
+      "samples": [
+        {
+          "app": 586,
+          "fcp": 592,
+          "lcp": 2516,
+          "frame": 3258,
+          "ttfb": 223,
+          "requests": 91,
+          "kb": 2568
+        },
+        {
+          "app": 503,
+          "fcp": 780,
+          "frame": 2979,
+          "lcp": 2484,
+          "ttfb": 203,
+          "requests": 78,
+          "kb": 1253
+        },
+        {
+          "app": 402,
+          "fcp": 412,
+          "frame": 2730,
+          "lcp": 2380,
+          "ttfb": 156,
+          "requests": 77,
+          "kb": 1243
+        }
+      ]
+    },
+    "desktop/storms": {
+      "median": {
+        "ttfb": 172,
+        "fcp": 504,
+        "app": 459,
+        "lcp": 2412,
+        "list": 1467,
+        "requests": 55,
+        "kb": 784
+      },
+      "samples": [
+        {
+          "app": 762,
+          "fcp": 836,
+          "list": 2092,
+          "lcp": 2608,
+          "ttfb": 479,
+          "requests": 55,
+          "kb": 784
+        },
+        {
+          "app": 459,
+          "fcp": 504,
+          "list": 1467,
+          "lcp": 2412,
+          "ttfb": 151,
+          "requests": 55,
+          "kb": 784
+        },
+        {
+          "app": 457,
+          "fcp": 476,
+          "list": 1435,
+          "lcp": 2164,
+          "ttfb": 172,
+          "requests": 55,
+          "kb": 784
+        }
+      ]
+    },
+    "iphone/home": {
+      "median": {
+        "ttfb": 670,
+        "fcp": 2400,
+        "app": 3401,
+        "lcp": 5844,
+        "frame": 12209,
+        "list": 9343,
+        "requests": 82,
+        "kb": 1511
+      },
+      "samples": [
+        {
+          "fcp": 2380,
+          "lcp": 5844,
+          "app": 3372,
+          "list": 9343,
+          "frame": 12181,
+          "ttfb": 668,
+          "requests": 82,
+          "kb": 1511,
+          "throttledWorkers": 4
+        },
+        {
+          "fcp": 2400,
+          "lcp": 6748,
+          "app": 3401,
+          "list": 9340,
+          "frame": 12209,
+          "ttfb": 672,
+          "requests": 82,
+          "kb": 1511,
+          "throttledWorkers": 4
+        },
+        {
+          "fcp": 2484,
+          "lcp": 5772,
+          "app": 3414,
+          "list": 9372,
+          "frame": 12242,
+          "ttfb": 670,
+          "requests": 82,
+          "kb": 1511,
+          "throttledWorkers": 4
+        }
+      ]
+    },
+    "iphone/storm": {
+      "median": {
+        "ttfb": 660,
+        "fcp": 2416,
+        "app": 3415,
+        "lcp": 7620,
+        "frame": 12316,
+        "requests": 83,
+        "kb": 1376
+      },
+      "samples": [
+        {
+          "fcp": 2368,
+          "lcp": 7316,
+          "app": 3363,
+          "frame": 12214,
+          "ttfb": 660,
+          "requests": 83,
+          "kb": 1376,
+          "throttledWorkers": 4
+        },
+        {
+          "fcp": 2536,
+          "lcp": 7736,
+          "app": 3442,
+          "frame": 12372,
+          "ttfb": 661,
+          "requests": 83,
+          "kb": 1376,
+          "throttledWorkers": 4
+        },
+        {
+          "fcp": 2416,
+          "lcp": 7620,
+          "app": 3415,
+          "frame": 12316,
+          "ttfb": 660,
+          "requests": 83,
+          "kb": 1376,
+          "throttledWorkers": 4
+        }
+      ]
+    },
+    "iphone/storms": {
+      "median": {
+        "ttfb": 669,
+        "fcp": 2472,
+        "app": 3414,
+        "lcp": 7128,
+        "list": 8469,
+        "requests": 55,
+        "kb": 784
+      },
+      "samples": [
+        {
+          "fcp": 2384,
+          "lcp": 7184,
+          "app": 3383,
+          "list": 8300,
+          "ttfb": 677,
+          "requests": 55,
+          "kb": 784,
+          "throttledWorkers": 0
+        },
+        {
+          "fcp": 2576,
+          "lcp": 7104,
+          "app": 3474,
+          "list": 8649,
+          "ttfb": 668,
+          "requests": 55,
+          "kb": 784,
+          "throttledWorkers": 0
+        },
+        {
+          "fcp": 2472,
+          "lcp": 7128,
+          "app": 3414,
+          "list": 8469,
+          "ttfb": 669,
+          "requests": 55,
+          "kb": 784,
+          "throttledWorkers": 0
+        }
+      ]
+    }
+  }
+}
