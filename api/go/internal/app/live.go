@@ -51,8 +51,9 @@ func snapshotJSON(row neon.Row) []byte {
 	return b.Bytes()
 }
 
-// Stream limits (CONTRACT-GUIDE §7). Each open stream polls live.revision (one HTTPS round trip to Neon) every 2 s,
-// well inside the 5 s delivery rule; with no stream open, nothing touches the database. A stream ends after 30 min
+// Stream limits (CONTRACT-GUIDE §7). One shared poller (livePoller) checks live.revision and fetches new events in one
+// HTTPS round trip to Neon every 2 s, well inside the 5 s delivery rule, however many streams are open; with no
+// stream open, nothing touches the database. A stream ends after 30 min
 // (the browser reconnects with Last-Event-ID and resumes), and at most maxStreams are open at once, at most perClient
 // of them from one client address (so one client cannot fill every slot).
 const (
@@ -178,28 +179,34 @@ func (s *Server) StreamLiveEvents(w http.ResponseWriter, r *http.Request, p api.
 		flusher.Flush()
 	}
 
-	started, lastWrite := time.Now(), time.Now()
+	sub := s.live.subscribe(sent)
+	defer s.live.unsubscribe(sub)
+	lastWrite := time.Now()
 	ctx := r.Context()
-	tick := time.NewTicker(pollEvery)
-	defer tick.Stop()
-	for time.Since(started) < streamLifetime {
+	end := time.NewTimer(streamLifetime)
+	defer end.Stop()
+	heartbeat := time.NewTicker(pollEvery)
+	defer heartbeat.Stop()
+	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-tick.C:
-		}
-		res, err := s.read(c, neon.Q(revisionSQL), neon.Q(eventsSQL, sent))
-		if err == nil && res[0].Len() > 0 && res[0].At(0).I("seq") > sent {
+		case <-end.C:
+			return
+		case <-sub.wake:
 			var out strings.Builder
-			sent = writeEvents(&out, res[1], sent)
-			if out.Len() > 0 {
-				if _, err := io.WriteString(w, out.String()); err != nil {
-					return
-				}
-				lastWrite = time.Now()
+			s.live.next(sub, &out)
+			if out.Len() == 0 {
+				continue
 			}
-		}
-		if time.Since(lastWrite) >= heartbeatEvery {
+			if _, err := io.WriteString(w, out.String()); err != nil {
+				return
+			}
+			lastWrite = time.Now()
+		case <-heartbeat.C:
+			if time.Since(lastWrite) < heartbeatEvery {
+				continue
+			}
 			if _, err := io.WriteString(w, ":\n\n"); err != nil {
 				return
 			}
