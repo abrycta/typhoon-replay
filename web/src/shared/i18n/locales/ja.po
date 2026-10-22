@@ -145,6 +145,10 @@ msgid "{label} did not answer ({0})."
 msgstr "{label} から応答がありません（{0}）。"
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
+msgstr "{label} から応答がありません（接続が切れました）。再試行中です（{retrying} / {NETWORK_RETRIES} 回目）…"
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} did not wake up within 3 minutes."
 msgstr "{label} は 3 分以内に起動しませんでした。"
 
@@ -1587,6 +1591,10 @@ msgstr "リプレイの時刻"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Response body"
 msgstr "応答本文"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "retrying"
+msgstr "再試行中"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "Run again"

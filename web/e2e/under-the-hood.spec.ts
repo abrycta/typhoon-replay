@@ -190,6 +190,29 @@ test("race: a backend that never wakes ends as an error, the others are unaffect
   await expect(page.getByTestId("race-results")).toHaveCount(0);
 });
 
+test("race: a dropped connection is retried, shown as retrying, then answers", async ({ page }) => {
+  let javaCalls = 0;
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/(java|node|rust|go)\//, async (r) => {
+    const url = r.request().url();
+    if (url.includes("/healthz")) return json(r, { status: "ok" }, "java");
+    if (!url.includes("/api/java/")) return problemReply(r, "backend-not-deployed");
+    // The first answer is a network failure; the retry is held until the test has seen the retrying state.
+    if (javaCalls++ === 0) return r.abort("failed");
+    await held;
+    return json(r, HITS, "java");
+  });
+  await page.goto("/under-the-hood");
+  await page.getByTestId("race-run").click();
+  await expect(page.getByTestId("lane-java-state")).toHaveText("retrying");
+  await expect(page.getByTestId("lane-java-note")).toHaveText("Java did not answer: the connection dropped. Trying again (1 of 2)…");
+  release();
+  await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
+  await expect(page.getByTestId("lane-java-note")).toHaveText(/^Java answered in [\d.]+ m?s\.$/);
+  expect(javaCalls).toBe(2);
+});
+
 test("race: a contract error (404) is shown with its status and time, not retried", async ({ page }) => {
   let calls = 0;
   await page.route(/\/api\/(java|node|rust|go)\//, (r) => {

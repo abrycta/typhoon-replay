@@ -145,6 +145,10 @@ msgid "{label} did not answer ({0})."
 msgstr "{label} did not answer ({0})."
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
+msgstr "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} did not wake up within 3 minutes."
 msgstr "{label} did not wake up within 3 minutes."
 
@@ -1587,6 +1591,10 @@ msgstr "Replay time"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Response body"
 msgstr "Response body"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "retrying"
+msgstr "retrying"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "Run again"

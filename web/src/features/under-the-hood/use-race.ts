@@ -16,6 +16,8 @@ export interface LaneState {
   lastMs?: number;
   woke?: boolean;
   attempts?: number;
+  /** Network failures retried so far in this run (shown while the lane is still asking). */
+  networkRetries?: number;
   body?: unknown;
   reason?: string;
   /** HTTP status of the final answer (0 for a network failure). */
@@ -31,6 +33,7 @@ export interface LaneState {
 type Action =
   | { type: "start"; ids: BackendId[]; at: number }
   | { type: "waking"; id: BackendId }
+  | { type: "network-retry"; id: BackendId; retry: number }
   | { type: "finish"; id: BackendId; result: Omit<LaneState, "id" | "answeredRank"> }
   | { type: "hint"; id: BackendId; hint: NonNullable<LaneState["hint"]> };
 
@@ -47,6 +50,8 @@ function reducer(s: State, a: Action): State {
       return { lanes: a.ids.map((id) => ({ id, status: "running", startedAt: a.at })), answered: 0, running: true, runs: s.runs + 1 };
     case "waking":
       return { ...s, lanes: s.lanes.map((l) => (l.id === a.id && l.status === "running" ? { ...l, status: "waking" } : l)) };
+    case "network-retry":
+      return { ...s, lanes: s.lanes.map((l) => (l.id === a.id && (l.status === "running" || l.status === "waking") ? { ...l, networkRetries: a.retry } : l)) };
     case "finish": {
       const answered = a.result.status === "ok" ? s.answered + 1 : s.answered;
       const lanes = s.lanes.map((l) => (l.id === a.id ? { ...l, ...a.result, answeredRank: a.result.status === "ok" ? answered : undefined } : l));
@@ -85,7 +90,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
         void sendUntilAwake(() => sendRequest(base, path, { signal: c.signal }), {
           signal: c.signal,
           capMs: optsRef.current.capMs,
-          onProgress: () => dispatch({ type: "waking", id }),
+          onProgress: (p) => dispatch(p.networkRetry ? { type: "network-retry", id, retry: p.networkRetry } : { type: "waking", id }),
         })
           .then((o) => {
             if (c.signal.aborted) return;

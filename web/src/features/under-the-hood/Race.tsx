@@ -2,7 +2,7 @@ import { Button, Label, NativeSelect, NativeSelectOption } from "@abrycta/akari/
 import { useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 
-import type { MatchState } from "@/api";
+import { type MatchState, NETWORK_RETRIES } from "@/api";
 import type { BackendId } from "@/shared/config/config";
 
 import { CONFORMANCE, QUESTIONS, type QuestionId } from "./catalogue";
@@ -52,6 +52,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
   };
   // Before a run, the chip shows what the wake-up ping found (Java only); it is not an answer.
   const chipStatus: LaneStatus = lane.status === "idle" && lane.hint ? lane.hint : lane.status;
+  // A dropped connection is retried a couple of times before the lane reports an error.
+  const retrying = lane.status === "running" && lane.networkRetries ? lane.networkRetries : 0;
   const waiting = lane.status === "running" || lane.status === "waking";
   const elapsed = waiting && lane.startedAt !== undefined ? now - lane.startedAt : undefined;
   const pct =
@@ -101,7 +103,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
       <h3 id={`lane-${lane.id}-h`} className="flex items-baseline justify-between gap-2 font-heading text-lg font-semibold">
         {label}
         <span className={`rounded-full border border-current px-2 font-mono text-ak-2xs font-normal whitespace-nowrap ${CHIP[chipStatus]}`} data-testid={`lane-${lane.id}-state`}>
-          {chip[chipStatus]}
+          {retrying ? t`retrying` : chip[chipStatus]}
         </span>
       </h3>
       <p className="font-mono text-ak-2xs text-muted-foreground">{CONFORMANCE.backends[lane.id]?.stack}</p>
@@ -112,7 +114,13 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
         <i className="block h-full bg-primary transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${pct}%` }} />
       </div>
       <p className="min-h-[2.6em] text-xs text-muted-foreground" aria-live="polite" data-testid={`lane-${lane.id}-note`}>
-        {lane.status === "running" ? <span aria-hidden="true">{t`Asking…`}</span> : note}
+        {retrying ? (
+          t`${label} did not answer: the connection dropped. Trying again (${retrying} of ${NETWORK_RETRIES})…`
+        ) : lane.status === "running" ? (
+          <span aria-hidden="true">{t`Asking…`}</span>
+        ) : (
+          note
+        )}
       </p>
       <p className="text-sm" data-testid={`lane-${lane.id}-match`}>
         {match === "same" ? (
