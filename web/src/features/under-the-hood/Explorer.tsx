@@ -22,22 +22,30 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
   const [backend, setBackend] = useState<BackendId>("java");
   const [endpoint, setEndpoint] = useState<EndpointId>("meta");
   const [busy, setBusy] = useState(false);
-  const [res, setRes] = useState<ApiResult | undefined>();
+  // The last answer and the request line it answered. It is shown only while that line is still the one on
+  // screen and no newer request is in flight, so a changed backend/endpoint never sits above an old response.
+  const [last, setLast] = useState<{ line: string; res: ApiResult } | undefined>();
   const ctrl = useRef<AbortController | undefined>(undefined);
+  const seq = useRef(0);
   useEffect(() => () => ctrl.current?.abort(), []);
   const requestLine = `GET ${baseUrlOf(backend)}${ENDPOINTS[endpoint].path}`;
+  const res = !busy && last?.line === requestLine ? last.res : undefined;
 
   const send = async () => {
     ctrl.current?.abort();
     const c = new AbortController();
     ctrl.current = c;
+    const id = ++seq.current;
+    const line = requestLine;
     setBusy(true);
     try {
-      setRes(await sendRequest(baseUrlOf(backend), ENDPOINTS[endpoint].path, { signal: c.signal }));
+      const r = await sendRequest(baseUrlOf(backend), ENDPOINTS[endpoint].path, { signal: c.signal });
+      // Ignore an answer that arrives after a newer request started (out of order).
+      if (id === seq.current) setLast({ line, res: r });
     } catch {
       /* aborted */
     } finally {
-      if (!c.signal.aborted) setBusy(false);
+      if (id === seq.current) setBusy(false);
     }
   };
 
@@ -108,6 +116,8 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
               </p>
               {hint ? <p className="font-sans text-sm text-muted-foreground">{hint}</p> : null}
             </>
+          ) : busy ? (
+            <p className="font-sans text-sm text-muted-foreground">{t`Sending…`}</p>
           ) : (
             <p className="font-sans text-sm text-muted-foreground">{t`Press Send to see the response.`}</p>
           )}

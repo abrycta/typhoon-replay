@@ -387,6 +387,7 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "気象衛星以前:位置は船舶、地上観測所、航空機から"
 
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "ベストトラック"
 
@@ -1575,6 +1576,10 @@ msgstr "シーズン"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Send"
 msgstr "送信"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Sending…"
+msgstr "送信中…"
 
 #: src/features/compare/LineUp.tsx
 msgid "Shared timeline"
