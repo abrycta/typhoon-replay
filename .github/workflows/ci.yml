@@ -37,7 +37,7 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@abrycta"
 
-      # `playwright install --with-deps` runs apt-get update. The runner image's packages.microsoft.com source
+      # `playwright install-deps` runs apt-get update. The runner image's packages.microsoft.com source
       # (not needed here) has been answering 403 or hanging, which failed or timed out CI on main; drop it and
       # bound apt's network waits so a slow mirror fails fast instead of eating the job's 15 minutes.
       - name: Keep apt fast and reliable
@@ -45,6 +45,28 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
             sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
+
+      # Playwright: the browser and the .deb files apt fetched are cached per Playwright version, so a cache hit
+      # downloads neither. Installs are bounded (2.5 min per attempt, one retry on another mirror, step timeout), so a
+      # stalled mirror or download fails in minutes with a clear error instead of using up the job.
+      - name: Playwright version
+        id: pw
+        working-directory: web
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browser
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/playwright-debs
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium
+      - name: Install Playwright OS packages (and the browser on a cache miss)
+        timeout-minutes: 6
+        env:
+          PW_VERSION: ${{ steps.pw.outputs.version }}
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/playwright-install.sh" "$PW_VERSION" "$CACHE_HIT"
 
       # The Under the hood conformance table shows each backend's latest passing CI run on main: refresh the bundled
       # conformance.json from those runs' artifacts (a backend whose artifact can't be found keeps its committed entry).
