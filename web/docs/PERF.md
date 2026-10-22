@@ -21,8 +21,10 @@ Milestones, in ms from the start of navigation:
   emulated latency).
 - **fcp** / **lcp**: first contentful paint; the last largest contentful paint.
 - **app**: React's first render has replaced the pre-load glyph.
-- **frame**: the first field frame is ready on the map (`[data-frame-ready=true]` with the MapLibre canvas present).
-  This is the number that matters on the home page and a storm page.
+- **frame**: the first full frame is on screen: basemap, track and field drawn (the map's first idle with a field
+  frame sets the user-timing mark `replay:first-frame-drawn`; the map-slot glyph lifts at the same moment). This is
+  the number that matters on the home page and a storm page.
+- **decoded**: the field frame at the playhead is decoded (`[data-frame-ready=true]`), drawn or not.
 - **list**: the first storm card of a storm list is on the page.
 - **req** / **KB**: requests and transferred bytes (encoded bodies plus headers, page and workers) until the page
   settles (2–5 s after the last milestone; map tiles and the exact readout sheets keep arriving after the frame).
@@ -35,7 +37,10 @@ and the OpenFreeMap tiles are live third parties. Before/after pairs for a chang
 production Pages host (`typhoon-replay.pages.dev`, same build as the live site) against the PR's preview
 (`pr-<n>.typhoon-replay.pages.dev`).
 
-## Baseline (2026-10-23, live site, before the speed work)
+## First baseline (2026-10-23, live site, before the speed work; "frame" here = decoded)
+
+This first pass timed the decoded frame, not the drawn one (the map's own start-up can add a second or more after
+it). Kept for the record; the drawn-frame baseline is below.
 
 `https://replay.krtmtthw.dev` at `04ab7bd`, dataset v4 on Hugging Face. Medians of 3 cold runs, ms (raw runs:
 [`perf-baseline-2026-10-23.json`](perf-baseline-2026-10-23.json)).
