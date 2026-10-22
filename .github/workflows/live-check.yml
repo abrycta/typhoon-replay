@@ -14,8 +14,9 @@ permissions:
   actions: write # dispatch the deploy workflow when live is stale
 
 concurrency:
-  group: live-check
-  cancel-in-progress: true
+  # Runs on main never cancel each other (rule 24); other refs may.
+  group: live-check-${{ github.ref == 'refs/heads/main' && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   live:
