@@ -12,9 +12,11 @@ permissions:
   contents: read
   packages: read # private @abrycta/* packages on GitHub Packages
 
+# Branches and PRs: a newer push cancels the older run. main: never cancelled or replaced (each run has its own
+# group), so every merged commit gets a finished CI run and the deploy that follows it ("Merged means deployed").
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   verify:

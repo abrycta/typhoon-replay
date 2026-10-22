@@ -1,0 +1,3 @@
+url=https://replay.krtmtthw.dev
+workflow=deploy.yml
+paths=*
