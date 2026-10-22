@@ -153,6 +153,28 @@ def test_islands_crossed_between_hours_count() -> None:
     assert len(land.entries(np.array([124.7, 125.3]), np.array([11.0, 11.0]), t)) == 1
 
 
+def test_every_island_crossed_in_one_hour_counts() -> None:
+    # Haiyan 2013-11-08 02-03Z: northern Cebu, ~20 km of water, then Bantayan Island, in one hourly segment;
+    # and a segment that leaves one island and reaches another within the hour.
+    land = catalog.Land(places_frame([square(124.0, 11.0, 0.05), square(123.75, 11.0, 0.05)],
+                                     ["PH-0000000005", "PH-0000000006"]))
+    t = np.array(["2013-11-08T02", "2013-11-08T03"], dtype="datetime64[s]")
+    lf = land.entries(np.array([124.1, 123.65]), np.array([11.0, 11.0]), t)
+    assert [e["place_id"] for e in lf] == ["PH-0000000005", "PH-0000000006"]
+    assert lf[1]["lon"] == pytest.approx(123.8)
+    lf = land.entries(np.array([124.0, 123.75]), np.array([11.0, 11.0]), t)   # starts on the first island
+    assert [e["place_id"] for e in lf] == ["PH-0000000006"]
+
+
+def test_narrow_water_between_land_is_not_a_new_landfall() -> None:
+    # two places ~2 km apart (a sliver or river mouth): one landfall, even with an hourly point in the gap
+    land = catalog.Land(places_frame([square(124.0, 11.0, 0.05), square(124.12, 11.0, 0.05)],
+                                     ["PH-0000000007", "PH-0000000008"]))
+    t = np.array(["2013-11-08T00", "2013-11-08T01", "2013-11-08T02"], dtype="datetime64[s]")
+    lf = land.entries(np.array([123.8, 124.06, 124.3]), np.array([11.0, 11.0, 11.0]), t)
+    assert [e["place_id"] for e in lf] == ["PH-0000000007"]
+
+
 def test_exposure_distances_and_bands() -> None:
     # place: 0.1 deg square at the equator-ish; track passes due north at about 1 deg (~111 km) away
     pl = places_frame([square(125.0, 10.0, 0.05)], ["PH-0000000003"])
