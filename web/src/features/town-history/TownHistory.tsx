@@ -1,4 +1,4 @@
-import { Badge, Button, Empty, EmptyDescription, EmptyHeader, EmptyTitle, Input, Label, NativeSelect, NativeSelectOption, Skeleton, Spinner, useLang } from "@abrycta/akari/react";
+import { Badge, Button, Empty, EmptyDescription, EmptyHeader, EmptyTitle, Input, Label, NativeSelect, NativeSelectOption, Skeleton, useLang } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EXPOSURE_RADII, type ExposureRadiusKm, exposureWithin, type PlaceEntry, usePlaceSearch, usePlaceShard, useStormIndex } from "@/data";
 import { formatDate } from "@/shared/lib/time";
 import type { StormSummary } from "@/shared/model/types";
+import { GlyphLoading } from "@/shared/ui/glyph-loading";
 import { useStormName } from "@/shared/ui/use-storm-name";
 
 export interface TownUrl {
@@ -85,7 +86,7 @@ export function TownHistory({ url, onUrl }: { url: TownUrl; onUrl: (p: Partial<T
           {t`Places`}
         </h2>
         <div role="status" aria-live="polite" className="text-sm text-muted-foreground" data-testid="town-status">
-          {q.length >= 2 && index.isPending ? <Spinner className="mr-2 inline" /> : null}
+          {q.length >= 2 && index.isPending ? <GlyphLoading className="mr-2 align-[-0.15em]" /> : null}
           {status}
         </div>
         {results.length ? (
