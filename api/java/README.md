@@ -53,6 +53,10 @@ Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.
 
 ## Conformance (contract 2.0.0, 2026-10-21, PostGIS 18-3.6, against the Docker image)
 
+Current figures come from `java.yml` on `main` and are shown, with a link to the run, in the conformance table on
+[Under the hood](https://replay.krtmtthw.dev/under-the-hood). The figures below are from one local run on
+2026-10-21, kept as a record; later contract changes added scenarios and generated cases.
+
 - Vitest scenarios: **85/85** (incl. `SLOW=1` heartbeat and a no-hooks instance).
 - Schemathesis, full `backend.toml`: 4 failures, all contract-side positive-data-acceptance: the shared `Cursor`
   example is a `season-desc` cursor, rejected as `invalid-cursor` by the other sorts, and the `season` + `from`
