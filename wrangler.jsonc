@@ -12,8 +12,9 @@
   "compatibility_date": "2026-10-01",
   // Edge proxy settings (functions/api/[[path]].ts; edge/README.md). Values are strings, as in the dashboard.
   // BACKEND_ORIGINS maps impl -> origin; add node/rust/go here as they deploy. Unlisted impls answer 503
-  // backend-not-deployed. STATIC_MODE "true" serves cached responses only: a manual emergency switch,
-  // nothing sets it automatically (edge/README.md "Static mode").
+  // backend-not-deployed. STATIC_MODE "true" serves cached responses only: a manual emergency switch
+  // (edge/README.md "Static mode"). The budget check (budget.yml) can also switch static mode on, through the
+  // static_mode key of the EDGE_FLAGS KV binding, once that binding is added here; it never switches it off.
   "vars": {
     "BACKEND_ORIGINS": "{\"java\":\"https://typhoon-replay-java.onrender.com\",\"go\":\"https://typhoon-replay-go.onrender.com\",\"node\":\"https://replay-api-node.krtmtthw.workers.dev\",\"rust\":\"https://replay-api-rust.krtmtthw.workers.dev\"}",
     "STATIC_MODE": "false",

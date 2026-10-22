@@ -11,17 +11,48 @@
 //    service that is not listed is never paused), one per run, and records it in a GitHub issue. On the first run
 //    of a later month it resumes the services those issues name and closes the issues. Services suspended by hand
 //    are never resumed: only the guard's own issues are read.
+// 3. Static-mode trip. When Render outbound bandwidth or Neon compute passes STATIC_AT (70 %) of the monthly free
+//    allowance, or today's Workers + Pages Functions requests pass 70 % of the daily one, it writes static_mode=true to
+//    the EDGE_FLAGS KV namespace (wrangler.jsonc kv_namespaces; the edge reads it within a minute, no redeploy) and
+//    opens an issue that says what tripped and how to switch back. It never switches back by itself.
 //
 // Env: RENDER_API_KEY, CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID, NEON_API_KEY + NEON_PROJECT_ID, GITHUB_TOKEN +
-// GITHUB_REPOSITORY (all optional), RENDER_GUARD_SERVICES (default "typhoon-replay-go"), WARN_AT, GUARD_AT.
-// Flag: --dry-run plans the guard's actions without suspending, resuming or writing issues.
+// GITHUB_REPOSITORY (all optional), RENDER_GUARD_SERVICES (default "typhoon-replay-go"), WARN_AT, GUARD_AT, STATIC_AT,
+// EDGE_FLAGS_NAMESPACE_ID (default: the EDGE_FLAGS binding in wrangler.jsonc).
+// Flag: --dry-run plans the guard's and the trip's actions without suspending, resuming, writing KV or issues.
+
+import { readFileSync } from "node:fs";
 
 const RENDER = "https://api.render.com/v1";
 const GITHUB = "https://api.github.com";
 export const GUARD_TITLE = "Render hours guard: paused";
 const MARKER = /<!-- render-guard month=(\d{4}-\d{2}) services=([\w,.-]+) -->/;
 
+const CLOUDFLARE = "https://api.cloudflare.com/client/v4";
+export const STATIC_TITLE = "Static mode switched on";
+
 const monthKey = (d) => d.toISOString().slice(0, 7);
+
+/** The EDGE_FLAGS KV namespace id from wrangler.jsonc, or undefined when the binding is not set up. */
+export function edgeFlagsNamespace(text = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8")) {
+  const config = JSON.parse(text.replace(/^\s*\/\/.*$/gm, ""));
+  return (config.kv_namespaces ?? []).find((k) => k.binding === "EDGE_FLAGS")?.id;
+}
+
+/** The meters that switch the edge to static mode: Render bandwidth, Neon compute, the daily Workers requests. */
+const tripsStatic = (m) =>
+  (m.provider === "Render" && m.meter === "outbound bandwidth") ||
+  (m.provider === "Neon" && m.meter === "compute") ||
+  (m.provider === "Cloudflare" && m.unit === "req");
+
+/**
+ * The static-mode trip's decision (pure). `meters` as in the report; `flagOn` whether static_mode is already true.
+ * Returns the meters at or past `staticAt` of their free allowance and whether to switch static mode on now.
+ */
+export function decideStatic({ meters, staticAt = 0.7, flagOn }) {
+  const tripped = meters.filter((m) => tripsStatic(m) && m.used / m.limit >= staticAt);
+  return { tripped, switchOn: tripped.length > 0 && !flagOn };
+}
 
 /** The month's frame: start, end and the fraction elapsed. */
 export function frame(now) {
@@ -59,6 +90,7 @@ export function decideGuard({ hours, limit = 750, guardAt = 0.85, services, guar
 export async function run({ env = process.env, now = new Date(), fetchImpl = fetch, dryRun = false, log = console.log } = {}) {
   const WARN_AT = Number(env.WARN_AT ?? 0.7);
   const GUARD_AT = Number(env.GUARD_AT ?? 0.85);
+  const STATIC_AT = Number(env.STATIC_AT ?? 0.7);
   const guardList = (env.RENDER_GUARD_SERVICES ?? "typhoon-replay-go").split(",").map((s) => s.trim()).filter(Boolean);
   const { start, day, fraction } = frame(now);
   const meters = [];
@@ -139,11 +171,13 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
     }
   }
 
+  const gh = env.GITHUB_TOKEN && env.GITHUB_REPOSITORY
+    ? { headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: "application/vnd.github+json" }, repo: `${GITHUB}/repos/${env.GITHUB_REPOSITORY}` }
+    : undefined;
+  const write = (url, init) => (dryRun ? Promise.resolve({}) : call(url, init));
+
   // --- Render hours guard ---
   if (renderState) {
-    const gh = env.GITHUB_TOKEN && env.GITHUB_REPOSITORY
-      ? { headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: "application/vnd.github+json" }, repo: `${GITHUB}/repos/${env.GITHUB_REPOSITORY}` }
-      : undefined;
     const pausedIssues = [];
     if (gh) {
       const open = await call(`${gh.repo}/issues?state=open&per_page=100`, { headers: gh.headers });
@@ -153,7 +187,6 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
       }
     }
     const d = decideGuard({ hours: renderState.hours, guardAt: GUARD_AT, services: renderState.services, guardList, pausedIssues, now });
-    const write = (url, init) => (dryRun ? Promise.resolve({}) : call(url, init));
     for (const r of d.resume) {
       actions.push(`resume ${r.service.name} (paused in an earlier month, issue #${r.issue})`);
       await write(`${RENDER}/services/${r.service.id}/resume`, { method: "POST", headers: renderState.headers });
@@ -189,6 +222,54 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
     }
   }
 
+  // --- Static-mode trip ---
+  const namespace = "EDGE_FLAGS_NAMESPACE_ID" in env ? env.EDGE_FLAGS_NAMESPACE_ID : edgeFlagsNamespace();
+  if (!namespace) {
+    notes.push("Static-mode trip: not set up (no EDGE_FLAGS KV binding in wrangler.jsonc).");
+  } else if (!(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID)) {
+    notes.push("Static-mode trip: not checked (Cloudflare credentials not set).");
+  } else {
+    const kv = `${CLOUDFLARE}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${namespace}/values/static_mode`;
+    const auth = { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` };
+    let flagOn;
+    try {
+      const res = await fetchImpl(kv, { headers: auth });
+      if (res.status !== 404 && !res.ok) throw new Error(`${res.status} GET static_mode`);
+      flagOn = res.ok && ["1", "true", "yes", "on"].includes((await res.text()).trim().toLowerCase());
+    } catch (e) {
+      notes.push(`Static-mode trip: not checked (${e.message}).`);
+    }
+    if (flagOn !== undefined) {
+      const d = decideStatic({ meters, staticAt: STATIC_AT, flagOn });
+      if (flagOn) notes.push("Static mode is ON (EDGE_FLAGS static_mode=true). It stays on until switched back by hand (see its issue).");
+      if (d.switchOn) {
+        const why = d.tripped.map((m) => `${m.provider} ${m.meter}: ${m.used.toFixed(m.unit === "req" ? 0 : 2)} ${m.unit} of ${m.limit} ${m.unit} (${((m.used / m.limit) * 100).toFixed(1)} %)`);
+        actions.push(`static mode on: ${why.join("; ")}`);
+        await write(kv, { method: "PUT", headers: { ...auth, "Content-Type": "text/plain" }, body: "true" });
+        if (gh) {
+          const body = [
+            `The budget check (\`.github/workflows/budget.yml\`) switched the edge to **static mode**: at least one meter passed`,
+            `${STATIC_AT * 100} % of its free allowance.`,
+            "",
+            ...why.map((w) => `- ${w}`),
+            "",
+            "Static mode serves cached answers of any age and sends nothing to the backends (other requests get 503",
+            "`static-mode`). The edge picks the flag up within about a minute. **It never switches back by itself.**",
+            "",
+            "To switch back once the cause is handled, set the KV key `static_mode` to `false` (the edge follows within a minute):",
+            "```sh",
+            "CLOUDFLARE_API_TOKEN=\"$(security find-generic-password -s cloudflare-api-token -w)\" \\",
+            `  npx wrangler kv key put static_mode false --namespace-id ${namespace} --remote`,
+            "```",
+            "or in the Cloudflare dashboard: Storage & Databases → Workers KV → typhoon-replay-edge-flags → `static_mode` → `false`.",
+            "Then close this issue.",
+          ].join("\n");
+          await write(`${gh.repo}/issues`, { method: "POST", headers: gh.headers, body: JSON.stringify({ title: `${STATIC_TITLE} (${now.toISOString().slice(0, 10)})`, body }) });
+        }
+      }
+    }
+  }
+
   // --- Report ---
   let over = false;
   const lines = [
@@ -205,9 +286,9 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
     if (flag) over = true;
     lines.push(`| ${m.provider} | ${m.meter}${m.note ? ` (${m.note})` : ""} | ${m.used.toFixed(daily ? 0 : 2)} ${m.unit} | ${m.limit} ${m.unit} | ${(share * 100).toFixed(1)} %${flag} | ${daily ? "per day" : `${(projected * 100).toFixed(0)} %`} |`);
   }
-  if (actions.length) lines.push("", `Render hours guard${dryRun ? " (dry run, nothing changed)" : ""}:`, ...actions.map((a) => `- ${a}`));
+  if (actions.length) lines.push("", `Actions${dryRun ? " (dry run, nothing changed)" : ""}:`, ...actions.map((a) => `- ${a}`));
   if (notes.length) lines.push("", ...notes.map((s) => `- ${s}`));
-  lines.push("", `Warning threshold: ${WARN_AT * 100} % of a limit, or a month-end projection over 100 %. Guard: ${GUARD_AT * 100} % of Render hours pauses, in order: ${guardList.join(", ") || "(none)"}.`);
+  lines.push("", `Warning threshold: ${WARN_AT * 100} % of a limit, or a month-end projection over 100 %. Guard: ${GUARD_AT * 100} % of Render hours pauses, in order: ${guardList.join(", ") || "(none)"}. Static mode: ${STATIC_AT * 100} % of Render bandwidth, Neon compute or the daily Workers requests.`);
   log(lines.join("\n"));
   return { over, actions };
 }
