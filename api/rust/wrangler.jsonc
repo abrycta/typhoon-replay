@@ -9,6 +9,9 @@
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
   "preview_urls": false,
+  // Run next to Neon (Singapore, aws:ap-southeast-1) instead of next to each visitor: every request makes a
+  // database round trip, so far-away visitors gain more than they lose. Free plan (Placement Hints).
+  "placement": { "region": "aws:ap-southeast-1" },
   "vars": {
     "TR_SITE_ORIGIN": "https://replay.krtmtthw.dev",
     "TR_TEST_HOOKS": "0",
