@@ -132,21 +132,19 @@ msgid "{kt} kt {agency} ({minutes}-min)"
 msgstr "{kt} kt {agency}({minutes}分平均)"
 
 #. placeholder {0}: lane.httpStatus
-#. placeholder {1}: lane.reason ?? "?"
-#. placeholder {2}: formatMs(lane.totalMs ?? 0)
+#. placeholder {1}: formatMs(lane.totalMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} answered HTTP {0} ({1}) in {2}."
-msgstr "{label} は {2} で HTTP {0}（{1}）を返しました。"
+msgid "{label} answered HTTP {0} ({reason}) in {1}."
+msgstr "{label} は {1} で HTTP {0}（{reason}）を返しました。"
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} answered in {0}."
 msgstr "{label} は {0} で応答しました。"
 
-#. placeholder {0}: lane.reason ?? "?"
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} did not answer ({0})."
-msgstr "{label} から応答がありません（{0}）。"
+msgid "{label} did not answer ({reason})."
+msgstr "{label} から応答がありません（{reason}）。"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
@@ -350,6 +348,10 @@ msgstr "応答は Cloudflare でキャッシュされ、同じ問い合わせは
 msgid "Any"
 msgstr "指定なし"
 
+#: src/features/under-the-hood/reason.ts
+msgid "API in static mode"
+msgstr "API は静的モードです"
+
 #. placeholder {0}: formatDate(m.dataAsOf, lang)
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "as of {0}"
@@ -398,6 +400,26 @@ msgstr "台風の一覧に戻る"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Backend"
 msgstr "バックエンド"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend is waking up"
+msgstr "バックエンドが起動中"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend not deployed"
+msgstr "バックエンド未デプロイ"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend paused this month"
+msgstr "バックエンドは今月休止中"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend unavailable"
+msgstr "バックエンドが利用できません"
+
+#: src/features/under-the-hood/reason.ts
+msgid "bad gateway"
+msgstr "不正なゲートウェイ応答"
 
 #: src/routes/about.tsx
 msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
@@ -591,6 +613,10 @@ msgstr "年代"
 #: src/features/under-the-hood/Race.tsx
 msgid "Details for Haiyan (Yolanda) 2013"
 msgstr "2013 年 Haiyan (Yolanda) の詳細"
+
+#: src/features/under-the-hood/reason.ts
+msgid "did not wake up in time"
+msgstr "時間内に起動しませんでした"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Does each backend keep the contract?"
@@ -815,6 +841,10 @@ msgstr "固定したコード"
 msgid "Gaps for this pair"
 msgstr "この組み合わせの欠測"
 
+#: src/features/under-the-hood/reason.ts
+msgid "gateway timeout"
+msgstr "ゲートウェイのタイムアウト"
+
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Generated API cases (Schemathesis)"
 msgstr "自動生成の API テストケース (Schemathesis)"
@@ -935,6 +965,10 @@ msgstr "名称のない台風を含める({unnamed}件、主に1980年以前)"
 msgid "Include unnamed storms ({unnamed})"
 msgstr "名称のない台風を含める({unnamed}件)"
 
+#: src/features/under-the-hood/reason.ts
+msgid "internal server error"
+msgstr "サーバー内部エラー"
+
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
 msgid "interpolated"
@@ -949,6 +983,14 @@ msgstr "補間値"
 #: src/features/replay/TimelineTable.tsx
 msgid "interpolated ({0}–{1})"
 msgstr "補間（{0}–{1}）"
+
+#: src/features/under-the-hood/reason.ts
+msgid "invalid cursor"
+msgstr "無効なカーソル"
+
+#: src/features/under-the-hood/reason.ts
+msgid "invalid JSON"
+msgstr "不正な JSON"
 
 #: src/features/compare/labels.ts
 #: src/features/compare/StormPicker.tsx
@@ -1179,6 +1221,10 @@ msgstr "最大風速 (kt)"
 msgid "Measurement arrives with the next data update"
 msgstr "計測値は次のデータ更新で追加されます"
 
+#: src/features/under-the-hood/reason.ts
+msgid "method not allowed"
+msgstr "許可されていないメソッド"
+
 #: src/features/compare/AboutComparison.tsx
 msgid "More about the data"
 msgstr "データについて詳しく"
@@ -1206,6 +1252,10 @@ msgstr "名前、PAGASA名、台風第…号、年またはID"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Neon serverless SQL over HTTP"
 msgstr "HTTP 経由の Neon サーバーレス SQL"
+
+#: src/features/under-the-hood/reason.ts
+msgid "network error"
+msgstr "ネットワークエラー"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
@@ -1336,9 +1386,21 @@ msgstr "北東"
 msgid "north-west"
 msgstr "北西"
 
+#: src/features/under-the-hood/reason.ts
+msgid "not acceptable"
+msgstr "受け付けられない形式"
+
+#: src/features/under-the-hood/reason.ts
+msgid "not deployed"
+msgstr "未デプロイ"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "not deployed yet"
 msgstr "未デプロイ"
+
+#: src/features/under-the-hood/reason.ts
+msgid "not found"
+msgstr "見つかりません"
 
 #: src/app/errors.tsx
 msgid "Not found"
@@ -1453,8 +1515,13 @@ msgid "Pause replay"
 msgstr "リプレイを一時停止"
 
 #: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/reason.ts
 msgid "paused this month"
 msgstr "今月は一時停止中"
+
+#: src/features/under-the-hood/reason.ts
+msgid "payload too large"
+msgstr "リクエストが大きすぎます"
 
 #: src/features/replay/StormHeading.tsx
 msgid "peak"
@@ -1561,6 +1628,7 @@ msgid "Rainfall rate"
 msgstr "降水強度"
 
 #: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/reason.ts
 msgid "rate limited"
 msgstr "アクセス制限中"
 
@@ -1607,6 +1675,14 @@ msgstr "場のリプレイあり"
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
 msgstr "リプレイの時刻"
+
+#: src/features/under-the-hood/reason.ts
+msgid "request error"
+msgstr "リクエストエラー"
+
+#: src/features/under-the-hood/reason.ts
+msgid "request validation failed"
+msgstr "リクエストの検証に失敗"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Response body"
@@ -1684,6 +1760,14 @@ msgstr "送信"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Sending…"
 msgstr "送信中…"
+
+#: src/features/under-the-hood/reason.ts
+msgid "server error"
+msgstr "サーバーエラー"
+
+#: src/features/under-the-hood/reason.ts
+msgid "service not ready"
+msgstr "サービスの準備ができていません"
 
 #: src/features/compare/LineUp.tsx
 msgid "Shared timeline"
@@ -1939,6 +2023,10 @@ msgstr "時刻"
 msgid "Time zone"
 msgstr "タイムゾーン"
 
+#: src/features/under-the-hood/reason.ts
+msgid "timed out"
+msgstr "タイムアウト"
+
 #: src/features/replay/StormReplay.tsx
 msgid "Timeline"
 msgstr "タイムライン"
@@ -1946,6 +2034,14 @@ msgstr "タイムライン"
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
 msgstr "タイムライン表"
+
+#: src/features/under-the-hood/reason.ts
+msgid "too many live streams"
+msgstr "ライブ配信が多すぎます"
+
+#: src/features/under-the-hood/reason.ts
+msgid "too many requests"
+msgstr "リクエストが多すぎます"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Too many requests from this address. Try again in {waitS} s."
@@ -2003,6 +2099,10 @@ msgstr "わが町を襲った台風"
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "フィリピンと日本に上陸、または接近した台風。"
 
+#: src/features/under-the-hood/reason.ts
+msgid "unknown backend"
+msgstr "不明なバックエンド"
+
 #: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm"
 msgstr "名称なし"
@@ -2014,6 +2114,10 @@ msgstr "名称なし · {designation} · {month}"
 #: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm · {month}"
 msgstr "名称なし · {month}"
+
+#: src/features/under-the-hood/reason.ts
+msgid "unsupported media type"
+msgstr "非対応のメディア形式"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Value"

@@ -132,21 +132,19 @@ msgid "{kt} kt {agency} ({minutes}-min)"
 msgstr "{kt} kt {agency} ({minutes}-min)"
 
 #. placeholder {0}: lane.httpStatus
-#. placeholder {1}: lane.reason ?? "?"
-#. placeholder {2}: formatMs(lane.totalMs ?? 0)
+#. placeholder {1}: formatMs(lane.totalMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} answered HTTP {0} ({1}) in {2}."
-msgstr "{label} answered HTTP {0} ({1}) in {2}."
+msgid "{label} answered HTTP {0} ({reason}) in {1}."
+msgstr "{label} answered HTTP {0} ({reason}) in {1}."
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} answered in {0}."
 msgstr "{label} answered in {0}."
 
-#. placeholder {0}: lane.reason ?? "?"
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} did not answer ({0})."
-msgstr "{label} did not answer ({0})."
+msgid "{label} did not answer ({reason})."
+msgstr "{label} did not answer ({reason})."
 
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
@@ -350,6 +348,10 @@ msgstr "Answers are cached at Cloudflare, so repeat queries are instant"
 msgid "Any"
 msgstr "Any"
 
+#: src/features/under-the-hood/reason.ts
+msgid "API in static mode"
+msgstr "API in static mode"
+
 #. placeholder {0}: formatDate(m.dataAsOf, lang)
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "as of {0}"
@@ -398,6 +400,26 @@ msgstr "Back to all storms"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Backend"
 msgstr "Backend"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend is waking up"
+msgstr "backend is waking up"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend not deployed"
+msgstr "backend not deployed"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend paused this month"
+msgstr "backend paused this month"
+
+#: src/features/under-the-hood/reason.ts
+msgid "backend unavailable"
+msgstr "backend unavailable"
+
+#: src/features/under-the-hood/reason.ts
+msgid "bad gateway"
+msgstr "bad gateway"
 
 #: src/routes/about.tsx
 msgid "Basemap: OpenFreeMap, © OpenStreetMap contributors (ODbL); fallback coastline from Natural Earth (public domain)."
@@ -591,6 +613,10 @@ msgstr "Decade"
 #: src/features/under-the-hood/Race.tsx
 msgid "Details for Haiyan (Yolanda) 2013"
 msgstr "Details for Haiyan (Yolanda) 2013"
+
+#: src/features/under-the-hood/reason.ts
+msgid "did not wake up in time"
+msgstr "did not wake up in time"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Does each backend keep the contract?"
@@ -815,6 +841,10 @@ msgstr "Frozen code"
 msgid "Gaps for this pair"
 msgstr "Gaps for this pair"
 
+#: src/features/under-the-hood/reason.ts
+msgid "gateway timeout"
+msgstr "gateway timeout"
+
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Generated API cases (Schemathesis)"
 msgstr "Generated API cases (Schemathesis)"
@@ -935,6 +965,10 @@ msgstr "Include unnamed storms ({unnamed}, mostly before 1980)"
 msgid "Include unnamed storms ({unnamed})"
 msgstr "Include unnamed storms ({unnamed})"
 
+#: src/features/under-the-hood/reason.ts
+msgid "internal server error"
+msgstr "internal server error"
+
 #: src/features/replay/StormReplay.tsx
 #: src/features/replay/TimelineTable.tsx
 msgid "interpolated"
@@ -949,6 +983,14 @@ msgstr "Interpolated"
 #: src/features/replay/TimelineTable.tsx
 msgid "interpolated ({0}–{1})"
 msgstr "interpolated ({0}–{1})"
+
+#: src/features/under-the-hood/reason.ts
+msgid "invalid cursor"
+msgstr "invalid cursor"
+
+#: src/features/under-the-hood/reason.ts
+msgid "invalid JSON"
+msgstr "invalid JSON"
 
 #: src/features/compare/labels.ts
 #: src/features/compare/StormPicker.tsx
@@ -1179,6 +1221,10 @@ msgstr "Max wind (kt)"
 msgid "Measurement arrives with the next data update"
 msgstr "Measurement arrives with the next data update"
 
+#: src/features/under-the-hood/reason.ts
+msgid "method not allowed"
+msgstr "method not allowed"
+
 #: src/features/compare/AboutComparison.tsx
 msgid "More about the data"
 msgstr "More about the data"
@@ -1206,6 +1252,10 @@ msgstr "Name, PAGASA name, 台風第…号, year or ID"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Neon serverless SQL over HTTP"
 msgstr "Neon serverless SQL over HTTP"
+
+#: src/features/under-the-hood/reason.ts
+msgid "network error"
+msgstr "network error"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
@@ -1336,9 +1386,21 @@ msgstr "north-east"
 msgid "north-west"
 msgstr "north-west"
 
+#: src/features/under-the-hood/reason.ts
+msgid "not acceptable"
+msgstr "not acceptable"
+
+#: src/features/under-the-hood/reason.ts
+msgid "not deployed"
+msgstr "not deployed"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "not deployed yet"
 msgstr "not deployed yet"
+
+#: src/features/under-the-hood/reason.ts
+msgid "not found"
+msgstr "not found"
 
 #: src/app/errors.tsx
 msgid "Not found"
@@ -1453,8 +1515,13 @@ msgid "Pause replay"
 msgstr "Pause replay"
 
 #: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/reason.ts
 msgid "paused this month"
 msgstr "paused this month"
+
+#: src/features/under-the-hood/reason.ts
+msgid "payload too large"
+msgstr "payload too large"
 
 #: src/features/replay/StormHeading.tsx
 msgid "peak"
@@ -1561,6 +1628,7 @@ msgid "Rainfall rate"
 msgstr "Rainfall rate"
 
 #: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/reason.ts
 msgid "rate limited"
 msgstr "rate limited"
 
@@ -1607,6 +1675,14 @@ msgstr "Replay available"
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
 msgstr "Replay time"
+
+#: src/features/under-the-hood/reason.ts
+msgid "request error"
+msgstr "request error"
+
+#: src/features/under-the-hood/reason.ts
+msgid "request validation failed"
+msgstr "request validation failed"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Response body"
@@ -1684,6 +1760,14 @@ msgstr "Send"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Sending…"
 msgstr "Sending…"
+
+#: src/features/under-the-hood/reason.ts
+msgid "server error"
+msgstr "server error"
+
+#: src/features/under-the-hood/reason.ts
+msgid "service not ready"
+msgstr "service not ready"
 
 #: src/features/compare/LineUp.tsx
 msgid "Shared timeline"
@@ -1939,6 +2023,10 @@ msgstr "Time"
 msgid "Time zone"
 msgstr "Time zone"
 
+#: src/features/under-the-hood/reason.ts
+msgid "timed out"
+msgstr "timed out"
+
 #: src/features/replay/StormReplay.tsx
 msgid "Timeline"
 msgstr "Timeline"
@@ -1946,6 +2034,14 @@ msgstr "Timeline"
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
 msgstr "Timeline table"
+
+#: src/features/under-the-hood/reason.ts
+msgid "too many live streams"
+msgstr "too many live streams"
+
+#: src/features/under-the-hood/reason.ts
+msgid "too many requests"
+msgstr "too many requests"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Too many requests from this address. Try again in {waitS} s."
@@ -2003,6 +2099,10 @@ msgstr "Typhoons that hit my town"
 msgid "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 msgstr "Typhoons that made landfall in, or passed close to, the Philippines and Japan."
 
+#: src/features/under-the-hood/reason.ts
+msgid "unknown backend"
+msgstr "unknown backend"
+
 #: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm"
 msgstr "Unnamed storm"
@@ -2014,6 +2114,10 @@ msgstr "Unnamed storm · {designation} · {month}"
 #: src/shared/ui/use-storm-name.ts
 msgid "Unnamed storm · {month}"
 msgstr "Unnamed storm · {month}"
+
+#: src/features/under-the-hood/reason.ts
+msgid "unsupported media type"
+msgstr "unsupported media type"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Value"
