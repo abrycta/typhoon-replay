@@ -383,6 +383,7 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "Before weather satellites: positions from ships, land stations and aircraft"
 
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "Best track"
 
@@ -1571,6 +1572,10 @@ msgstr "Season"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Send"
 msgstr "Send"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Sending…"
+msgstr "Sending…"
 
 #: src/features/compare/LineUp.tsx
 msgid "Shared timeline"
