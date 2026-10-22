@@ -1,7 +1,7 @@
 // Minimal SSE client over fetch: exposes raw frames (event, id, data, retry) and comment heartbeats,
 // which EventSource hides, so framing rules can be asserted.
 import { createParser, type EventSourceMessage } from 'eventsource-parser';
-import { BASE_URL, FORWARDED_PREFIX } from './env.ts';
+import { BASE_URL, EDGE_HEADERS, FORWARDED_PREFIX } from './env.ts';
 
 export interface Frame {
   event: string;
@@ -28,6 +28,7 @@ export async function openStream(opts: { lastEventId?: string; query?: string } 
     headers: {
       Accept: 'text/event-stream',
       'X-Forwarded-Prefix': FORWARDED_PREFIX,
+      ...EDGE_HEADERS,
       ...(opts.lastEventId ? { 'Last-Event-ID': opts.lastEventId } : {}),
     },
     signal: ac.signal,

@@ -1,4 +1,4 @@
-import { BASE_URL, FORWARDED_PREFIX } from './env.ts';
+import { BASE_URL, EDGE_HEADERS, FORWARDED_PREFIX } from './env.ts';
 
 export interface Res {
   status: number;
@@ -25,6 +25,7 @@ export async function call(path: string, req: Req = {}): Promise<Res> {
   const headers: Record<string, string> = {
     'Accept-Encoding': 'gzip',
     'X-Forwarded-Prefix': FORWARDED_PREFIX,
+    ...EDGE_HEADERS,
     ...(req.cookie ? { Cookie: req.cookie } : {}),
     ...(req.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...req.headers,

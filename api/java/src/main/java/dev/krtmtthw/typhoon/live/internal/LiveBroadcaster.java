@@ -30,6 +30,8 @@ import tools.jackson.databind.json.JsonMapper;
  *       client is connected: with no subscribers the thread ends, so no DB connection is held and Neon can suspend.
  *       LISTEN/NOTIFY is not available through the transaction-mode pooler.</li>
  *   <li>A {@code :} comment heartbeat goes to any stream that has been silent for 15 s.</li>
+ *   <li>One client address may hold at most {@code TR_MAX_STREAMS_PER_CLIENT} streams (429 {@code rate-limited}
+ *       above it), so a single client cannot fill every slot of the instance-wide cap.</li>
  * </ul>
  */
 @Component
@@ -45,6 +47,7 @@ public class LiveBroadcaster {
     private final LiveQueries live;
     private final JsonMapper json;
     private final int maxStreams;
+    private final int maxPerClient;
     private final Set<Subscriber> subscribers = ConcurrentHashMap.newKeySet();
     private final Object pollerLock = new Object();
     private boolean polling;
@@ -53,12 +56,17 @@ public class LiveBroadcaster {
         this.live = live;
         this.json = json;
         this.maxStreams = Math.max(50, props.maxStreams());
+        this.maxPerClient = props.maxStreamsPerClient();
     }
 
-    /** Opens a stream. {@code lastEventId} is null for a fresh client. */
-    public SseEmitter open(Long lastEventId) {
+    /** Opens a stream for {@code client} (its address). {@code lastEventId} is null for a fresh client. */
+    public SseEmitter open(Long lastEventId, String client) {
         if (subscribers.size() >= maxStreams) {
             throw new ApiException(ProblemType.STREAM_CAPACITY, "Too many live streams on this instance; retry shortly.",
+                    List.of(), Map.of("Retry-After", "10"));
+        }
+        if (maxPerClient > 0 && subscribers.stream().filter(s -> s.client.equals(client)).count() >= maxPerClient) {
+            throw new ApiException(ProblemType.RATE_LIMITED, "Too many live streams from this address; close one first.",
                     List.of(), Map.of("Retry-After", "10"));
         }
         // Decide snapshot vs resume before registering, so a failing database gives a problem response, not a broken stream.
@@ -66,7 +74,7 @@ public class LiveBroadcaster {
         LiveSnapshot snapshot = resume ? null : live.snapshot();
 
         SseEmitter emitter = new SseEmitter(STREAM_LIFETIME.toMillis());
-        Subscriber sub = new Subscriber(emitter);
+        Subscriber sub = new Subscriber(emitter, client);
         emitter.onCompletion(() -> subscribers.remove(sub));
         emitter.onTimeout(() -> {
             subscribers.remove(sub);
@@ -162,12 +170,14 @@ public class LiveBroadcaster {
     private final class Subscriber {
 
         final SseEmitter emitter;
+        final String client;
         volatile long lastSent;
         volatile long lastWrite = System.nanoTime();
         volatile boolean open = true;
 
-        Subscriber(SseEmitter emitter) {
+        Subscriber(SseEmitter emitter, String client) {
             this.emitter = emitter;
+            this.client = client;
         }
 
         void send(SseEmitter.SseEventBuilder event) {

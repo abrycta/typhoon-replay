@@ -63,8 +63,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.perMinute = props.rateLimitPerMinute();
         this.policy = "\"per-ip\";q=" + perMinute + ";w=" + WINDOW.toSeconds();
         this.problems = problems;
-        String secret = props.edgeSecret();
-        this.edgeSecret = secret == null || secret.isBlank() ? null : secret.trim().getBytes(StandardCharsets.UTF_8);
+        this.edgeSecret = props.edgeSecretBytes();
     }
 
     @Override
@@ -99,7 +98,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
      * The client address: the left-most {@code X-Forwarded-For} entry when the request carries the edge secret,
      * otherwise the connecting address. {@code CF-Connecting-IP} is never trusted here (see the class comment).
      */
-    static String clientIp(HttpServletRequest request, byte[] edgeSecret) {
+    public static String clientIp(HttpServletRequest request, byte[] edgeSecret) {
         if (fromEdge(request, edgeSecret)) {
             String xff = request.getHeader("X-Forwarded-For");
             if (xff != null && !xff.isBlank()) {
@@ -113,7 +112,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return request.getRemoteAddr();
     }
 
-    static boolean fromEdge(HttpServletRequest request, byte[] edgeSecret) {
+    public static boolean fromEdge(HttpServletRequest request, byte[] edgeSecret) {
         String sent = request.getHeader(EDGE_SECRET_HEADER);
         return edgeSecret != null && sent != null
                 && MessageDigest.isEqual(sent.trim().getBytes(StandardCharsets.UTF_8), edgeSecret);

@@ -33,6 +33,13 @@ export const TEST_HOOKS = process.env.TEST_HOOKS !== '0' && !IS_MOCK;
 export const NO_HOOKS_BASE_URL = process.env.NO_HOOKS_BASE_URL?.replace(/\/$/, '');
 /** Opt-in for the slow (25 s) heartbeat scenario. */
 export const SLOW = process.env.SLOW === '1';
+
+/**
+ * The edge proxy's secret, sent as X-Edge-Secret when set: deployed backends refuse /v1/* without it (TR_EDGE_SECRET),
+ * so the live checks (live.yml) pass it. Local and CI backends run without a secret.
+ */
+export const EDGE_SECRET = process.env.EDGE_SECRET?.trim() || undefined;
+export const EDGE_HEADERS: Record<string, string> = EDGE_SECRET ? { 'X-Edge-Secret': EDGE_SECRET } : {};
 /** Contract version the backend claims (impl.json); scenarios tagged newer are skipped as "not claimed". */
 export const CLAIMED_CONTRACT = process.env.CLAIMED_CONTRACT ?? '2.0.2';
 

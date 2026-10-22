@@ -1,5 +1,7 @@
 package dev.krtmtthw.typhoon.shared;
 
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -13,8 +15,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param commit            git commit of the build ({@code /v1/meta})
  * @param rateLimitPerMinute per-IP request budget; 0 disables the limiter
  * @param maxStreams        concurrent SSE streams before 503 {@code stream-capacity} (contract minimum 50)
+ * @param maxStreamsPerClient concurrent SSE streams one client address may hold before 429 {@code rate-limited};
+ *                          0 disables the per-client cap
  * @param edgeSecret        shared with the edge proxy ({@code X-Edge-Secret}); only requests carrying it have their
- *                          {@code X-Forwarded-For} trusted by the rate limiter. Blank: no request is trusted
+ *                          {@code X-Forwarded-For} trusted by the rate limiter, and when it is set {@code /v1/*}
+ *                          refuses requests without it ({@link dev.krtmtthw.typhoon.shared.web.EdgeSecretFilter}).
+ *                          Blank: no request is trusted and nothing is refused (local runs and CI)
  */
 @ConfigurationProperties(prefix = "tr")
 public record TrProperties(
@@ -25,11 +31,17 @@ public record TrProperties(
         String commit,
         int rateLimitPerMinute,
         int maxStreams,
+        int maxStreamsPerClient,
         String edgeSecret) {
 
     public TrProperties {
         if (siteOrigin != null && siteOrigin.endsWith("/")) {
             siteOrigin = siteOrigin.substring(0, siteOrigin.length() - 1);
         }
+    }
+
+    /** The edge secret as bytes, or null when it is not configured. */
+    public byte[] edgeSecretBytes() {
+        return edgeSecret == null || edgeSecret.isBlank() ? null : edgeSecret.trim().getBytes(StandardCharsets.UTF_8);
     }
 }

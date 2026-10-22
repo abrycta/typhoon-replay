@@ -63,20 +63,40 @@ func RateLimit(c *Ctx, limiter Limiter, edgeSecret string) *Problem {
 		Headers: map[string]string{"Retry-After": "60"}}
 }
 
-// ClientIP: behind the edge proxy (proved by X-Edge-Secret) the first X-Forwarded-For entry; otherwise the
-// connecting client as Render's Cloudflare front reports it (CF-Connecting-IP), else the socket address.
-func ClientIP(r *http.Request, edgeSecret string) string {
-	if edgeSecret != "" {
-		sent := strings.TrimSpace(r.Header.Get("X-Edge-Secret"))
-		if sent != "" && subtle.ConstantTimeCompare([]byte(sent), []byte(edgeSecret)) == 1 {
-			first, _, _ := strings.Cut(r.Header.Get("X-Forwarded-For"), ",")
-			if first = strings.TrimSpace(first); first != "" {
-				return first
-			}
-		}
+// FromEdge reports whether the request carries the edge proxy's secret (X-Edge-Secret, TR_EDGE_SECRET).
+func FromEdge(r *http.Request, edgeSecret string) bool {
+	if edgeSecret == "" {
+		return false
 	}
-	if ip := r.Header.Get("CF-Connecting-IP"); ip != "" {
-		return ip
+	sent := strings.TrimSpace(r.Header.Get("X-Edge-Secret"))
+	return sent != "" && subtle.ConstantTimeCompare([]byte(sent), []byte(edgeSecret)) == 1
+}
+
+var forbiddenBody = []byte(`{"type":"about:blank","title":"Forbidden","status":403,` +
+	`"detail":"Requests must come through the site's edge proxy."}`)
+
+// EdgeOnly: when TR_EDGE_SECRET is set, /v1/* answers only requests that carry it (the edge proxy adds it). A direct
+// call to the Render URL would skip the edge cache and its per-IP limit and spend Render's shared egress, so it gets a
+// small 403 and EdgeOnly returns false. /healthz and /readyz stay open; with no secret configured nothing is refused.
+func EdgeOnly(c *Ctx, edgeSecret string) bool {
+	if edgeSecret == "" || !strings.HasPrefix(c.Path, "/v1/") || FromEdge(c.R, edgeSecret) {
+		return true
+	}
+	h := c.standard("no-store")
+	h.Set("Content-Type", "application/problem+json")
+	c.write(http.StatusForbidden, forbiddenBody)
+	return false
+}
+
+// ClientIP: behind the edge proxy (proved by X-Edge-Secret) the first X-Forwarded-For entry; otherwise the socket
+// address. Client-sent X-Forwarded-For and CF-Connecting-IP are never trusted without the secret, so a direct caller
+// cannot pick its own bucket.
+func ClientIP(r *http.Request, edgeSecret string) string {
+	if FromEdge(r, edgeSecret) {
+		first, _, _ := strings.Cut(r.Header.Get("X-Forwarded-For"), ",")
+		if first = strings.TrimSpace(first); first != "" {
+			return first
+		}
 	}
 	return r.RemoteAddr
 }

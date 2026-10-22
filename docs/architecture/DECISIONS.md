@@ -73,7 +73,9 @@ origin's requests through the binding (`edge/src/proxy.ts`, `upstreamFetch`): no
 backend.
 
 **Worker conventions** (Node, Rust): name `replay-api-{impl}` on `https://replay-api-{impl}.krtmtthw.workers.dev`;
-secrets `DATABASE_URL` (Neon pooled URL) and `TR_EDGE_SECRET` set with `wrangler secret put`, never in files;
+secrets `DATABASE_URL` (Neon pooled URL) and `TR_EDGE_SECRET` set with `wrangler secret put`, never in files
+(update 2026-10-23: every backend, Workers and Render alike, answers `/v1/*` only with a matching `X-Edge-Secret`;
+the probes stay open, and the live checks send the repo secret `TR_EDGE_SECRET`);
 vars `TR_SITE_ORIGIN`, `TR_TEST_HOOKS` ("0" in production), `TR_RATE_LIMIT_PER_MINUTE`, `TR_COMMIT`; optional
 `NEON_HTTP_URL` for local runs; a rate limiting binding `RATE_LIMITER` (free; namespace ids 1002 node, 1003 rust);
 Workers Logs on. Check CPU per request after deploying (Workers analytics `cpuTimeP50`): the free plan allows 10 ms.

@@ -2,7 +2,8 @@
 # public URL (not the edge, so the edge cache and its per-IP limit stay out of the way).
 #   - after each deploy: java.yml, go.yml and node.yml call this workflow for their backend (workflow_call);
 #   - weekly, and on demand: every backend listed in BACKEND_ORIGINS (wrangler.jsonc).
-# One short run per backend (about 40 requests). It wakes a sleeping Render service for one sleep period (15 min).
+# Deployed backends refuse /v1/* without the edge secret, so the run sends it (repo secret TR_EDGE_SECRET, the same
+# value as the Pages EDGE_SECRET and each backend's TR_EDGE_SECRET). One short run per backend (about 40 requests). It wakes a sleeping Render service for one sleep period (15 min).
 # A failure opens (or comments on) an issue "Live check failed: {impl}".
 #
 # Excluded on purpose: tests/storms.test.ts and tests/places.test.ts assert golden answers from the fixture database
@@ -27,6 +28,9 @@ on:
       impl:
         type: string
         required: true
+    secrets:
+      TR_EDGE_SECRET:
+        required: false
 
 permissions:
   contents: read
@@ -97,6 +101,7 @@ jobs:
           TEST_HOOKS: "0"
           NO_HOOKS_BASE_URL: ${{ matrix.url }}
           SITE_ORIGIN: https://replay.krtmtthw.dev
+          EDGE_SECRET: ${{ secrets.TR_EDGE_SECRET }}
         run: |
           npm ci
           npm run bundle

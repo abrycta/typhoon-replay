@@ -1,7 +1,8 @@
 # Replay API: Node backend
 
 The contract (`contracts/`, 2.0.2) in TypeScript, run as the Cloudflare Worker `replay-api-node` on the free plan.
-Live at `https://replay-api-node.krtmtthw.workers.dev`, and behind the site at `https://replay.krtmtthw.dev/api/node/`
+Deployed at `https://replay-api-node.krtmtthw.workers.dev` (with `TR_EDGE_SECRET` set, `/v1/*` there answers only
+requests carrying the edge's `X-Edge-Secret`; the probes stay open), and behind the site at `https://replay.krtmtthw.dev/api/node/`
 (the edge proxy reaches it through the `API_NODE` service binding). See [`impl.json`](impl.json).
 
 ## Stack, and why it is not the researched one

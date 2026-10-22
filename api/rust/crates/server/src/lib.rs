@@ -110,8 +110,13 @@ async fn fetch(req: HttpRequest, env: Env, _cx: Context) -> worker::Result<worke
     let neon_http = var(&env, "NEON_HTTP_URL");
     let db = neon::Neon::new(&var(&env, "DATABASE_URL"), Some(neon_http.as_str()));
 
-    let res = match rate_limit(&env, &cfg, &ctx, &parts.headers).await {
-        Some(problem) => problem.into_response(),
+    let limited = match edge_allowed(&cfg, &ctx, &parts.headers) {
+        false => Some(Err(forbidden())),
+        true => rate_limit(&env, &cfg, &ctx, &parts.headers).await.map(Ok),
+    };
+    let res = match limited {
+        Some(Err(refused)) => refused,
+        Some(Ok(problem)) => problem.into_response(),
         None => {
             let app = Arc::new(App::new(cfg, db, started_at()));
             parts.extensions.insert(ctx.clone());
@@ -145,13 +150,42 @@ async fn rate_limit(env: &Env, cfg: &Config, ctx: &Ctx, headers: &http::HeaderMa
     })
 }
 
+/// Whether the request carries the edge proxy's secret (`X-Edge-Secret` = `TR_EDGE_SECRET`).
+fn from_edge(cfg: &Config, headers: &http::HeaderMap) -> bool {
+    let secret = cfg.edge_secret.trim();
+    let sent = headers
+        .get("x-edge-secret")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .trim();
+    !secret.is_empty() && constant_time_eq(sent.as_bytes(), secret.as_bytes())
+}
+
+/// When `TR_EDGE_SECRET` is set, `/v1/*` answers only requests that carry it (the edge proxy adds it; it reaches this
+/// Worker through a service binding). A direct call to the public workers.dev URL would skip the edge cache and query
+/// Neon, so it gets a small 403. `/healthz` and `/readyz` stay open; with no secret configured nothing is refused.
+fn edge_allowed(cfg: &Config, ctx: &Ctx, headers: &http::HeaderMap) -> bool {
+    cfg.edge_secret.trim().is_empty() || !ctx.path.starts_with("/v1/") || from_edge(cfg, headers)
+}
+
+fn forbidden() -> Response {
+    let body = r#"{"type":"about:blank","title":"Forbidden","status":403,"detail":"Requests must come through the site's edge proxy."}"#;
+    let mut res = Response::new(Body::from(body));
+    *res.status_mut() = StatusCode::FORBIDDEN;
+    res.headers_mut().insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("application/problem+json"),
+    );
+    res.headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    res
+}
+
 /// Behind the edge proxy (proved by `X-Edge-Secret`) the first `X-Forwarded-For` entry; otherwise the connecting
 /// client as Cloudflare reports it.
 fn client_ip(cfg: &Config, headers: &http::HeaderMap) -> String {
     let get = |n: &str| headers.get(n).and_then(|v| v.to_str().ok()).unwrap_or("").trim();
-    let sent = get("x-edge-secret");
-    if !cfg.edge_secret.is_empty()
-        && constant_time_eq(sent.as_bytes(), cfg.edge_secret.as_bytes())
+    if from_edge(cfg, headers)
         && let Some(first) = get("x-forwarded-for")
             .split(',')
             .next()

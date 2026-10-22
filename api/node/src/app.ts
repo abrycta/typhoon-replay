@@ -10,7 +10,7 @@ import type { Env } from './platform/env';
 import { fail, log, Rq, send } from './platform/http';
 import { NeonError } from './platform/neon';
 import { missing, Problem } from './platform/problem';
-import { rateLimit } from './platform/ratelimit';
+import { edgeOnly, rateLimit } from './platform/ratelimit';
 
 type Handler = (rq: Rq, path: Record<string, string>) => Promise<Response>;
 
@@ -41,8 +41,11 @@ app.use('*', async (c, next) => {
   markStarted();
   const rq = new Rq(c.req.raw, c.env);
   c.set('rq', rq);
-  const limited = await rateLimit(rq);
-  if (limited) {
+  const refused = edgeOnly(rq);
+  const limited = refused ? undefined : await rateLimit(rq);
+  if (refused) {
+    c.res = refused;
+  } else if (limited) {
     c.res = fail(rq, limited);
   } else {
     await next();
