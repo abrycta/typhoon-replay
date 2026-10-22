@@ -10,7 +10,7 @@
 //
 // Preload hints (audit 2026-10-22, finding 1): the home and storm shells name the files the replay needs before
 // the app asks for them, so they download while the entry chunk runs instead of one after another: the route's
-// chunks and the map chunk (Vite's manifest, dist/.vite/manifest.json, deleted afterwards), and the storm's
+// chunks (Vite's manifest, dist/.vite/manifest.json, deleted afterwards), and the storm's
 // summary.json and track.json at the data version the app starts with (the bundled copy, scripts/bundle-data.mjs,
 // when the storm is bundled). If the live version has moved on, the app simply doesn't use them.
 //
@@ -121,10 +121,12 @@ function chunkHints(keys) {
     ...[...css].map((f) => `<link rel="preload" as="style" crossorigin href="/${f}" />`),
   ];
 }
-const MAP = "src/features/replay/map/ReplayMap.tsx";
-const homeChunks = chunkHints(["src/routes/index.tsx?tsr-split=component", MAP]);
-const stormChunks = chunkHints(["src/routes/storm.$sid.tsx?tsr-split=component", MAP]);
-if (!homeChunks.length || !stormChunks.length) console.warn("stamp-shells: no Vite manifest entries for the route or map chunks; no chunk preloads");
+// The map chunk (MapLibre, ~290 KB on the wire) is left to the route loader, which asks for it as soon as the
+// router runs: preloaded from the HTML it shared a slow link with the entry chunk and delayed the first render by
+// about a second on a Slow 4G phone (measured on the PR preview).
+const homeChunks = chunkHints(["src/routes/index.tsx?tsr-split=component"]);
+const stormChunks = chunkHints(["src/routes/storm.$sid.tsx?tsr-split=component"]);
+if (!homeChunks.length || !stormChunks.length) console.warn("stamp-shells: no Vite manifest entries for the route chunks; no chunk preloads");
 
 // The data version the app starts with: the bundled one (dist/config.json data.bundle), else whatever the pointer
 // names (no data preloads then: the app reads the pointer first anyway).
