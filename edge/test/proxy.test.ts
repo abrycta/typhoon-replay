@@ -212,17 +212,31 @@ describe("edge cache", () => {
     expect(h.calls).toHaveLength(1);
   });
 
-  it("keys on Vary-relevant headers", async () => {
-    h.setOrigin((req) => json({ lang: req.headers.get("Accept-Language") }, { headers: { ...CATALOGUE, Vary: "Accept-Encoding, Accept-Language" } }));
-    const en = await h.call("/api/java/v1/storms", { headers: { "Accept-Language": "en" } });
-    await en.settle();
-    const ja = await h.call("/api/java/v1/storms", { headers: { "Accept-Language": "ja" } });
-    expect(ja.res.headers.get("X-Edge-Cache")).toBe("MISS");
-    expect(await ja.res.json()).toEqual({ lang: "ja" });
-    await ja.settle();
-    const en2 = await h.call("/api/java/v1/storms", { headers: { "Accept-Language": "en" } });
-    expect(en2.res.headers.get("X-Edge-Cache")).toBe("HIT");
-    expect(await en2.res.json()).toEqual({ lang: "en" });
+  it("shares one entry across browser languages (no backend varies on Accept-Language)", async () => {
+    h.setOrigin(() => json({ n: h.calls.length }, { headers: { ...CATALOGUE, Vary: "Accept-Encoding" } }));
+    const gb = await h.call("/api/java/v1/storms", { headers: { "Accept-Language": "en-GB,en;q=0.9" } });
+    expect(gb.res.headers.get("X-Edge-Cache")).toBe("MISS");
+    await gb.settle();
+    for (const lang of ["en-US,en;q=0.9,ja;q=0.8", "ja", undefined]) {
+      const r = await h.call("/api/java/v1/storms", { headers: lang ? { "Accept-Language": lang } : {} });
+      expect(r.res.headers.get("X-Edge-Cache")).toBe("HIT");
+      expect(await r.res.json()).toEqual({ n: 1 });
+    }
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("keys on a normalised Accept: spacing, case and an absent header share an entry", async () => {
+    h.setOrigin(() => json({ n: h.calls.length }, { headers: { ...CATALOGUE, Vary: "Accept-Encoding, Accept" } }));
+    const a = await h.call("/api/java/v1/storms", { headers: { Accept: "application/json, */*" } });
+    await a.settle();
+    const b = await h.call("/api/java/v1/storms", { headers: { Accept: "Application/JSON,*/*" } });
+    expect(b.res.headers.get("X-Edge-Cache")).toBe("HIT");
+    const any = await h.call("/api/java/v1/storms", { headers: { Accept: "*/*" } });
+    expect(any.res.headers.get("X-Edge-Cache")).toBe("MISS");
+    await any.settle();
+    const none = await h.call("/api/java/v1/storms");
+    expect(none.res.headers.get("X-Edge-Cache")).toBe("HIT");
+    expect(h.calls).toHaveLength(2);
   });
 
   it("answers 304 at the edge for a matching If-None-Match on a hit", async () => {
@@ -296,6 +310,7 @@ describe("edge cache", () => {
     ["no-store", { "Cache-Control": "no-store" }],
     ["Set-Cookie", { "Cache-Control": "public, max-age=300", "Set-Cookie": "a=b" }],
     ["Vary: Cookie", { "Cache-Control": "public, max-age=300", Vary: "Accept-Encoding, Cookie" }],
+    ["Vary: Accept-Language", { "Cache-Control": "public, max-age=300", Vary: "Accept-Encoding, Accept-Language" }],
     ["no max-age", { "Cache-Control": "public" }],
   ])("never stores a response with %s", async (_name, headers) => {
     h.setOrigin(() => json({ n: h.calls.length }, { headers }));

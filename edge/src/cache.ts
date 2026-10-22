@@ -40,8 +40,12 @@ export function parseCacheControl(value: string | null): Directives {
   return d;
 }
 
-/** Request headers a cached variant may depend on. A response that Varies on anything else is not stored. */
-const KEY_HEADERS = ["accept", "accept-language"];
+/**
+ * Request headers a cached variant may depend on. A response that Varies on anything else is not stored.
+ * Accept-Language is deliberately not one: no backend varies on it (they all answer `Vary: Accept-Encoding`), and
+ * keying on it split the cache per browser language string, so each one paid its own misses and cold starts.
+ */
+const KEY_HEADERS = ["accept"];
 const VARY_ALLOWED = new Set(["accept-encoding", ...KEY_HEADERS]);
 const STORABLE_STATUS = new Set([200, 203, 404, 410]);
 /**
@@ -55,8 +59,9 @@ export const NEGATIVE_MAX_AGE_S = 60;
  * has no purge-all of its own): do so when entries stored under older rules must not be served again.
  * 2: 2026-10-21, after stale 404s and a datasetVersion-0 /v1/meta outlived a dataset publish.
  * 3: 2026-10-21, entries are stored decoded (no Content-Encoding) since the proxy asks the origin for gzip.
+ * 4: 2026-10-22, the key no longer includes Accept-Language and normalises Accept.
  */
-export const KEY_VERSION = "3";
+export const KEY_VERSION = "4";
 
 /**
  * Dataset pin. A catalogue representation changes only with the dataset version: its ETag is `W/"d{n}-{resourceKey}"`,
@@ -115,15 +120,24 @@ function fnv1a(s: string): string {
 }
 
 /**
+ * A key header's value in canonical form: lower case, no whitespace, and an absent Accept read as the "any type"
+ * default it stands for, so spacing or letter case in a client's Accept never splits an entry.
+ */
+function normaliseKeyHeader(name: string, value: string | null): string {
+  const v = (value ?? "").replace(/\s+/g, "").toLowerCase();
+  return name === "accept" && v === "" ? "*/*" : v;
+}
+
+/**
  * The cache key: the full request URL with its query sorted (so `?b=1&a=2` and `?a=2&b=1` share an entry), plus a
- * hash of the Vary-relevant request headers. Built as a fresh GET with no headers, so conditional request headers
+ * hash of the normalised Vary-relevant request headers. Built as a fresh GET with no headers, so conditional request headers
  * never make the Cache API answer 304 on our behalf.
  */
 export function cacheKey(request: Request): Request {
   const url = new URL(request.url);
   const pairs = [...url.searchParams].sort(([a, av], [b, bv]) => (a < b ? -1 : a > b ? 1 : av < bv ? -1 : av > bv ? 1 : 0));
   const q = new URLSearchParams(pairs);
-  const variant = KEY_HEADERS.map((h) => (request.headers.get(h) ?? "").trim().toLowerCase()).join("\n");
+  const variant = KEY_HEADERS.map((h) => normaliseKeyHeader(h, request.headers.get(h))).join("\n");
   q.append("__edge_v", `${KEY_VERSION}.${fnv1a(variant)}`);
   url.search = q.toString();
   url.hash = "";
