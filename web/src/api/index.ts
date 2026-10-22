@@ -3,7 +3,7 @@
 import { type ApiResult, sendRequest } from "./request";
 
 export { bodyKey, type MatchState, matchStates, normaliseBody } from "./compare";
-export { type ApiPath, type ApiResult, classify, type ContractPath, type ResultKind, sendRequest, type SendOptions } from "./request";
+export { type ApiPath, type ApiResult, classify, type ContractPath, REQUEST_TIMEOUT_MS, type ResultKind, sendRequest, type SendOptions, TIMEOUT_DETAIL } from "./request";
 export { NETWORK_RETRIES, retryDecision, type RetryDecision, sendUntilAwake, WAKE_CAP_MS, type WakeOutcome, type WakeProgress } from "./wake";
 
 /** One GET /healthz at low priority, started when the browser is idle: wakes a sleeping backend early. */

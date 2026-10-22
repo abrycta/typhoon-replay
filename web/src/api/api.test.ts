@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { bodyKey, matchStates, normaliseBody } from "./compare";
-import { type ApiResult, classify, sendRequest } from "./request";
+import { type ApiResult, classify, REQUEST_TIMEOUT_MS, sendRequest, TIMEOUT_DETAIL } from "./request";
 import { NETWORK_RETRIES, retryDecision, sendUntilAwake, WAKE_CAP_MS } from "./wake";
 
 const res = (kind: ApiResult["kind"], extra: Partial<ApiResult> = {}): ApiResult => ({ kind, method: "GET", url: "/api/x/v1/meta", status: kind === "ok" ? 200 : 503, ms: 5, ...extra });
@@ -162,5 +162,72 @@ describe("response classification", () => {
     const o = await sendUntilAwake(() => (calls++, sendRequest("/api/java", "/v1/meta", { fetchImpl: f })), { sleep: async () => {} });
     expect(calls).toBe(1);
     expect(o).toMatchObject({ outcome: "rate-limited", woke: false, last: { kind: "rate-limited", status: 429, retryAfterS: 12 } });
+  });
+
+  it("sendRequest times out a stalled connection instead of waiting forever", async () => {
+    // A fetch that never answers, like a stalled mobile hand-off: it settles only when aborted.
+    const stalled = ((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal?.reason)))) as typeof fetch;
+    const r = await sendRequest("/api/go", "/v1/meta", { fetchImpl: stalled, timeoutMs: 20 });
+    expect(r).toMatchObject({ kind: "error", status: 0, detail: TIMEOUT_DETAIL, timedOut: true });
+    expect(REQUEST_TIMEOUT_MS).toBe(15_000);
+    // The caller's own abort still throws (a newer run or leaving the page), not a timeout result.
+    const c = new AbortController();
+    const p = sendRequest("/api/go", "/v1/meta", { fetchImpl: stalled, signal: c.signal });
+    c.abort();
+    await expect(p).rejects.toBeDefined();
+  });
+
+  it("sendUntilAwake bounds each attempt by the time left before the cap", async () => {
+    let clock = 0;
+    const deadlines: number[] = [];
+    const waking: ApiResult = { kind: "waking", method: "GET", url: "/x", status: 503, ms: 5, retryAfterS: 7 };
+    const timedOut: ApiResult = { kind: "error", method: "GET", url: "/x", status: 0, ms: 0, detail: TIMEOUT_DETAIL, timedOut: true };
+    // Waking answers until the backend's connection stalls near the cap; the stalled attempt ends at its deadline.
+    const o = await sendUntilAwake(
+      async ({ timeoutMs }) => {
+        deadlines.push(timeoutMs);
+        if (clock < 170_000) return waking;
+        clock += timeoutMs;
+        return timedOut;
+      },
+      { now: () => clock, sleep: async (ms) => void (clock += ms) },
+    );
+    expect(deadlines[0]).toBe(REQUEST_TIMEOUT_MS);
+    // Retry-After 7 s: the attempt at 175 s gets only the 5 s left, not the full 15 s.
+    expect(deadlines.at(-1)).toBe(5_000);
+    expect(o).toMatchObject({ outcome: "error", woke: true, reason: "did not wake up in time" });
+    expect(clock).toBe(WAKE_CAP_MS);
+    // A connection that keeps stalling is retried like a dropped one, then reported as a timeout, not a failed wake-up.
+    const sleeps: number[] = [];
+    const first = await sendUntilAwake(async () => timedOut, { now: () => 0, sleep: async (ms) => void sleeps.push(ms) });
+    expect(first).toMatchObject({ outcome: "error", woke: false, attempts: 1 + NETWORK_RETRIES, reason: TIMEOUT_DETAIL });
+    expect(sleeps).toEqual([1000, 2000]);
+  });
+
+  it("a timed-out attempt counts as a dropped connection: retried with a fresh deadline, not a wake-up", async () => {
+    const timedOut: ApiResult = { kind: "error", method: "GET", url: "/x", status: 0, ms: 0, detail: TIMEOUT_DETAIL, timedOut: true };
+    let clock = 0;
+    const deadlines: number[] = [];
+    const progress: (number | undefined)[] = [];
+    const o = await sendUntilAwake(
+      async ({ timeoutMs }) => {
+        deadlines.push(timeoutMs);
+        if (deadlines.length === 1) {
+          clock += timeoutMs;
+          return timedOut;
+        }
+        return res("ok", { status: 200 });
+      },
+      { now: () => clock, sleep: async (ms) => void (clock += ms), onProgress: (p) => progress.push(p.networkRetry) },
+    );
+    expect(o).toMatchObject({ outcome: "ok", woke: false, attempts: 2 });
+    expect(deadlines).toEqual([REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS]);
+    expect(progress).toEqual([1]);
+    // Timeouts and dropped connections share one retry budget.
+    const net = res("error", { status: 0, detail: "Failed to fetch" });
+    let n = 0;
+    const mixed = await sendUntilAwake(async () => (n++ % 2 ? net : timedOut), { now: () => 0, sleep: async () => {} });
+    expect(mixed).toMatchObject({ outcome: "error", attempts: 1 + NETWORK_RETRIES, reason: TIMEOUT_DETAIL });
   });
 });

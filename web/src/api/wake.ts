@@ -1,10 +1,12 @@
 // Waiting for a sleeping backend. Render's free services (Java, Go) sleep after 15 minutes idle; their measured wake time is
 // the coldStartS figure in conformance.json (the Tech page's cold-start row). The edge answers 503 `backend-waking`
 // with Retry-After meanwhile (edge/README.md, "Cold starts").
-import type { ApiResult } from "./request";
+import { type ApiResult, REQUEST_TIMEOUT_MS } from "./request";
 
 /** How long to keep waking a backend before giving up (a cold start is ~60-100 s; leave headroom). */
 export const WAKE_CAP_MS = 3 * 60_000;
+/** Shortest deadline an attempt is given, even right at the cap. */
+const MIN_ATTEMPT_MS = 2000;
 const MIN_DELAY_MS = 1000;
 const MAX_DELAY_MS = 20_000;
 /** How many times a network failure (no HTTP answer at all) is retried, after 1 s and then 2 s. */
@@ -77,20 +79,30 @@ const defaultSleep = (ms: number, signal?: AbortSignal) =>
     );
   });
 
-/** Send until the backend answers, is known not to be deployed, fails, or the cap is reached. */
+/**
+ * Send until the backend answers, is known not to be deployed, fails, or the cap is reached. Each attempt gets
+ * `timeoutMs`: the per-request deadline, shortened to the time left before the cap, so a stalled connection
+ * cannot hold a lane past the cap. A timed-out attempt counts as a dropped connection: it is retried like any
+ * network failure (NETWORK_RETRIES in all, 1 s then 2 s), each retry with a fresh deadline. It ends the wait as
+ * "did not wake up in time" when it ran into the cap while waking, else, once retries are spent, as "timed out".
+ */
 export async function sendUntilAwake(
-  send: () => Promise<ApiResult>,
-  opts: { signal?: AbortSignal; capMs?: number; onProgress?: (p: WakeProgress) => void; sleep?: typeof defaultSleep; now?: () => number } = {},
+  send: (attempt: { timeoutMs: number }) => Promise<ApiResult>,
+  opts: { signal?: AbortSignal; capMs?: number; onProgress?: (p: WakeProgress) => void; sleep?: typeof defaultSleep; now?: () => number; requestTimeoutMs?: number } = {},
 ): Promise<WakeOutcome> {
   const now = opts.now ?? (() => performance.now());
   const sleep = opts.sleep ?? defaultSleep;
+  const capMs = opts.capMs ?? WAKE_CAP_MS;
   const t0 = now();
   let woke = false;
   let networkRetries = 0;
   for (let attempt = 0; ; attempt++) {
-    const last = await send();
+    const timeoutMs = Math.min(opts.requestTimeoutMs ?? REQUEST_TIMEOUT_MS, Math.max(capMs - (now() - t0), MIN_ATTEMPT_MS));
+    const last = await send({ timeoutMs });
     const elapsedMs = now() - t0;
-    const d = retryDecision(last, elapsedMs, attempt, opts.capMs, networkRetries);
+    if (last.timedOut && woke && elapsedMs >= capMs - MIN_ATTEMPT_MS)
+      return { outcome: "error", last, totalMs: Math.round(elapsedMs), attempts: attempt + 1, woke, reason: "did not wake up in time" };
+    const d = retryDecision(last, elapsedMs, attempt, capMs, networkRetries);
     if (d.action === "done") return { outcome: "ok", last, totalMs: Math.round(elapsedMs), attempts: attempt + 1, woke };
     if (d.action === "stop") return { outcome: d.outcome, last, totalMs: Math.round(elapsedMs), attempts: attempt + 1, woke, reason: d.reason };
     if (d.network) networkRetries++;

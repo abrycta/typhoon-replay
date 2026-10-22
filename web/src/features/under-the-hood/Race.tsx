@@ -2,7 +2,7 @@ import { Button, Label, NativeSelect, NativeSelectOption } from "@abrycta/akari/
 import { useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 
-import { type MatchState, NETWORK_RETRIES } from "@/api";
+import { type MatchState, NETWORK_RETRIES, REQUEST_TIMEOUT_MS, TIMEOUT_DETAIL } from "@/api";
 import type { BackendId } from "@/shared/config/config";
 
 import { CONFORMANCE, QUESTIONS, type QuestionId } from "./catalogue";
@@ -11,6 +11,9 @@ import { useReasonText } from "./reason";
 import { ResultTable } from "./ResultTable";
 import type { LaneState, LaneStatus, useRace } from "./use-race";
 import { typicalWakeMs, useWakeCopy } from "./wake-copy";
+
+/** The per-request deadline in seconds, for the "did not answer" notes. */
+const timeoutS = REQUEST_TIMEOUT_MS / 1000;
 
 /** Re-render every `ms` while `active` (the live elapsed time of waiting lanes). */
 function useTick(active: boolean, ms = 500) {
@@ -84,6 +87,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
           : lane.status === "error"
             ? lane.reason === "did not wake up in time"
               ? t`${label} did not wake up within 3 minutes.`
+              : lane.reason === TIMEOUT_DETAIL
+                ? t`${label} did not answer within ${timeoutS} seconds; the connection may have stalled.`
               : lane.httpStatus
                 ? t`${label} answered HTTP ${lane.httpStatus} (${reason}) in ${formatMs(lane.totalMs ?? 0)}.`
                 : t`${label} did not answer (${reason}).`
