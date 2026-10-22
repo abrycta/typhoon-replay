@@ -36,6 +36,15 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@abrycta"
 
+      # `playwright install --with-deps` runs apt-get update. The runner image's packages.microsoft.com source
+      # (not needed here) has been answering 403 or hanging, which failed or timed out CI on main; drop it and
+      # bound apt's network waits so a slow mirror fails fast instead of eating the job's 15 minutes.
+      - name: Keep apt fast and reliable
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
+            sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
+
       - name: Install, check, build, size guard
         run: bash scripts/ci.sh --clean
         env:
