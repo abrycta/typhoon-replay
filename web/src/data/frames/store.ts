@@ -32,6 +32,8 @@ export class FrameStore {
   private raw: (Uint8Array | undefined)[] = [];
   private uvs: (Uint8Array | undefined)[] = [];
   private exact?: { header: TyfHeader; byHour: Map<number, number>; raw: Uint8Array };
+  /** Drawable layers whose codes are not in yet (WebP loads the layer on show first). */
+  private missing: ReadonlySet<string> = new Set();
   private listeners = new Set<() => void>();
   private worker?: Worker;
   private api?: Comlink.Remote<DecodeWorkerApi>;
@@ -40,13 +42,14 @@ export class FrameStore {
   /** Bumped on every change; lets the map layer know when to re-upload. */
   version = 0;
 
-  static open(source: FrameSource, focus = 0): FrameStore {
+  /** `first`: the layer on show, loaded before the others. */
+  static open(source: FrameSource, focus = 0, first?: string): FrameStore {
     const store = new FrameStore();
-    store.start(source, focus);
+    store.start(source, focus, first);
     return store;
   }
 
-  private start(source: FrameSource, focus: number) {
+  private start(source: FrameSource, focus: number, first?: string) {
     // WebP geometry comes with the summary: publish it now, so the timeline does not wait for the worker.
     if (source.kind === "webp") this.update({ header: source.header, strategy: "webp" });
     this.worker = new Worker(new URL("./decode.worker.ts", import.meta.url), { type: "module", name: "frame-decode" });
@@ -57,15 +60,15 @@ export class FrameStore {
       void this.api?.pageExit(leaving);
       if (!leaving && this.interrupted) {
         this.interrupted = false;
-        this.load(source, focus);
+        this.load(source, focus, first);
       }
     });
-    this.load(source, focus);
+    this.load(source, focus, first);
   }
 
   private interrupted = false;
 
-  private load(source: FrameSource, focus: number) {
+  private load(source: FrameSource, focus: number, first?: string) {
     const sink: FrameSink = {
       header: (header, strategy, totalBytes) => {
         // A WebP storm that fell back to its .tyf: another frame layout, so drop anything stored.
@@ -77,7 +80,7 @@ export class FrameStore {
       exact: (b) => this.addExact(b),
     };
     this.api
-      ?.open(source, Comlink.proxy(sink), { focus })
+      ?.open(source, Comlink.proxy(sink), { focus, first })
       .then(() => this.update({ done: true }))
       .catch((e: unknown) => {
         if (isLeavingPage()) this.interrupted = true;
@@ -105,6 +108,8 @@ export class FrameStore {
       this.raw[k] = b.raw.subarray(i * fb, (i + 1) * fb);
       this.uvs[k] = b.uv.subarray(i * uvb, (i + 1) * uvb);
     }
+    // WebP batches cover every frame, so the latest one says which layers are still to come.
+    this.missing = new Set(b.missing ?? []);
     this.update({ loadedFrames: this.snap.loadedFrames + added });
   }
 
@@ -117,6 +122,7 @@ export class FrameStore {
     this.raw = [];
     this.uvs = [];
     this.exact = undefined;
+    this.missing = new Set();
     this.snap = { loadedFrames: 0, loadedBytes: 0, done: false };
   }
 
@@ -134,6 +140,10 @@ export class FrameStore {
   }
   has(i: number): boolean {
     return this.raw[i] !== undefined;
+  }
+  /** Frame i is in and holds `layer` (a drawable variable; "none" needs only the frame). */
+  ready(i: number, layer: string): boolean {
+    return this.has(i) && !this.missing.has(layer);
   }
   /** Lossless readout codes at hour i, when i is one of the exact grid's (3-hourly) hours. */
   exactAt(i: number): ExactAt | undefined {
