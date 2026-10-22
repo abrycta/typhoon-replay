@@ -4,6 +4,8 @@
 //   dist/storm/<sid>.html   copy of index.html with the storm's <title>, description, canonical, Open Graph
 //                           and Twitter tags plus a <noscript> summary (social crawlers don't run JS).
 //                           Cloudflare Pages serves /storm/<sid> from storm/<sid>.html without a redirect.
+//   dist/<page>.html        the same for /storms, /compare, /town, /about and /under-the-hood, so each page's
+//                           canonical names itself (index.html, the SPA fallback, names the home page)
 //   dist/sitemap.xml, dist/robots.txt
 //
 // The index comes from the published dataset when reachable (config.json data.baseUrl + pointer), else from
@@ -97,6 +99,11 @@ const home = {
   image: `${site}/og-card.png`,
 };
 writeFileSync(join(dist, "index.html"), stamp(template, headTags(home), "Replay needs JavaScript for the interactive replay."));
+// The app's other pages get their own shell (Pages serves /about from about.html) so each names its own canonical
+// URL; index.html stays the SPA fallback for everything else.
+for (const page of ["storms", "compare", "town", "about", "under-the-hood"]) {
+  writeFileSync(join(dist, `${page}.html`), stamp(template, headTags({ ...home, url: `${site}/${page}` }), home.text));
+}
 
 mkdirSync(join(dist, "storm"), { recursive: true });
 for (const s of storms) {
@@ -114,5 +121,11 @@ writeFileSync(
     .map((u) => `  <url><loc>${esc(site + u)}</loc><lastmod>${today}</lastmod></url>`)
     .join("\n")}\n</urlset>\n`,
 );
-writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${site}/sitemap.xml\n`);
+// AI training and answer-engine crawlers are kept off the whole app (same list as krtmtthw.dev, Lights and Plumes).
+const aiCrawlers = ["GPTBot", "ClaudeBot", "anthropic-ai", "CCBot", "Google-Extended", "Applebot-Extended", "PerplexityBot", "Bytespider",
+  "meta-externalagent", "Amazonbot", "cohere-ai", "Diffbot", "Omgilibot", "Timpibot", "ImagesiftBot"];
+writeFileSync(
+  join(dist, "robots.txt"),
+  `User-agent: *\nAllow: /\nDisallow: /api/\n\n${aiCrawlers.map((ua) => `User-agent: ${ua}\n`).join("")}Disallow: /\n\nSitemap: ${site}/sitemap.xml\n`,
+);
 console.log(`stamp-shells: ${storms.length} storm shells + sitemap (${urls.length} URLs) from the ${source} index, site ${site}`);

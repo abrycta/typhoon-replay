@@ -1,0 +1,40 @@
+# Dependency updates (Dependabot). Version updates: weekly, one grouped PR per ecosystem, at most 2 open.
+# Security updates are separate and immediate (repo setting: Dependabot security updates).
+# Majors of react, react-dom, astro, vite and maplibre-gl, and @abrycta/* (Akari, portfolio rule 23),
+# are upgraded by hand.
+version: 2
+registries:
+  # @abrycta/akari comes from GitHub Packages. Dependabot secret DEPENDABOT_PACKAGES_TOKEN: a classic
+  # personal access token with read:packages only.
+  github-packages:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{secrets.DEPENDABOT_PACKAGES_TOKEN}}
+updates:
+  - package-ecosystem: npm
+    directories: ["/", "/web", "/api/node", "/api/rust", "/contracts"]
+    registries: [github-packages]
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 2
+    groups:
+      npm:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "@abrycta/*"
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: astro
+        update-types: ["version-update:semver-major"]
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
+      - dependency-name: maplibre-gl
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 2
+    groups:
+      github-actions:
+        patterns: ["*"]

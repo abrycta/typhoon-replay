@@ -57,3 +57,17 @@
   Cache-Control: public, max-age=0, must-revalidate
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
+/storms
+  Cache-Control: public, max-age=0, must-revalidate
+/compare
+  Cache-Control: public, max-age=0, must-revalidate
+/town
+  Cache-Control: public, max-age=0, must-revalidate
+/about
+  Cache-Control: public, max-age=0, must-revalidate
+/under-the-hood
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The production *.pages.dev host is a duplicate of replay.krtmtthw.dev: keep it out of search results.
+https://typhoon-replay.pages.dev/*
+  X-Robots-Tag: noindex
