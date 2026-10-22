@@ -1,35 +1,52 @@
 # Deploy to Cloudflare Pages (direct upload with wrangler, no Pages CI builds).
-#   push to main  -> production (https://<project>.pages.dev)
-#   pull request  -> preview at https://pr-<number>.<project>.pages.dev,
-#                    with the URL commented on the PR
-# Until the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repo secrets exist
-# (and on PRs from forks, which get no secrets), the job skips with a notice.
+#   CI passed on a push to main -> production (https://<project>.pages.dev)
+#   CI passed on a pull request -> preview at https://pr-<number>.<project>.pages.dev,
+#                                  with the URL commented on the PR
+#
+# Deploys follow CI (portfolio rule 17): this runs when the CI workflow (ci.yml) finishes, only when it
+# succeeded, and publishes the `web-dist` artifact that CI built and tested for that commit; it never
+# builds again. A manual run (workflow_dispatch) redeploys main's tip from the artifact of its last
+# successful CI run, and fails if there is none (CI keeps the artifact 3 days).
+# Pull requests from forks are never deployed (their artifact is untrusted and they get no secrets).
+# Until the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repo secrets exist, the job skips with a notice.
 name: Deploy
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch: # re-deploy the selected branch (main = production)
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch: # redeploy main's tip (production) from its CI artifact
 
 permissions:
   contents: read
 
 concurrency:
-  # One production deploy at a time, never cancelled midway; a newer push to
-  # a PR cancels that PR's older preview deploy.
-  group: deploy-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # One production deploy at a time, never cancelled midway; while one runs only the newest pending
+  # production deploy is kept, so stacked pushes deploy just the newest commit. A newer CI pass on a PR
+  # cancels that PR's older preview deploy. Runs for a failed or cancelled CI get a group of their own,
+  # so they never displace a pending deploy of a green commit.
+  group: >-
+    ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') &&
+    (github.event.workflow_run.event == 'pull_request' &&
+    format('deploy-pr-{0}', github.event.workflow_run.head_branch) || 'deploy-production') ||
+    format('deploy-skip-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event.workflow_run.event == 'pull_request' }}
 
 jobs:
   deploy:
-    name: ${{ github.event_name == 'pull_request' && 'Preview' || 'Production' }}
+    name: ${{ github.event.workflow_run.event == 'pull_request' && 'Preview' || 'Production' }}
+    # CI succeeded for a push to main, or for a PR from this repository; or a manual production redeploy.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      ((github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') ||
+      (github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)))
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     permissions:
       contents: read
-      deployments: write # GitHub Deployments entries via wrangler-action
-      packages: read # private @abrycta/* packages on GitHub Packages
+      actions: read # download CI's artifact
       pull-requests: write # preview URL comment
     steps:
       - name: Check Cloudflare secrets
@@ -41,65 +58,96 @@ jobs:
           if [ -n "$CF_API_TOKEN" ] && [ -n "$CF_ACCOUNT_ID" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice title=Deploy skipped::CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID are not available (not configured yet, or a fork PR). See README, 'Running & deploying'."
+            echo "::notice title=Deploy skipped::CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID are not available. See README, 'Running & deploying'."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: CI run and commit to deploy
+        id: run
+        if: steps.secrets.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          if [ -z "$RUN_ID" ]; then
+            # Manual redeploy: main's tip, from its newest successful CI push run.
+            RUN_SHA="$GITHUB_SHA"
+            found=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$RUN_SHA&event=push&status=success&per_page=1" \
+              --jq '.workflow_runs[0] // empty | "\(.id) \(.html_url)"' || true)
+            RUN_ID="${found%% *}" RUN_URL="${found#* }"
+            if [ -z "$RUN_ID" ]; then
+              echo "::error title=CI has not passed::No successful CI push run for $RUN_SHA; not deploying."
+              exit 1
+            fi
+          fi
+          branch=main
+          if [ "$RUN_EVENT" = pull_request ]; then
+            # The PR number for this head branch (workflow_run.pull_requests can be empty).
+            pr=$(gh pr list -R "$GITHUB_REPOSITORY" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number')
+            [ -n "$pr" ] || { echo "::error::No open PR for branch $HEAD_BRANCH"; exit 1; }
+            branch="pr-$pr"
+            echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          fi
+          { echo "id=$RUN_ID"; echo "sha=$RUN_SHA"; echo "branch=$branch"; } >> "$GITHUB_OUTPUT"
+          echo "Deploying \`${RUN_SHA:0:7}\` as \`$branch\`, built and verified by CI: $RUN_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      # Functions (functions/, edge/) and wrangler.jsonc come from the same commit as the build.
       - uses: actions/checkout@v7
         if: steps.secrets.outputs.enabled == 'true'
+        with:
+          ref: ${{ steps.run.outputs.sha }}
+          persist-credentials: false
+
+      - name: Download CI's verified build
+        if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: web/dist
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
 
       - uses: actions/setup-node@v7
         if: steps.secrets.outputs.enabled == 'true'
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: "**/package-lock.json"
-          registry-url: https://npm.pkg.github.com
-          scope: "@abrycta"
+          cache-dependency-path: package-lock.json
 
-      - name: Install, check, build, size guard
+      # Root tooling only (wrangler; public packages): the app's dependencies are not needed to deploy.
+      - name: Install wrangler
         if: steps.secrets.outputs.enabled == 'true'
-        run: bash scripts/ci.sh --clean
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Resolve target
-        id: target
-        if: steps.secrets.outputs.enabled == 'true'
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          source scripts/lib.sh
-          load_pages_config
-          ensure_pages_project
-          if [ -n "$PR_NUMBER" ]; then branch="pr-$PR_NUMBER"; else branch="${GITHUB_REF_NAME}"; fi
-          echo "project=$PAGES_PROJECT" >> "$GITHUB_OUTPUT"
-          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+        run: npm ci
 
       - name: Deploy to Cloudflare Pages
         id: deploy
         if: steps.secrets.outputs.enabled == 'true'
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Uses the wrangler from the root package-lock.json; project name and
-          # output directory come from wrangler.jsonc.
-          command: >-
-            pages deploy
-            --branch=${{ steps.target.outputs.branch }}
-            --commit-hash=${{ github.event.pull_request.head.sha || github.sha }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BRANCH: ${{ steps.run.outputs.branch }}
+          SHA: ${{ steps.run.outputs.sha }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.jsonl
+        run: |
+          source scripts/lib.sh
+          load_pages_config
+          [[ -f "$DIST_DIR/index.html" ]] || die "CI's artifact has no index.html"
+          ensure_pages_project
+          wrangler pages deploy --branch="$BRANCH" --commit-hash="$SHA" --commit-dirty=true
+          jq -r 'select(.type == "pages-deploy-detailed") | "url=\(.url // "")\nalias=\(.alias // "")"' \
+            "$WRANGLER_OUTPUT_FILE_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         if: steps.secrets.outputs.enabled == 'true'
         env:
-          URL: ${{ steps.deploy.outputs.deployment-url }}
-          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
-          BRANCH: ${{ steps.target.outputs.branch }}
+          URL: ${{ steps.deploy.outputs.url }}
+          ALIAS: ${{ steps.deploy.outputs.alias }}
+          BRANCH: ${{ steps.run.outputs.branch }}
         run: |
           {
             echo "### Deployed \`$BRANCH\` to Cloudflare Pages"
@@ -108,16 +156,17 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on the PR
-        if: steps.secrets.outputs.enabled == 'true' && github.event_name == 'pull_request'
+        if: steps.secrets.outputs.enabled == 'true' && steps.run.outputs.pr != ''
         uses: actions/github-script@v9
         env:
-          DEPLOY_URL: ${{ steps.deploy.outputs.deployment-url }}
-          ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          ALIAS_URL: ${{ steps.deploy.outputs.alias }}
+          HEAD_SHA: ${{ steps.run.outputs.sha }}
+          PR_NUMBER: ${{ steps.run.outputs.pr }}
         with:
           script: |
             const marker = "<!-- pages-preview -->";
-            const { DEPLOY_URL, ALIAS_URL, HEAD_SHA } = process.env;
+            const { DEPLOY_URL, ALIAS_URL, HEAD_SHA, PR_NUMBER } = process.env;
             const body = [
               marker,
               "**Preview deployed to Cloudflare Pages**",
@@ -126,7 +175,7 @@ jobs:
               ALIAS_URL ? `- Newest commit on this PR: ${ALIAS_URL}` : "",
             ].join("\n");
             const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
+            const issue_number = Number(PR_NUMBER);
             const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
             const existing = comments.find((c) => c.body?.includes(marker));
             if (existing) {

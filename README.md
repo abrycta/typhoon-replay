@@ -100,17 +100,19 @@ Do these once, in this order. Nothing here needs a credit card.
 ### What happens on push and on pull requests
 
 - **Every push and PR** runs `ci.yml`: a clean install, typecheck, lint, unit
-  tests, the production build, and the size guard.
-- **Push to `main`** runs `deploy.yml`. It runs the same checks, then
-  `wrangler pages deploy` to production at <https://typhoon-replay.pages.dev>.
-  Production deploys run one at a time and are never cancelled midway.
-- **Pull request** runs `deploy.yml` too, which deploys a preview to
+  tests, the production build, the size guard and the end-to-end tests. The
+  verified build is kept 3 days as the `web-dist` artifact.
+- **When CI passes on `main`**, `deploy.yml` (a `workflow_run` of CI) publishes
+  that artifact with `wrangler pages deploy` to production at
+  <https://typhoon-replay.pages.dev>; it never builds again, and a red CI never
+  deploys. Production deploys run one at a time and are never cancelled midway;
+  stacked pushes deploy only the newest commit.
+- **When CI passes on a pull request**, `deploy.yml` deploys a preview to
   `https://pr-<number>.typhoon-replay.pages.dev` and posts the URL as a PR
   comment. The comment is updated on every push. A newer push cancels the
-  older preview deploy. PRs from forks get no secrets, so they skip deploying.
-- Each deploy appears under the repo's *Deployments* and in the job summary.
-  The page footer shows the commit SHA and build time, so you can check which
-  build is live.
+  older preview deploy. PRs from forks are never deployed.
+- Each deploy's URL is in the job summary. The page footer shows the commit SHA
+  and build time, so you can check which build is live.
 
 ### Rolling back
 
