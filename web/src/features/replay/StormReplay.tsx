@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertTitle, Skeleton, useLang } from "@abrycta/akari/react";
+import { Alert, AlertDescription, AlertTitle, useLang } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 
@@ -8,6 +8,7 @@ import { formatDateTime, formatShort, fromUrlHour, isoToUnix, type TimeZoneChoic
 import { ktToMs, msToKt, type SpeedUnit } from "@/shared/lib/units";
 import type { StormDetail } from "@/shared/model/types";
 import { useHighContrast, useMapTheme, usePrefersReducedMotion } from "@/shared/ui/hooks";
+import { MapGlyph } from "@/shared/ui/map-glyph";
 import { useStormName } from "@/shared/ui/use-storm-name";
 
 import { compassPoint, markerAt, offsetAt } from "./centre-offset";
@@ -97,6 +98,12 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   /** The timeline table (the map's text alternative) is hidden in the compact view and the frozen embeds. */
   const tableShown = showTable && !compact && !frozen;
   const [webglError, setWebglError] = useState<string>();
+  // The map slot shows Replay's glyph until the map has drawn its first full frame (basemap, track, field frame).
+  const [mapDrawn, setMapDrawn] = useState(false);
+  const onMapDrawn = () => {
+    setMapDrawn(true);
+    frozen?.onRendered?.();
+  };
 
   const times = useMemo(() => {
     if (header) return header.time;
@@ -229,7 +236,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             {webglError ? (
               <StaticTrack hours={hours} current={hour} label={mapLabel} />
             ) : (
-              <Suspense fallback={<Skeleton className="absolute inset-0" />}>
+              <Suspense fallback={<MapGlyph className="absolute inset-0" />}>
                 <ReplayMap
                   className="absolute inset-0"
                   label={mapLabel}
@@ -248,7 +255,8 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                   interactive={!compact && !frozen}
                   basemap={frozen?.basemap}
                   pixelRatio={frozen?.pixelRatio}
-                  onRendered={frozen?.onRendered}
+                  onRendered={onMapDrawn}
+                  awaitField={hasFrames && !snap.error}
                   viewFrame={frozen?.compact?.viewFrame}
                   onUnavailable={setWebglError}
                   era5Centre={era5Centre}
@@ -256,6 +264,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                 />
               </Suspense>
             )}
+            {webglError || mapDrawn ? null : <MapGlyph className="absolute inset-0" />}
             {webglError ? null : <CentreOffsetNote reading={offset} bestTrackKt={bw?.kt} />}
             {hasFrames && progress < 100 && !snap.error && !frozen ? (
               <div className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-2 py-0.5 font-mono text-ak-2xs text-muted-foreground" aria-hidden="true">

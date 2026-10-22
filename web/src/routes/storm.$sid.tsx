@@ -21,6 +21,7 @@ import { DataError, useStormDetail } from "@/data";
 import { type ReplayUrlState, StormHeading, StormReplay } from "@/features/replay";
 import { AffectedPlaces } from "@/features/storm-places";
 import { stormLabel } from "@/shared/lib/names";
+import { MapGlyph } from "@/shared/ui/map-glyph";
 import { useStormName } from "@/shared/ui/use-storm-name";
 import { useDocumentTitle } from "@/shared/ui/use-title";
 
@@ -133,7 +134,7 @@ function StormPage() {
       <div className="mx-auto grid max-w-[1120px] gap-4 px-4 py-10">
         <StormBreadcrumb current={sid} />
         <Skeleton className="h-10 w-2/3" />
-        <Skeleton className="aspect-[16/10]" />
+        <MapGlyph className="aspect-[16/10] rounded-sm" />
       </div>
     );
   }
