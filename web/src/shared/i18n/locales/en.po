@@ -56,6 +56,12 @@ msgstr "{0} kt JMA 10-min"
 msgid "{0} kt max wind"
 msgstr "{0} kt max wind"
 
+#. placeholder {0}: moment + 1
+#. placeholder {1}: MOMENTS.length
+#: src/embed/MomentCaption.tsx
+msgid "{0} of {1}"
+msgstr "{0} of {1}"
+
 #. placeholder {0}: results.length
 #. placeholder {1}: storms.length
 #: src/features/storm-search/StormBrowser.tsx
@@ -383,6 +389,7 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "Before weather satellites: positions from ships, land stations and aircraft"
 
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "Best track"
 
@@ -507,7 +514,6 @@ msgstr "Conformance"
 msgid "Contract"
 msgstr "Contract"
 
-#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
 msgstr "Copy link to this hour"
@@ -612,7 +618,6 @@ msgstr "ERA5 centre: where the reanalysis has the storm, marked when it is {LARG
 msgid "ERA5 field near the centre"
 msgstr "ERA5 field near the centre"
 
-#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "ERA5 field replay"
 msgstr "ERA5 field replay"
@@ -668,6 +673,11 @@ msgstr "Everything else on this site runs from static files, so it never waits f
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
 msgstr "Explore"
+
+#. placeholder {0}: f.kt
+#: src/embed/moments.ts
+msgid "Fastest strengthening: +{0} kt in 24 hours"
+msgstr "Fastest strengthening: +{0} kt in 24 hours"
 
 #: src/routes/index.tsx
 msgid "Featured replay"
@@ -957,6 +967,12 @@ msgstr "Keys: arrows move one hour, Shift+arrows six, Home and End jump to the e
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Landfall"
 msgstr "Landfall"
+
+#. placeholder {0}: f.place
+#. placeholder {1}: time(f.t)
+#: src/embed/moments.ts
+msgid "Landfall at {0}, {1}"
+msgstr "Landfall at {0}, {1}"
 
 #: src/routes/index.tsx
 msgid "Landfall in Japan"
@@ -1377,6 +1393,32 @@ msgstr "Peak"
 #: src/features/storm-search/StormList.tsx
 msgid "peak {0} kt ({1})"
 msgstr "peak {0} kt ({1})"
+
+#. placeholder {0}: speed(f.ms)
+#: src/embed/moments.ts
+msgid "Peak ERA5 gust near the centre in view: {0}"
+msgstr "Peak ERA5 gust near the centre in view: {0}"
+
+#. placeholder {0}: f.mmh.toFixed(1)
+#: src/embed/moments.ts
+msgid "Peak ERA5 rain near the centre in view: {0} mm/h"
+msgstr "Peak ERA5 rain near the centre in view: {0} mm/h"
+
+#. placeholder {0}: speed(f.ms)
+#: src/embed/moments.ts
+msgid "Peak ERA5 wind near the centre in view: {0}"
+msgstr "Peak ERA5 wind near the centre in view: {0}"
+
+#. placeholder {0}: f.kt
+#: src/embed/moments.ts
+msgid "Peak intensity: {0} kt ({agency})"
+msgstr "Peak intensity: {0} kt ({agency})"
+
+#. placeholder {0}: f.kt
+#. placeholder {1}: f.hpa
+#: src/embed/moments.ts
+msgid "Peak intensity: {0} kt ({agency}), {1} hPa"
+msgstr "Peak intensity: {0} kt ({agency}), {1} hPa"
 
 #: src/features/compare/DataCard.tsx
 #: src/features/under-the-hood/ResultTable.tsx
@@ -1898,6 +1940,11 @@ msgstr "Where the data comes from, what it can and cannot tell you, and the lice
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
 msgstr "Why is the field weaker than the storm?"
+
+#. placeholder {0}: f.km2.toLocaleString(lang)
+#: src/embed/moments.ts
+msgid "Widest ERA5 gale-force area in view: {0} km²"
+msgstr "Widest ERA5 gale-force area in view: {0} km²"
 
 #: src/features/replay/labels.ts
 msgid "Wind"

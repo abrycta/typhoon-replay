@@ -109,7 +109,7 @@ export function usePlaceShard(url: string | undefined) {
 
 /**
  * Opens the storm's frames (WebP preferred, else .tyf) in a worker for as long as the component is mounted.
- * A `preset` store (the frozen embed's packed frame) is used as it is: no worker, no requests.
+ * A `preset` store (the embed's packed moment frames) is used as it is: no worker, no requests.
  */
 export function useFrameStore(dataset: ResolvedDataset | undefined, detail: StormDetail | undefined, focus = 0, preset?: FrameStore) {
   const source = useMemo(

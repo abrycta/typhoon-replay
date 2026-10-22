@@ -56,6 +56,12 @@ msgstr "{0} kt 気象庁 10分平均"
 msgid "{0} kt max wind"
 msgstr "最大風速 {0} kt"
 
+#. placeholder {0}: moment + 1
+#. placeholder {1}: MOMENTS.length
+#: src/embed/MomentCaption.tsx
+msgid "{0} of {1}"
+msgstr "{0} / {1}"
+
 #. placeholder {0}: results.length
 #. placeholder {1}: storms.length
 #: src/features/storm-search/StormBrowser.tsx
@@ -383,6 +389,7 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "気象衛星以前:位置は船舶、地上観測所、航空機から"
 
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "ベストトラック"
 
@@ -507,7 +514,6 @@ msgstr "適合性"
 msgid "Contract"
 msgstr "契約"
 
-#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "Copy link to this hour"
 msgstr "この時刻へのリンクをコピー"
@@ -612,7 +618,6 @@ msgstr "ERA5 の中心：再解析上の台風の位置。公式の経路（円�
 msgid "ERA5 field near the centre"
 msgstr "中心付近の ERA5 の場"
 
-#: src/embed/EmbedReplay.tsx
 #: src/routes/storm.$sid.tsx
 msgid "ERA5 field replay"
 msgstr "ERA5 の場のリプレイ"
@@ -668,6 +673,11 @@ msgstr "このサイトのほかのページはすべて静的ファイルで動
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
 msgstr "試す"
+
+#. placeholder {0}: f.kt
+#: src/embed/moments.ts
+msgid "Fastest strengthening: +{0} kt in 24 hours"
+msgstr "最も急速な発達：24 時間で +{0} kt"
 
 #: src/routes/index.tsx
 msgid "Featured replay"
@@ -957,6 +967,12 @@ msgstr "キー: 矢印で1時間、Shift+矢印で6時間移動、Home/Endで端
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Landfall"
 msgstr "上陸"
+
+#. placeholder {0}: f.place
+#. placeholder {1}: time(f.t)
+#: src/embed/moments.ts
+msgid "Landfall at {0}, {1}"
+msgstr "{0} に上陸（{1}）"
 
 #: src/routes/index.tsx
 msgid "Landfall in Japan"
@@ -1377,6 +1393,32 @@ msgstr "ピーク"
 #: src/features/storm-search/StormList.tsx
 msgid "peak {0} kt ({1})"
 msgstr "最大 {0} kt（{1}）"
+
+#. placeholder {0}: speed(f.ms)
+#: src/embed/moments.ts
+msgid "Peak ERA5 gust near the centre in view: {0}"
+msgstr "表示範囲で中心付近の ERA5 突風の最大：{0}"
+
+#. placeholder {0}: f.mmh.toFixed(1)
+#: src/embed/moments.ts
+msgid "Peak ERA5 rain near the centre in view: {0} mm/h"
+msgstr "表示範囲で中心付近の ERA5 降水の最大：{0} mm/h"
+
+#. placeholder {0}: speed(f.ms)
+#: src/embed/moments.ts
+msgid "Peak ERA5 wind near the centre in view: {0}"
+msgstr "表示範囲で中心付近の ERA5 風の最大：{0}"
+
+#. placeholder {0}: f.kt
+#: src/embed/moments.ts
+msgid "Peak intensity: {0} kt ({agency})"
+msgstr "最盛期：{0} kt（{agency}）"
+
+#. placeholder {0}: f.kt
+#. placeholder {1}: f.hpa
+#: src/embed/moments.ts
+msgid "Peak intensity: {0} kt ({agency}), {1} hPa"
+msgstr "最盛期：{0} kt（{agency}）、{1} hPa"
 
 #: src/features/compare/DataCard.tsx
 #: src/features/under-the-hood/ResultTable.tsx
@@ -1898,6 +1940,11 @@ msgstr "データの出所、データからわかること・わからないこ
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
 msgstr "なぜ場は台風より弱いのか？"
+
+#. placeholder {0}: f.km2.toLocaleString(lang)
+#: src/embed/moments.ts
+msgid "Widest ERA5 gale-force area in view: {0} km²"
+msgstr "表示範囲で ERA5 強風域（34 kt 以上）が最大：{0} km²"
 
 #: src/features/replay/labels.ts
 msgid "Wind"

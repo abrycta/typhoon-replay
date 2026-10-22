@@ -1,6 +1,6 @@
-// The frozen /embed page krtmtthw.dev frames (src/embed): no Header, a still map over the baked basemap, no link
-// out (the live app is reached only from the project page), the ready message to the parent, and not one request
-// off this origin.
+// The /embed page krtmtthw.dev frames (src/embed): no Header, a still map over the baked basemap stepping through the
+// storm's richest moments, each captioned (CLAUDE.md rule 27), no link out (the live app is reached only from the
+// project page), the ready message to the parent, and not one request off this origin.
 import type { Page } from "@playwright/test";
 
 import { expect, HAIYAN, test } from "./fixtures";
@@ -18,7 +18,7 @@ function offOrigin(page: Page, origin: string) {
   return bad;
 }
 
-test("embed: frozen storm view, no Header, no link out, still map, ready message, own origin only", async ({ page, baseURL }) => {
+test("embed: first moment captioned, no Header, no link out, still map, ready message, own origin only", async ({ page, baseURL }) => {
   const bad = offOrigin(page, new URL(baseURL!).origin);
   // Framed by krtmtthw.dev: a stand-in parent records what the embed posts to it.
   await page.addInitScript(() => {
@@ -29,6 +29,11 @@ test("embed: frozen storm view, no Header, no link out, still map, ready message
   await page.goto(`${EMBED}?lang=en`);
   const replay = page.getByTestId("storm-replay");
   await expect(replay).toHaveAttribute("data-frame-ready", "true");
+  // The first moment (src/embed/haiyan.generated.ts): the lifetime peak, 7 Nov 12:00 UTC.
+  const moment = page.getByTestId("embed-moment");
+  await expect(moment).toHaveAttribute("data-moment", "0");
+  await expect(moment).toContainText("1 of 5");
+  await expect(moment).toContainText("Peak intensity: 170 kt (JTWC 1-min), 895 hPa");
   await expect(page.getByTestId("era5-wind")).toContainText("26.9");
   await expect(page.locator("[data-akari-header]")).toHaveCount(0);
   await expect(page.locator("footer")).toHaveCount(0);
@@ -51,13 +56,38 @@ test("embed: frozen storm view, no Header, no link out, still map, ready message
   expect(bad, "requests off the app's origin or to /api/").toEqual([]);
 });
 
+// Unframed, nothing pauses it: the embed moves on to the next moment, its hour, frame and caption together.
+test("embed: steps to the next moment", async ({ page }) => {
+  await page.goto(`${EMBED}?lang=en`);
+  const moment = page.getByTestId("embed-moment");
+  await expect(moment).toHaveAttribute("data-moment", "0");
+  await expect(moment).toHaveAttribute("data-moment", "1", { timeout: 14_000 });
+  await expect(moment).toContainText("Landfall at Dulag");
+  await expect(moment).toContainText("Peak ERA5 wind near the centre in view: 28.9 m/s");
+  await expect(page.getByTestId("storm-replay")).toHaveAttribute("data-frame-ready", "true");
+});
+
+// Under reduced motion it holds one still: the densest moment (the Dulag landfall, with ERA5's peak wind and rain in view).
+test.describe("reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("embed: holds the densest moment", async ({ page }) => {
+    await page.goto(`${EMBED}?lang=en`);
+    await expect(page.getByTestId("storm-replay")).toHaveAttribute("data-frame-ready", "true");
+    const moment = page.getByTestId("embed-moment");
+    await expect(moment).toHaveAttribute("data-moment", "1");
+    await page.waitForTimeout(5_500);
+    await expect(moment).toHaveAttribute("data-moment", "1");
+  });
+});
+
 // Phones and tablets: krtmtthw.dev gives the frame its picture slot's real size (16:10; 358×224 on a 390 px phone,
-// the frame 1 px inside). The compact layout: the map filling the frame over a two-line caption at a readable size,
+// the frame 1 px inside). The compact layout: the map filling the frame over a three-line caption at a readable size,
 // never the desktop view scaled down; the same packed data, still nothing off this origin.
 test.describe("compact (phone)", () => {
   test.use({ viewport: { width: 356, height: 222 } });
 
-  test("embed: map over a two-line caption, no player or panels, ready message", async ({ page, baseURL }) => {
+  test("embed: map over a three-line caption, no player or panels, ready message", async ({ page, baseURL }) => {
     const bad = offOrigin(page, new URL(baseURL!).origin);
     await page.addInitScript(() => {
       const posted: unknown[] = [];
@@ -68,12 +98,13 @@ test.describe("compact (phone)", () => {
     await expect(page.locator('[data-layout="compact"]')).toBeVisible();
     await expect(page.getByTestId("storm-replay")).toHaveAttribute("data-frame-ready", "true");
     const caption = page.getByTestId("embed-caption");
+    await expect(page.getByTestId("embed-caption-lead")).toHaveText("Peak intensity: 170 kt (JTWC 1-min), 895 hPa");
     await expect(caption).toContainText("Haiyan");
     await expect(page.getByTestId("embed-caption-figures")).toContainText("ERA5 26.9 m/s");
     await expect(page.getByTestId("intensity-panel")).toHaveCount(0);
     await expect(page.getByTestId("play-toggle")).toHaveCount(0);
-    // Readable at the slot's real size (14 px and 12 px lines); the map takes the rest, and nothing scrolls.
-    expect(await caption.locator("p").evaluateAll((ps) => ps.map((p) => parseFloat(getComputedStyle(p).fontSize)))).toEqual([14, 12]);
+    // Readable at the slot's real size (a 14 px line, then two 12 px lines); the map takes the rest, and nothing scrolls.
+    expect(await caption.locator("p").evaluateAll((ps) => ps.map((p) => parseFloat(getComputedStyle(p).fontSize)))).toEqual([14, 12, 12]);
     const map = (await page.getByTestId("replay-map").boundingBox())!;
     const box = (await caption.boundingBox())!;
     expect(map.height).toBeGreaterThan(140);
@@ -87,7 +118,7 @@ test.describe("compact (phone)", () => {
 });
 
 // The parent (krtmtthw.dev) starts the frame still (?paused=1) and pauses or resumes it by message; the wind
-// particles stop while paused. A stand-in parent page on the real origin frames the local build (both on public
+// particles and the moments stop while paused. A stand-in parent page on the real origin frames the local build (both on public
 // https origins, proxied, since Chrome won't let a public page frame 127.0.0.1). Messages from elsewhere are ignored.
 test("embed: the parent pauses and resumes the particles, and only the parent", async ({ page, baseURL }) => {
   const app = "https://replay.krtmtthw.dev";
@@ -112,8 +143,12 @@ test("embed: the parent pauses and resumes the particles, and only the parent", 
     page.evaluate(([t, o]) => document.querySelector("iframe")!.contentWindow!.postMessage({ type: t }, o!), [type, app]);
   await page.waitForTimeout(500);
   expect(await still()).toBe(true);
+  // Paused, the moments hold too (one beat is 5 s; the first moment has two facts, so it is held for two).
+  await page.waitForTimeout(5_000);
+  await expect(embed.getByTestId("embed-moment")).toHaveAttribute("data-moment", "0");
   await send("akari:embed-resume");
   await expect.poll(still).toBe(false);
+  await expect(embed.getByTestId("embed-moment")).toHaveAttribute("data-moment", "1", { timeout: 14_000 });
   await send("akari:embed-pause");
   await expect(embed.locator("html")).toHaveAttribute("data-embed-paused", "");
   await page.waitForTimeout(300);

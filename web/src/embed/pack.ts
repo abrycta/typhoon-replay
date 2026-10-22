@@ -1,4 +1,4 @@
-// The one packed data file (scripts/build-embed.mjs): storm summary, track and the lossless .tyf frame on show.
+// The one packed data file (scripts/build-embed.mjs): storm summary, track and the lossless .tyf frame of every moment.
 import { FrameStore, getJson, parseHeader, windToUv } from "@/data";
 import type { StormDetail, StormTrack, TrackFix, TrackHour } from "@/shared/model/types";
 
@@ -6,10 +6,9 @@ import { EMBED } from "./haiyan.generated";
 
 interface Pack {
   sid: string;
-  t: string;
   detail: StormDetail;
   track: { fixes: TrackFix[]; hours: TrackHour[] };
-  tyf: { header: string; frame: { index: number; data: string } };
+  tyf: { header: string; frames: { index: number; data: string }[] };
 }
 
 export interface EmbedData {
@@ -26,8 +25,13 @@ export async function loadPack(url: string = EMBED.pack): Promise<EmbedData> {
   const parsed = parseHeader(bytes(p.tyf.header));
   if (!parsed) throw new Error("embed pack: incomplete frame header");
   const { header } = parsed;
-  const raw = bytes(p.tyf.frame.data);
-  const store = FrameStore.fromFrames(header, { start: p.tyf.frame.index, raw, uv: windToUv(raw, header), count: 1 });
+  const store = FrameStore.fromFrames(
+    header,
+    p.tyf.frames.map((f) => {
+      const raw = bytes(f.data);
+      return { start: f.index, raw, uv: windToUv(raw, header), count: 1 };
+    }),
+  );
   const d = p.detail;
   const detail: StormDetail = {
     ...d,

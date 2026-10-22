@@ -85,11 +85,11 @@ export class FrameStore {
       });
   }
 
-  /** For tests and the static fallback: fill the store from an in-memory file. */
-  static fromFrames(header: TyfHeader, batch: DecodedFrames): FrameStore {
+  /** For tests and the embed: fill the store from in-memory frames (one batch, or several apart). */
+  static fromFrames(header: TyfHeader, batches: DecodedFrames | DecodedFrames[]): FrameStore {
     const s = new FrameStore();
     s.update({ header, strategy: "stream", done: true });
-    s.add(batch);
+    for (const b of Array.isArray(batches) ? batches : [batches]) s.add(b);
     return s;
   }
 

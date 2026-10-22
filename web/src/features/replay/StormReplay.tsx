@@ -47,8 +47,8 @@ export interface ReplayLeader {
 }
 
 /**
- * The frozen embed (src/embed): one hour, its frame already in `store`, a baked basemap and a still map. The
- * player stays visible but inert and the timeline table is left out.
+ * The frozen embed (src/embed): its moments' frames already in `store`, a baked basemap and a still map; the embed
+ * moves the hour through `url.t`. The player stays visible but inert and the timeline table is left out.
  */
 export interface FrozenReplay {
   store: FrameStore;
@@ -56,8 +56,9 @@ export interface FrozenReplay {
   pixelRatio?: number;
   onRendered?: () => void;
   /** The phone and tablet layout (the frame at the portfolio's picture slot's real size): the map, then a two-line
-   * caption instead of the player and the side panels. `viewFrame`: the map size the view was framed for. */
-  compact?: { viewFrame: readonly [number, number] };
+   * caption instead of the player and the side panels. `viewFrame`: the map size the view was framed for; `lead`: the
+   * moment's caption, the caption's first line. */
+  compact?: { viewFrame: readonly [number, number]; lead?: string };
 }
 
 export interface StormReplayProps {
@@ -107,6 +108,10 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const startIndex = initialT !== undefined ? Math.max(0, times.findIndex((x) => x >= initialT)) : 0;
   const { clock, state } = usePlayerClock(times.length, { index: startIndex, speed: url.speed }, { loop });
   const hasFrames = !!detail.frames;
+  // The frozen embed steps through its moments by changing `url.t`.
+  useEffect(() => {
+    if (frozen) clock.seek(startIndex);
+  }, [frozen, clock, startIndex]);
   useEffect(() => {
     // Wait for a frame only while it can still arrive: once the load has finished (or failed, which the
     // alert below reports), play on with the best track rather than hold forever.
@@ -272,6 +277,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
           ) : null}
           {frozen?.compact ? (
             <FrozenCaption
+              lead={frozen.compact.lead}
               title={stormName}
               time={timeLabel}
               bestTrack={bw ? `${speed(bw.kt)} (${bw.agency.toUpperCase()})` : undefined}
@@ -349,14 +355,20 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   );
 }
 
-/** The compact embed's caption (src/embed): the storm and the hour, then the intensities, in two short lines, right
- * under the map (-mt-3 cancels the grid gap; the embed sizes the map to the frame less these 52 px). */
-function FrozenCaption({ title, time, bestTrack, hpa, era5 }: { title: string; time: string; bestTrack?: string; hpa?: number; era5?: string }) {
+/** The compact embed's caption (src/embed): the moment's caption, then the storm and the hour, then the intensities,
+ * in short lines right under the map (-mt-3 cancels the grid gap; the embed sizes the map to the frame less this
+ * caption's height: 68 px with a lead line, 52 px without). */
+function FrozenCaption({ lead, title, time, bestTrack, hpa, era5 }: { lead?: string; title: string; time: string; bestTrack?: string; hpa?: number; era5?: string }) {
   const { t } = useLingui();
   const parts = [bestTrack ? `${t`Best track`} ${bestTrack}` : undefined, hpa !== undefined ? `${fmt(hpa)} hPa` : undefined, era5 ? `ERA5 ${era5}` : undefined];
   return (
-    <div className="-mt-3 grid h-[52px] min-w-0 content-center gap-0.5 border-t border-border px-3 leading-snug" data-testid="embed-caption">
-      <p className="truncate text-sm">
+    <div className={`-mt-3 grid min-w-0 content-center gap-0.5 border-t border-border px-3 leading-snug ${lead ? "h-17" : "h-13"}`} data-testid="embed-caption">
+      {lead ? (
+        <p className="truncate text-sm font-semibold" data-testid="embed-caption-lead">
+          {lead}
+        </p>
+      ) : null}
+      <p className={`truncate ${lead ? "text-xs" : "text-sm"}`}>
         <span className="font-semibold">{title}</span>
         <span className="text-muted-foreground"> · {time}</span>
       </p>
