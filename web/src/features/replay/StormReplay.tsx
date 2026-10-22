@@ -16,6 +16,7 @@ import { FieldLegend } from "./FieldLegend";
 import { IntensityPanel } from "./IntensityPanel";
 import { useFieldLabels } from "./labels";
 import { LayerPanel } from "./LayerPanel";
+import { MapDescription, MapUnavailableText } from "./MapDescription";
 import { type CustomBasemap, themeKey } from "./map/basemap";
 import { PlayerControls } from "./PlayerControls";
 import { type Speed, usePlayerClock } from "./player";
@@ -93,6 +94,8 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const { store, snap } = useFrameStore(dataset, detail, 0, frozen?.store);
   const header = snap.header;
   const descId = useId();
+  /** The timeline table (the map's text alternative) is hidden in the compact view and the frozen embeds. */
+  const tableShown = showTable && !compact && !frozen;
   const [webglError, setWebglError] = useState<string>();
 
   const times = useMemo(() => {
@@ -255,13 +258,13 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             ) : null}
             {mapOverlay}
           </div>
-          <p id={descId} className="sr-only">
-            {t`The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text.`}
-          </p>
+          <MapDescription id={descId} tableShown={tableShown} />
           {webglError ? (
             <Alert>
               <AlertTitle>{t`Map unavailable`}</AlertTitle>
-              <AlertDescription>{t`This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data.`}</AlertDescription>
+              <AlertDescription>
+                <MapUnavailableText tableShown={tableShown} />
+              </AlertDescription>
             </Alert>
           ) : null}
           {snap.error ? (
@@ -327,7 +330,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
           </div>
         )}
       </div>
-      {showTable && !compact && !frozen ? (
+      {tableShown ? (
         <section aria-labelledby="timeline-h" className="grid gap-2">
           <h2 id="timeline-h" className="text-lg font-semibold">
             {t`Timeline`}
