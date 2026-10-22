@@ -100,13 +100,17 @@ jobs:
           printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
             sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
 
-      # Playwright: the browser and the .deb files apt fetched are cached per Playwright version, so a cache hit
-      # downloads neither. Installs are bounded (2.5 min per attempt, one retry on another mirror, step timeout), so a
+      # Playwright: the browser and the .deb files apt fetched are cached per Playwright version and ISO week, so a cache
+      # hit downloads neither. The weekly key keeps the .deb files current with Ubuntu's updates (stale ones made apt
+      # fetch the newer packages from a slow mirror, 2 min); a new week restores last week's files and fetches only the
+      # difference once. Installs are bounded (2.5 min per attempt, one retry on another mirror, step timeout), so a
       # stalled mirror or download fails in minutes with a clear error instead of using up the job.
       - name: Playwright version
         id: pw
         working-directory: web
-        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browser
         id: pw-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -114,7 +118,8 @@ jobs:
           path: |
             ~/.cache/ms-playwright
             ~/.cache/playwright-debs
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium-${{ steps.pw.outputs.week }}
+          restore-keys: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium
       - name: Install Playwright OS packages (and the browser on a cache miss)
         timeout-minutes: 6
         env:
