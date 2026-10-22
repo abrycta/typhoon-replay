@@ -25,7 +25,7 @@ export function ConformanceTable({ labels }: { labels: Record<BackendId, string>
   return (
     <section aria-labelledby="conf-h" className="grid gap-3">
       <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Conformance`}</p>
-      <h2 id="conf-h" className="font-heading text-2xl font-semibold text-balance">
+      <h2 id="conf-h" className="font-heading text-ak-subsection font-semibold text-balance">
         {t`Does each backend keep the contract?`}
       </h2>
       <div className="min-w-0 overflow-x-auto rounded-sm border border-border bg-card p-4" data-testid="conformance">

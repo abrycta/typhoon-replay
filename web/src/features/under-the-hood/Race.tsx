@@ -131,7 +131,7 @@ export function Race({ race, labels }: { race: ReturnType<typeof useRace>; label
   return (
     <section aria-labelledby="race-h" className="grid gap-3">
       <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Race`}</p>
-      <h2 id="race-h" className="font-heading text-2xl font-semibold text-balance">
+      <h2 id="race-h" className="font-heading text-ak-subsection font-semibold text-balance">
         {t`Same question, four answers`}
       </h2>
       <p className="max-w-[66ch] text-muted-foreground">

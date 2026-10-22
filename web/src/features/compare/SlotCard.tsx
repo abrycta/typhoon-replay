@@ -61,7 +61,7 @@ export function SlotCard({
       ) : (
         <>
           <div className="flex flex-wrap items-baseline gap-x-2.5">
-            <h2 className="font-heading text-2xl font-semibold">{named ? s.name : stormName(s)}</h2>
+            <h2 className="font-heading text-ak-subsection font-semibold">{named ? s.name : stormName(s)}</h2>
             {local.length ? <span className="text-muted-foreground">{local.join(" · ")}</span> : null}
           </div>
           <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-muted-foreground">

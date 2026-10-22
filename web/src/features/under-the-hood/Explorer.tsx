@@ -55,7 +55,7 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
   return (
     <section aria-labelledby="explore-h" className="grid gap-3">
       <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Explore`}</p>
-      <h2 id="explore-h" className="font-heading text-2xl font-semibold text-balance">
+      <h2 id="explore-h" className="font-heading text-ak-subsection font-semibold text-balance">
         {t`Try one endpoint`}
       </h2>
       <div className="grid min-w-0 gap-3 rounded-sm border border-border bg-card p-4">
