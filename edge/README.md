@@ -121,6 +121,15 @@ a full 200. Two cases need more:
 | `MISS` or `STALE` (`X-Edge-Stale: if-error`) | `< max-age + stale-if-error` (the origin's value, or `STALE_IF_ERROR_S`, 7 days by default) | The origin gets `STALE_TIMEOUT_MS` (1.5 s). If it answers, the entry is refreshed (`MISS`). On an error, a 5xx or a timeout, the stale copy is served and the request finishes in the background (which also wakes the backend). |
 | `MISS` | no entry | Fetched without the client's validators so that a full copy can be stored. A matching `If-None-Match` still gets a 304 from the edge. |
 
+**Cache bypass.** The Under the hood race measures the backends, not this cache, so its reads carry
+`X-Edge-Bypass: origin`. On a cache candidate that skips `HIT`/`STALE` and asks the backend, conditionally when a copy
+is cached (a 304 costs almost no egress and refreshes the entry for everyone else). A sleeping backend therefore answers
+`backend-waking`, as it really is. The header is never forwarded. Every bypass is budgeted twice: 6 a minute per
+visitor and backend, and 60 a minute (burst 30) per backend for everyone at the isolate (`takeBypass`,
+`edge/src/ratelimit.ts`), on top of the normal rate limit. Out of budget, or in static mode, the read is served the
+normal way. The answer's `X-Edge-Bypass` says which: `origin`, `limited` or `static-mode`; an origin answer also gets
+`Server-Timing: origin;dur=…`. Requests without the header (all normal app traffic) are unchanged.
+
 **Free-plan behaviour (verified against Cloudflare's docs, 2026-10).**
 - The Cache API works in Pages Functions on `*.pages.dev` and on custom domains, and costs nothing extra.
 - It is **per data centre**: entries are not replicated, and `cache.put` bypasses tiered cache. Visitors at the same

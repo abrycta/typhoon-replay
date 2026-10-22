@@ -26,6 +26,12 @@ export interface LaneState {
   retryAfterS?: number;
   /** Before any run: what the wake-up ping found (shown on the chip only; not an answer). */
   hint?: "ok" | "waking" | "not-deployed" | "paused" | "rate-limited";
+  /** Where the final answer came from: the backend itself, or a copy in the edge cache (bypass refused). */
+  source?: "origin" | "cache";
+  /** Age of a cached answer, in seconds. */
+  cacheAgeS?: number;
+  /** Why a cached copy was served instead (the edge's X-Edge-Bypass): "limited" or "static-mode". */
+  cacheReason?: string;
   /** Order in which lanes answered (1 = first). */
   answeredRank?: number;
 }
@@ -87,7 +93,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
       dispatch({ type: "start", ids: [...ids], at: performance.now() });
       for (const id of ids) {
         const base = optsRef.current.baseUrlOf(id);
-        void sendUntilAwake(({ timeoutMs }) => sendRequest(base, path, { signal: c.signal, timeoutMs }), {
+        void sendUntilAwake(({ timeoutMs }) => sendRequest(base, path, { signal: c.signal, timeoutMs, bypassCache: true }), {
           signal: c.signal,
           capMs: optsRef.current.capMs,
           onProgress: (p) => dispatch(p.networkRetry ? { type: "network-retry", id, retry: p.networkRetry } : { type: "waking", id }),
@@ -108,6 +114,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
                 reason: o.reason,
                 httpStatus: last.status,
                 retryAfterS: last.retryAfterS,
+                ...(last.edgeCache === "HIT" || last.edgeCache === "STALE" ? { source: "cache" as const, cacheAgeS: last.ageS, cacheReason: last.bypass } : last.edgeCache ? { source: "origin" as const } : {}),
               },
             });
           })

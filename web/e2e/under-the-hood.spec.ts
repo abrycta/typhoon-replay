@@ -188,6 +188,27 @@ test("race: java answers, node wakes then answers the same, rust is not deployed
   await expect(page.getByTestId("race-results")).toContainText("895 hPa");
 });
 
+test("race: asks every backend past the edge cache, and labels a cached answer when the edge refuses", async ({ page }) => {
+  const bypassHeaders: string[] = [];
+  await page.route(/\/api\/(java|node|rust|go)\//, (r) => {
+    const url = r.request().url();
+    if (url.includes("/healthz")) return json(r, { status: "ok" }, "java");
+    if (!/\/api\/(java|node)\//.test(url)) return problemReply(r, "backend-not-deployed");
+    bypassHeaders.push(r.request().headers()["x-edge-bypass"] ?? "");
+    if (url.includes("/api/node/"))
+      return r.fulfill({ status: 200, contentType: "application/json", headers: { "X-Backend-Impl": "node", "X-Edge-Cache": "HIT", "X-Edge-Bypass": "limited", Age: "38700" }, body: JSON.stringify(HITS) });
+    return json(r, HITS, "java");
+  });
+  await page.goto("/under-the-hood");
+  await page.getByTestId("race-run").click();
+  await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
+  await expect(page.getByTestId("lane-java-source")).toHaveText("from the backend · not cached");
+  await expect(page.getByTestId("lane-node-state")).toHaveText("cached");
+  await expect(page.getByTestId("lane-node-source")).toHaveText("from the edge cache · 11 h old");
+  await expect(page.getByTestId("lane-node-note")).toContainText("Node was not asked (too many races this minute)");
+  expect(bypassHeaders).toEqual(["origin", "origin"]);
+});
+
 test("race: a backend that never wakes ends as an error, the others are unaffected", async ({ page }) => {
   // Retry-After 30 is clamped to 20 s; with the 3-minute cap this would take long, so the test only checks the waking state.
   await page.route(/\/api\/(java|node|rust|go)\//, (r) => problemReply(r, "backend-waking", { "Retry-After": "30" }));

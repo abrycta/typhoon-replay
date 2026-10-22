@@ -6,7 +6,7 @@ import { type MatchState, NETWORK_RETRIES, REQUEST_TIMEOUT_MS, TIMEOUT_DETAIL } 
 import type { BackendId } from "@/shared/config/config";
 
 import { CONFORMANCE, QUESTIONS, type QuestionId } from "./catalogue";
-import { formatMs } from "./format";
+import { formatAge, formatMs } from "./format";
 import { useReasonText } from "./reason";
 import { ResultTable } from "./ResultTable";
 import type { LaneState, LaneStatus, useRace } from "./use-race";
@@ -59,6 +59,15 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
   const chipStatus: LaneStatus = lane.status === "idle" && lane.hint ? lane.hint : lane.status;
   // A dropped connection is retried a couple of times before the lane reports an error.
   const retrying = lane.status === "running" && lane.networkRetries ? lane.networkRetries : 0;
+  // An answer the edge served from its cache (the bypass was refused) says nothing about the backend itself.
+  const cached = lane.status === "ok" && lane.source === "cache";
+  const age = lane.cacheAgeS !== undefined ? formatAge(lane.cacheAgeS) : "?";
+  const cachedWhy =
+    lane.cacheReason === "static-mode"
+      ? t`the API is resting to save bandwidth`
+      : lane.cacheReason === "limited"
+        ? t`too many races this minute`
+        : t`the edge answered from its cache`;
   const waiting = lane.status === "running" || lane.status === "waking";
   const elapsed = waiting && lane.startedAt !== undefined ? now - lane.startedAt : undefined;
   const pct =
@@ -75,7 +84,9 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     lane.status === "waking"
       ? wake.laneWaking(label, lane.id)
       : lane.status === "ok"
-        ? lane.woke
+        ? cached
+          ? t`${label} was not asked (${cachedWhy}): this is the edge cache's copy, ${age} old, served in ${formatMs(lane.totalMs ?? 0)}. ${label}'s own state is unknown.`
+          : lane.woke
           ? t`${label} woke up and answered in ${formatMs(lane.totalMs ?? 0)}; the answer itself took ${formatMs(lane.lastMs ?? 0)}.`
           : t`${label} answered in ${formatMs(lane.totalMs ?? 0)}.`
         : lane.status === "not-deployed"
@@ -109,11 +120,16 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     <article className="grid min-w-0 content-start gap-2 rounded-sm border border-border bg-card p-3.5" aria-labelledby={`lane-${lane.id}-h`} data-testid={`lane-${lane.id}`}>
       <h3 id={`lane-${lane.id}-h`} className="flex items-baseline justify-between gap-2 font-heading text-lg font-semibold">
         {label}
-        <span className={`rounded-full border border-current px-2 font-mono text-ak-2xs font-normal whitespace-nowrap ${CHIP[chipStatus]}`} data-testid={`lane-${lane.id}-state`}>
-          {retrying ? t`retrying` : chip[chipStatus]}
+        <span className={`rounded-full border border-current px-2 font-mono text-ak-2xs font-normal whitespace-nowrap ${cached ? CHIP.idle : CHIP[chipStatus]}`} data-testid={`lane-${lane.id}-state`}>
+          {cached ? t`cached` : retrying ? t`retrying` : chip[chipStatus]}
         </span>
       </h3>
       <p className="font-mono text-ak-2xs text-muted-foreground">{CONFORMANCE.backends[lane.id]?.stack}</p>
+      {lane.status === "ok" && lane.source ? (
+        <p className="font-mono text-ak-2xs text-muted-foreground" data-testid={`lane-${lane.id}-source`}>
+          {cached ? t`from the edge cache · ${age} old` : t`from the backend · not cached`}
+        </p>
+      ) : null}
       <p className="font-mono text-2xl leading-tight tabular-nums" data-testid={`lane-${lane.id}-time`}>
         {time}
       </p>

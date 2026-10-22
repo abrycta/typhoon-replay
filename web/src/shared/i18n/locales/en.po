@@ -199,6 +199,11 @@ msgid "{label} is waking up; opening this page started it."
 msgstr "{label} is waking up; opening this page started it."
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} was not asked ({cachedWhy}): this is the edge cache's copy, {age} old, served in {0}. {label}'s own state is unknown."
+msgstr "{label} was not asked ({cachedWhy}): this is the edge cache's copy, {age} old, served in {0}. {label}'s own state is unknown."
+
+#. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #. placeholder {1}: formatMs(lane.lastMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} woke up and answered in {0}; the answer itself took {1}."
@@ -492,6 +497,10 @@ msgstr "Browse by decade and country"
 #: src/app/errors.tsx
 msgid "Browse storms"
 msgstr "Browse storms"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "cached"
+msgstr "cached"
 
 #: src/features/compare/SlotCard.tsx
 #: src/features/compare/StormPicker.tsx
@@ -839,6 +848,14 @@ msgstr "From {firstLabel}. No other backend has answered yet."
 #: src/features/compare/SuggestedPairs.tsx
 msgid "from formation"
 msgstr "from formation"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "from the backend · not cached"
+msgstr "from the backend · not cached"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "from the edge cache · {age} old"
+msgstr "from the edge cache · {age} old"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "From the lossless 3-hourly grid (0.5°)."
@@ -1933,6 +1950,10 @@ msgstr "Test rows: each backend's latest passing CI run on main:"
 msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 msgstr "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 
+#: src/features/under-the-hood/Race.tsx
+msgid "the API is resting to save bandwidth"
+msgstr "the API is resting to save bandwidth"
+
 #: src/features/under-the-hood/wake-copy.ts
 msgid "The backend is not answering yet. Send again in {retryAfterS} s."
 msgstr "The backend is not answering yet. Send again in {retryAfterS} s."
@@ -1960,6 +1981,10 @@ msgstr "The colours:"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The edge"
 msgstr "The edge"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "the edge answered from its cache"
+msgstr "the edge answered from its cache"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
@@ -2069,6 +2094,10 @@ msgstr "Timeline table"
 #: src/features/under-the-hood/reason.ts
 msgid "too many live streams"
 msgstr "too many live streams"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "too many races this minute"
+msgstr "too many races this minute"
 
 #: src/features/under-the-hood/reason.ts
 msgid "too many requests"

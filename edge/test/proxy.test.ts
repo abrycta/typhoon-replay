@@ -439,6 +439,65 @@ describe("edge cache", () => {
   });
 });
 
+describe("cache bypass (the Under the hood race)", () => {
+  const BYPASS = { headers: { "X-Edge-Bypass": "origin" } };
+
+  it("reaches the backend despite a fresh entry, conditionally, and says so", async () => {
+    await h.seed("/api/java/v1/storms", { items: [1] }, CATALOGUE, 10);
+    h.setOrigin(() => new Response(null, { status: 304, headers: { ETag: CATALOGUE.ETag, "Cache-Control": CATALOGUE["Cache-Control"] } }));
+    const { res } = await h.call("/api/java/v1/storms", BYPASS);
+    expect(res.headers.get("X-Edge-Cache")).toBe("MISS");
+    expect(res.headers.get("X-Edge-Bypass")).toBe("origin");
+    expect(res.headers.get("Server-Timing")).toMatch(/origin;dur=\d+/);
+    expect(await res.json()).toEqual({ items: [1] });
+    expect(h.calls).toHaveLength(1);
+    expect(h.calls[0]!.headers.get("If-None-Match")).toBe(CATALOGUE.ETag);
+    expect(h.calls[0]!.headers.has("X-Edge-Bypass")).toBe(false); // never forwarded
+    // Normal traffic still gets the cache.
+    const normal = await h.call("/api/java/v1/storms");
+    expect(normal.res.headers.get("X-Edge-Cache")).toBe("HIT");
+    expect(normal.res.headers.has("X-Edge-Bypass")).toBe(false);
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("reports a sleeping backend as waking even when a cached copy exists", async () => {
+    await h.seed("/api/java/v1/storms", { items: [1] }, CATALOGUE, 10);
+    h.setOrigin(async (req) => {
+      await delay(300, req.signal);
+      return json({ items: [2] }, { headers: CATALOGUE });
+    });
+    const { res, settle } = await h.call("/api/java/v1/storms", BYPASS, { ORIGIN_TIMEOUT_MS: "100" });
+    expect(res.status).toBe(503);
+    expect((await problemOf(res)).code).toBe("backend-waking");
+    expect(res.headers.get("X-Edge-Bypass")).toBe("origin");
+    await settle();
+  });
+
+  it("is budgeted per visitor and backend; out of budget it falls back to the cache, labelled", async () => {
+    await h.seed("/api/java/v1/storms", { items: [1] }, CATALOGUE, 10);
+    h.setOrigin(() => new Response(null, { status: 304, headers: { ETag: CATALOGUE.ETag, "Cache-Control": CATALOGUE["Cache-Control"] } }));
+    for (let i = 0; i < 6; i++) expect((await h.call("/api/java/v1/storms", BYPASS)).res.headers.get("X-Edge-Bypass")).toBe("origin");
+    const limited = await h.call("/api/java/v1/storms", BYPASS);
+    expect(limited.res.status).toBe(200);
+    expect(limited.res.headers.get("X-Edge-Cache")).toBe("HIT");
+    expect(limited.res.headers.get("X-Edge-Bypass")).toBe("limited");
+    expect(h.calls).toHaveLength(6);
+    // Another visitor still has their own budget.
+    const other = await h.call("/api/java/v1/storms", { headers: { ...BYPASS.headers, "CF-Connecting-IP": "198.51.100.9" } });
+    expect(other.res.headers.get("X-Edge-Bypass")).toBe("origin");
+  });
+
+  it("is ignored for non-cacheable requests and in static mode", async () => {
+    await h.seed("/api/java/v1/storms", { items: [1] }, CATALOGUE, 10);
+    const { res } = await h.call("/api/java/v1/storms", BYPASS, { STATIC_MODE: "true" });
+    expect(res.headers.get("X-Edge-Cache")).toBe("HIT");
+    expect(res.headers.get("X-Edge-Bypass")).toBe("static-mode");
+    expect(h.calls).toHaveLength(0);
+    const health = await h.call("/api/java/healthz", BYPASS);
+    expect(health.res.headers.has("X-Edge-Bypass")).toBe(false);
+  });
+});
+
 describe("cold start", () => {
   it("a slow miss returns 503 backend-waking with Retry-After, and the request finishes in the background", async () => {
     h.setOrigin(async (req) => {

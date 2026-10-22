@@ -14,7 +14,7 @@ import {
   requestIdFor,
   upstreamHeaders,
 } from "./http";
-import { checkRate } from "./ratelimit";
+import { checkRate, takeBypass } from "./ratelimit";
 
 export type { Env } from "./env";
 
@@ -56,6 +56,15 @@ export function allowedPath(rest: string): boolean {
 /** Paths whose responses depend on the session: never looked up or stored, whatever their headers say. */
 const PRIVATE_PREFIXES = ["/v1/me/", "/v1/auth/", "/v1/_test/", "/v1/alerts/"];
 
+/**
+ * Request header that asks a cacheable read to skip the edge cache and reach the backend (the Under the hood race
+ * measures the backends, not this cache). Only the value `origin` counts. It is budgeted per visitor and per backend
+ * (`takeBypass`); out of budget, or in static mode, the read is served the normal way. The answer's `X-Edge-Bypass`
+ * says what happened: `origin` (the backend answered or was asked), `limited` (out of budget) or `static-mode`.
+ */
+export const BYPASS_HEADER = "X-Edge-Bypass";
+export type BypassOutcome = "origin" | "limited" | "static-mode";
+
 const lastWake = new Map<string, number>();
 
 export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise<Response> {
@@ -67,7 +76,10 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   const impl = m?.[1] ?? "";
   const rest = m?.[2] ?? "/";
 
-  const done = (response: Response, label: EdgeCacheLabel, stale?: string) => decorate(response, { label, impl, requestId, t0, stale });
+  let bypassOutcome: BypassOutcome | undefined;
+  let originMs: number | undefined;
+  const done = (response: Response, label: EdgeCacheLabel, stale?: string) =>
+    decorate(response, { label, impl, requestId, t0, stale, bypass: bypassOutcome, originMs });
   const fail = (code: EdgeProblemCode, extra: { detail?: string; retryAfter?: number } = {}) =>
     done(problem(code, { requestId, instance, ...extra }), "BYPASS");
 
@@ -102,9 +114,11 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
 
   const cache = caches.default;
   const key = candidate ? cacheKey(request) : undefined;
+  const wantsBypass = !!key && request.headers.get(BYPASS_HEADER)?.trim().toLowerCase() === "origin";
 
   // --- egress guard: serve only what is already cached ---
   if (await isStaticMode(env, settings)) {
+    if (wantsBypass) bypassOutcome = "static-mode";
     if (key) {
       const entry = await lookup(cache, key, settings.staleIfErrorS);
       if (entry) return done(fromEntry(entry, request), entry.state === "fresh" ? "HIT" : "STALE", entry.state === "fresh" ? undefined : "static-mode");
@@ -147,16 +161,18 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
 
   // --- cacheable public read ---
   const entry = await lookup(cache, key, settings.staleIfErrorS);
-  if (entry?.state === "fresh") return done(fromEntry(entry, request), "HIT");
+  const bypass = wantsBypass && takeBypass(clientIp(request), impl);
+  if (wantsBypass) bypassOutcome = bypass ? "origin" : "limited";
+  if (!bypass && entry?.state === "fresh") return done(fromEntry(entry, request), "HIT");
   const validator = entry && !UNCONDITIONAL_REVALIDATION.has(rest) ? entry.etag : null;
 
-  if (entry?.state === "revalidate") {
+  if (!bypass && entry?.state === "revalidate") {
     // stale-while-revalidate: answer now, refresh in the background (which also wakes a sleeping backend).
     ctx.waitUntil(revalidate(cache, key, entry, validator, target, request, impl, requestId, settings).catch(() => undefined));
     return done(fromEntry(entry, request), "STALE", "revalidating");
   }
 
-  if (entry && entry.state === "if-error") {
+  if (!bypass && entry && entry.state === "if-error") {
     // stale-if-error: give the origin a short chance; otherwise serve the stale copy and finish in the background.
     const keep = entry.response.clone();
     const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, validator, settings.edgeSecret);
@@ -176,8 +192,13 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
   }
 
   // Miss: fetch without the client's validators so a full copy can be stored, then answer 304 here if it matches.
-  const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, null, settings.edgeSecret);
+  // Bypass: the backend is asked whatever the cache holds; with a cached copy, conditionally (a 304 costs almost no
+  // egress and refreshes the entry), so the race keeps the cache warm for everyone else.
+  const keep = bypass && entry && entry.state !== "expired" && validator ? entry.response.clone() : undefined;
+  const tOrigin = Date.now();
+  const pending = originFetch(target, request, impl, requestId, BACKGROUND_TIMEOUT_MS, keep ? validator : null, settings.edgeSecret);
   const r = await raceTimer(pending, settings.originTimeoutMs);
+  if (r) originMs = Date.now() - tOrigin;
   if (!r) {
     // Cold start. The request keeps going in the background: it wakes the backend and fills the cache.
     lastWake.set(impl, Date.now());
@@ -185,7 +206,8 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
       pending
         .then(async (late) => {
           if (late.kind !== "response") return;
-          if (request.method === "GET") await store(cache, key, late.response, settings.staleIfErrorS);
+          if (keep) await settle(cache, key, keep, late.response, settings);
+          else if (request.method === "GET") await store(cache, key, late.response, settings.staleIfErrorS);
           else await late.response.body?.cancel();
         })
         .catch(() => undefined),
@@ -201,6 +223,12 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
     void response.body?.cancel();
     if (request.method === "GET") ctx.waitUntil(retryWaking(cache, key, target, request, impl, requestId, settings).catch(() => undefined));
     return fail("backend-waking", { retryAfter: upstreamWaking, detail: "the backend is waking its database; retry shortly" });
+  }
+  if (response.status === 304 && keep && entry) {
+    // The backend confirmed the cached copy: refresh the entry and answer from it. Still an origin answer (MISS).
+    const fresh = await settle(cache, key, keep, response, settings);
+    if (fresh) void entry.response.body?.cancel();
+    return done(fromEntry(fresh ?? entry, request), "MISS");
   }
   if (request.method === "GET") {
     const toStore = response.clone();
@@ -370,15 +398,20 @@ async function passthrough(response: Response, isSse: boolean, requestId: string
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-function decorate(response: Response, o: { label: EdgeCacheLabel; impl: string; requestId: string; t0: number; stale?: string }): Response {
+function decorate(
+  response: Response,
+  o: { label: EdgeCacheLabel; impl: string; requestId: string; t0: number; stale?: string; bypass?: BypassOutcome; originMs?: number },
+): Response {
   const headers = new Headers(response.headers);
   headers.set("X-Edge-Cache", o.label);
   if (o.stale) headers.set("X-Edge-Stale", o.stale);
+  if (o.bypass) headers.set(BYPASS_HEADER, o.bypass);
   if (o.impl) headers.set("X-Edge-Route", o.impl);
   headers.set("X-Request-Id", o.requestId);
   headers.append("Server-Timing", `edge;dur=${Date.now() - o.t0}`);
   const vary = headers.get("Vary");
   if (vary) headers.set("Vary", dedupeTokens(vary));
+  if (o.originMs !== undefined) headers.append("Server-Timing", `origin;dur=${o.originMs}`);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 

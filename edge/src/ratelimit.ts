@@ -41,6 +41,21 @@ export async function checkRate(env: Env, settings: Settings, ip: string): Promi
   return takeToken(ip, settings.ratePerMinute, settings.rateBurst);
 }
 
+/**
+ * Cache-bypass budget (the Under the hood race, `X-Edge-Bypass: origin`). A bypassing read always reaches the
+ * backend, so it is limited much harder than ordinary reads: per visitor and backend (a race is one request per
+ * backend, plus wake-up retries), and per backend for everyone at this isolate, so many visitors together can't
+ * keep a Render service busy either. Out of budget, the request is simply served the normal (cached) way.
+ */
+export const BYPASS_PER_IP = { perMinute: 6, burst: 6 };
+export const BYPASS_PER_IMPL = { perMinute: 60, burst: 30 };
+
+export function takeBypass(ip: string, impl: string, now = Date.now()): boolean {
+  const mine = takeToken(`bypass:${impl}:${ip}`, BYPASS_PER_IP.perMinute, BYPASS_PER_IP.burst, now);
+  if (!mine.ok) return false;
+  return takeToken(`bypass:${impl}`, BYPASS_PER_IMPL.perMinute, BYPASS_PER_IMPL.burst, now).ok;
+}
+
 /** Test helper. */
 export function __resetBuckets() {
   buckets.clear();

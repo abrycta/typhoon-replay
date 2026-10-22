@@ -32,6 +32,10 @@ export interface ApiResult {
   impl?: string;
   /** X-Edge-Cache: HIT | MISS | STALE | BYPASS. */
   edgeCache?: string;
+  /** Age (seconds) of an answer served from the edge cache. */
+  ageS?: number;
+  /** X-Edge-Bypass, for a request sent with `bypassCache`: origin | limited | static-mode. */
+  bypass?: string;
   /** Retry-After in seconds, when sent. */
   retryAfterS?: number;
   /** RFC 9457 `code` of a problem response. */
@@ -85,6 +89,8 @@ export interface SendOptions {
   priority?: "high" | "low" | "auto";
   /** Deadline for the whole request, body included (default {@link REQUEST_TIMEOUT_MS}). */
   timeoutMs?: number;
+  /** Ask the edge to skip its cache and reach the backend (budgeted at the edge; edge/README.md "Cache bypass"). */
+  bypassCache?: boolean;
 }
 
 /**
@@ -115,7 +121,7 @@ export async function sendRequest(baseUrl: string, path: ApiPath, opts: SendOpti
   try {
     let res: Response;
     try {
-      res = await f(url, { method: "GET", headers: { Accept: "application/json" }, credentials: "omit", cache: "no-store", signal: ctrl.signal, priority: opts.priority } as RequestInit);
+      res = await f(url, { method: "GET", headers: { Accept: "application/json", ...(opts.bypassCache ? { "X-Edge-Bypass": "origin" } : {}) }, credentials: "omit", cache: "no-store", signal: ctrl.signal, priority: opts.priority } as RequestInit);
     } catch (e) {
       return fail(e);
     }
@@ -141,6 +147,10 @@ export async function sendRequest(baseUrl: string, path: ApiPath, opts: SendOpti
     const ra = retryAfter(res.headers.get("Retry-After"));
     if (impl) out.impl = impl;
     if (edgeCache) out.edgeCache = edgeCache;
+    const age = Number(res.headers.get("Age") ?? "");
+    if (res.headers.has("Age") && Number.isFinite(age)) out.ageS = age;
+    const bypass = res.headers.get("X-Edge-Bypass");
+    if (bypass) out.bypass = bypass;
     if (ra !== undefined) out.retryAfterS = ra;
     if (problemCode) out.problemCode = problemCode;
     if (body !== undefined) out.body = body;

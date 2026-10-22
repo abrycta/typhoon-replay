@@ -199,6 +199,11 @@ msgid "{label} is waking up; opening this page started it."
 msgstr "{label} は起動中です（このページを開いたときに起動を始めました）。"
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} was not asked ({cachedWhy}): this is the edge cache's copy, {age} old, served in {0}. {label}'s own state is unknown."
+msgstr "{label} には問い合わせていません（{cachedWhy}）。これは {age} 前のエッジキャッシュのコピーで、{0} で返されました。{label} 自体の状態は不明です。"
+
+#. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #. placeholder {1}: formatMs(lane.lastMs ?? 0)
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} woke up and answered in {0}; the answer itself took {1}."
@@ -492,6 +497,10 @@ msgstr "年代と国で探す"
 #: src/app/errors.tsx
 msgid "Browse storms"
 msgstr "台風を探す"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "cached"
+msgstr "キャッシュ"
 
 #: src/features/compare/SlotCard.tsx
 #: src/features/compare/StormPicker.tsx
@@ -839,6 +848,14 @@ msgstr "{firstLabel} の結果です。ほかのバックエンドはまだ応�
 #: src/features/compare/SuggestedPairs.tsx
 msgid "from formation"
 msgstr "発生時"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "from the backend · not cached"
+msgstr "バックエンドから · キャッシュなし"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "from the edge cache · {age} old"
+msgstr "エッジキャッシュから · {age} 前"
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "From the lossless 3-hourly grid (0.5°)."
@@ -1933,6 +1950,10 @@ msgstr "テストの行：各バックエンドの main ブランチで最後に
 msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 msgstr "API は OpenAPI 3.1 で一度だけ記述し、/v1 で提供しています。CI が契約をチェックし、互換性を壊す変更があれば失敗させます。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
 
+#: src/features/under-the-hood/Race.tsx
+msgid "the API is resting to save bandwidth"
+msgstr "帯域節約のため API は休止中"
+
 #: src/features/under-the-hood/wake-copy.ts
 msgid "The backend is not answering yet. Send again in {retryAfterS} s."
 msgstr "バックエンドはまだ応答していません。{retryAfterS} 秒後にもう一度送信してください。"
@@ -1960,6 +1981,10 @@ msgstr "色:"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The edge"
 msgstr "エッジ"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "the edge answered from its cache"
+msgstr "エッジがキャッシュから応答"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
@@ -2069,6 +2094,10 @@ msgstr "タイムライン表"
 #: src/features/under-the-hood/reason.ts
 msgid "too many live streams"
 msgstr "ライブ配信が多すぎます"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "too many races this minute"
+msgstr "この 1 分間のレースが多すぎます"
 
 #: src/features/under-the-hood/reason.ts
 msgid "too many requests"
