@@ -51,7 +51,7 @@ function Marker({ left, kind, color, title }: { left: number; kind: "formed" | "
     return <span title={title} className={`${common} -mt-[5px] -ml-[5px] size-2.5 rounded-full border-2 bg-white`} style={{ left: `${left}%`, borderColor: color }} />;
   if (kind === "peak") return <span title={title} className={`${common} -mt-1.5 -ml-1.5 size-3 rotate-45 bg-white`} style={{ left: `${left}%` }} />;
   return (
-    <span title={title} className={`${common} -mt-2 -ml-[7px] text-[13px] leading-none text-white`} style={{ left: `${left}%` }}>
+    <span title={title} className={`${common} -mt-2 -ml-[7px] text-ak-xs leading-none text-white`} style={{ left: `${left}%` }}>
       ▲
     </span>
   );
@@ -198,7 +198,7 @@ export function LineUp({
 
       <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 sm:grid-cols-[8rem_minmax(0,1fr)]">
         <span />
-        <div className="relative h-5 font-mono text-[11px] text-muted-foreground" aria-hidden="true">
+        <div className="relative h-5 font-mono text-ak-2xs text-muted-foreground" aria-hidden="true">
           {ticks.map((d) => (
             <span key={d} className={`absolute -translate-x-1/2 whitespace-nowrap ${d === 0 ? "font-medium text-foreground" : ""}`} style={{ left: `${pct(zero + d * 24)}%` }}>
               {d === 0 ? "0" : `${signed(d)} ${t`d`}`}
@@ -214,7 +214,7 @@ export function LineUp({
                 <span className="truncate">{l.name}</span>
               </span>
               {l.durationHours !== undefined ? (
-                <span className="whitespace-nowrap text-[11px] leading-normal text-muted-foreground">
+                <span className="whitespace-nowrap text-ak-2xs leading-normal text-muted-foreground">
                   {duration(l.durationHours)} · {Math.round(l.durationHours)} h
                 </span>
               ) : null}

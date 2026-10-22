@@ -19,11 +19,11 @@ export interface ContinuousLegendProps {
 export function ContinuousLegend({ title, gradient, ticks, unit, note, className }: ContinuousLegendProps) {
   return (
     <figure className={cn("m-0 grid gap-1.5", className)} data-slot="continuous-legend">
-      <figcaption className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
+      <figcaption className="font-mono text-ak-2xs tracking-[0.08em] text-muted-foreground uppercase">
         {title} <span className="normal-case">({unit})</span>
       </figcaption>
       <div className="h-3 rounded-sm border border-border" style={{ background: gradient }} aria-hidden="true" />
-      <div className="relative h-4 font-mono text-[11px] text-muted-foreground tabular-nums" aria-hidden="true">
+      <div className="relative h-4 font-mono text-ak-2xs text-muted-foreground tabular-nums" aria-hidden="true">
         {ticks.map((t) => (
           <span
             key={t.label}

@@ -94,10 +94,10 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
             {t`Send`}
           </Button>
         </form>
-        <p className="font-mono text-[13px] break-all" data-testid="explore-request">
+        <p className="font-mono text-ak-sm break-all" data-testid="explore-request">
           {requestLine}
         </p>
-        <div aria-live="polite" className="grid gap-1 font-mono text-[13px]" data-testid="explore-status">
+        <div aria-live="polite" className="grid gap-1 font-mono text-ak-sm" data-testid="explore-status">
           {res ? (
             <>
               <p>

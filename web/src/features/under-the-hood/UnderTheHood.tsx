@@ -47,17 +47,17 @@ export function UnderTheHood() {
   ];
 
   return (
-    <div className="mx-auto grid max-w-[1080px] gap-14 px-4 py-10">
+    <div className="mx-auto grid max-w-ak-page gap-14 px-ak-gutter py-10">
       <section className="grid gap-3">
         <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Tech`}</p>
-        <h1 className="font-heading text-[clamp(30px,5vw,44px)] leading-[1.15] font-semibold text-balance">{t`One API, four languages`}</h1>
+        <h1 className="font-heading text-ak-title font-semibold text-balance">{t`One API, four languages`}</h1>
         <p className="max-w-[66ch] text-muted-foreground">
           {t`Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree.`}
         </p>
         <dl className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
           {facts.map((f) => (
             <div key={f.k} className="border-t-2 border-primary pt-2 text-sm">
-              <dt className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase">{f.k}</dt>
+              <dt className="font-mono text-ak-2xs tracking-[0.06em] text-muted-foreground uppercase">{f.k}</dt>
               <dd className="m-0">{f.v}</dd>
             </div>
           ))}

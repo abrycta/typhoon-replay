@@ -24,8 +24,8 @@ function useTick(active: boolean, ms = 500) {
 const CHIP: Record<LaneStatus, string> = {
   idle: "text-muted-foreground",
   running: "text-muted-foreground",
-  waking: "text-[var(--warning,#8a5a12)] dark:text-[var(--warning,#e2b46a)]",
-  ok: "text-[var(--success,#2f6b4f)] dark:text-[var(--success,#7cc4a0)]",
+  waking: "text-warning",
+  ok: "text-success",
   "not-deployed": "text-muted-foreground",
   paused: "text-muted-foreground",
   "rate-limited": "text-[var(--warning,#8a5a12)] dark:text-[var(--warning,#e2b46a)]",
@@ -100,11 +100,11 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     <article className="grid min-w-0 content-start gap-2 rounded-sm border border-border bg-card p-3.5" aria-labelledby={`lane-${lane.id}-h`} data-testid={`lane-${lane.id}`}>
       <h3 id={`lane-${lane.id}-h`} className="flex items-baseline justify-between gap-2 font-heading text-lg font-semibold">
         {label}
-        <span className={`rounded-full border border-current px-2 font-mono text-[11px] font-normal whitespace-nowrap ${CHIP[chipStatus]}`} data-testid={`lane-${lane.id}-state`}>
+        <span className={`rounded-full border border-current px-2 font-mono text-ak-2xs font-normal whitespace-nowrap ${CHIP[chipStatus]}`} data-testid={`lane-${lane.id}-state`}>
           {chip[chipStatus]}
         </span>
       </h3>
-      <p className="font-mono text-[11px] text-muted-foreground">{CONFORMANCE.backends[lane.id]?.stack}</p>
+      <p className="font-mono text-ak-2xs text-muted-foreground">{CONFORMANCE.backends[lane.id]?.stack}</p>
       <p className="font-mono text-2xl leading-tight tabular-nums" data-testid={`lane-${lane.id}-time`}>
         {time}
       </p>
@@ -116,7 +116,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
       </p>
       <p className="text-sm" data-testid={`lane-${lane.id}-match`}>
         {match === "same" ? (
-          <span className="text-[var(--success,#2f6b4f)] dark:text-[var(--success,#7cc4a0)]">{t`✓ Same result`}</span>
+          <span className="text-success">{t`✓ Same result`}</span>
         ) : match === "differs" ? (
           <span className="text-destructive">{t`✗ Different result`}</span>
         ) : match === "alone" ? (

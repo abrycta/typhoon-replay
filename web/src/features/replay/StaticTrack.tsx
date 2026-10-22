@@ -12,7 +12,7 @@ export function StaticTrack({ hours, current, label }: { hours: readonly TrackHo
   return (
     <svg viewBox={`0 0 1000 ${height}`} role="img" aria-label={label} className="absolute inset-0 h-full w-full bg-muted">
       <polyline fill="none" stroke="currentColor" strokeWidth={3} points={hours.map((h) => `${X(h.lon)},${Y(h.lat)}`).join(" ")} />
-      {current ? <circle cx={X(current.lon)} cy={Y(current.lat)} r={12} fill={current.observed ? "var(--seal, #c4532f)" : "none"} stroke="var(--seal, #c4532f)" strokeWidth={4} /> : null}
+      {current ? <circle cx={X(current.lon)} cy={Y(current.lat)} r={12} fill={current.observed ? "var(--seal)" : "none"} stroke="var(--seal)" strokeWidth={4} /> : null}
     </svg>
   );
 }
