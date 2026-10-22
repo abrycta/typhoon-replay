@@ -22,11 +22,12 @@ import { PlayerControls } from "./PlayerControls";
 import { type Speed, usePlayerClock } from "./player";
 import { StaticTrack } from "./StaticTrack";
 import { TimelineTable } from "./TimelineTable";
+import { loadReplayMap } from "./map/load";
 import { localZone, parseView } from "./url";
 import { useCompassNames } from "./use-compass-names";
 import { useReplayKeyboard } from "./useReplayKeyboard";
 
-const ReplayMap = lazy(() => import("./map/ReplayMap"));
+const ReplayMap = lazy(loadReplayMap);
 const fmt = (v: number, d = 0) => v.toFixed(d);
 
 export interface ReplayUrlState {

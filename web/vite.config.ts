@@ -54,6 +54,8 @@ export default defineConfig({
   optimizeDeps: { exclude: ["maplibre-gl"], include: ["comlink"] },
   build: {
     outDir: "dist",
+    // dist/.vite/manifest.json: scripts/stamp-shells.mjs reads it for the preload hints, then deletes it.
+    manifest: true,
     // Hashed file names under /assets/ get the immutable cache rule in _headers.
     assetsDir: "assets",
     sourcemap: true,

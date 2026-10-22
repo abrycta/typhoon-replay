@@ -12,6 +12,8 @@
     <!-- Runtime config and the dataset host are on the critical path of every replay. -->
     <link rel="preload" href="/config.json" as="fetch" crossorigin="anonymous" />
     <link rel="preconnect" href="https://huggingface.co" crossorigin />
+    <!-- Frame sheets of storms not bundled with the site redirect to Hugging Face's file CDN. -->
+    <link rel="preconnect" href="https://us.aws.cdn.hf.co" crossorigin />
     <meta name="description" content="Replay any typhoon that hit the Philippines or Japan, hour by hour." />
     <!-- Pre-load still: the project's kanji glyph, the same quiet tile as krtmtthw.dev's embed slots (Akari muted tokens),
       until the view is ready. Inside #root, so React's first render replaces it. -->
