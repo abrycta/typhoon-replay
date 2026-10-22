@@ -41,6 +41,7 @@ type Server struct {
 	wrapper   *api.ServerInterfaceWrapper
 	startedAt string
 	streams   *streamCounter
+	live      *livePoller
 
 	mu        sync.Mutex
 	version   int64
@@ -55,6 +56,7 @@ func New(cfg Config) *Server {
 		startedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 		streams:   &streamCounter{max: max(50, cfg.MaxStreams), perClient: cfg.MaxPerClient},
 	}
+	s.live = newLivePoller(pollEvery, s.fetchLive)
 	s.wrapper = &api.ServerInterfaceWrapper{Handler: s, ErrorHandlerFunc: bindError}
 	return s
 }

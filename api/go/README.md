@@ -33,7 +33,8 @@ Optimisations and guards:
 - **gzip** over 1 KB (Render bills outbound bytes), JSON built without reflection, responses ≤ 64 KB at the maximum
   `limit`.
 - **No idle work.** Nothing touches the database while no request or live stream is open, so Neon scales to zero
-  and Render sleeps after 15 minutes. A live stream polls `live.revision` every 2 s and ends after 30 minutes
+  and Render sleeps after 15 minutes. One shared poller checks `live.revision` every 2 s for all open live streams (one Neon
+  round trip per tick, however many streams are open); a stream ends after 30 minutes
   (the browser resumes with `Last-Event-ID`); at most `TR_MAX_STREAMS` (200) are open, at most
   `TR_MAX_STREAMS_PER_CLIENT` (10) from one client address (429 above it).
 - **Edge only:** with `TR_EDGE_SECRET` set, `/v1/*` without a matching `X-Edge-Secret` gets a small 403, so the public
