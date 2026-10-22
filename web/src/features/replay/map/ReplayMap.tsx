@@ -55,8 +55,11 @@ export interface ReplayMapProps {
   basemap?: CustomBasemap;
   /** MapLibre pixelRatio (the embed is shown scaled down); default devicePixelRatio. */
   pixelRatio?: number;
-  /** Called once, on the first idle map after the overlays and the current frame are drawn. */
+  /** Called once, on the first idle map after the basemap, the track and (when one is expected) the current field
+   * frame are drawn: the parent lifts its glyph still then. */
   onRendered?: () => void;
+  /** A field frame is on its way (the storm has frames and none failed): wait for it before `onRendered`. */
+  awaitField?: boolean;
   /** The map size `view` was framed for (the embed's baked basemap): at any other size the zoom changes so the map
    * still fills with the same area (cover), at creation and on every resize. */
   viewFrame?: readonly [number, number];
@@ -323,9 +326,11 @@ export default function ReplayMap(props: ReplayMapProps) {
       if (b) map.fitBounds(b, { padding: 24, animate: false, maxZoom: 6 });
     }
     map.triggerRepaint();
-    if (latest.current.onRendered && !renderedRef.current) {
+    if (!renderedRef.current) {
       const check = () => {
-        if (renderedRef.current || !map.loaded() || (latest.current.header && !fieldRef.current?.hasFrame)) return;
+        const p = latest.current;
+        if (renderedRef.current || !map.loaded() || !p.track?.hours.length) return;
+        if ((p.header || p.awaitField) && !fieldRef.current?.hasFrame) return;
         renderedRef.current = true;
         map.off("idle", check);
         latest.current.onRendered?.();
@@ -335,6 +340,11 @@ export default function ReplayMap(props: ReplayMapProps) {
     // view only seeds the first fit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleVersion, track, themeKey, showTrack]);
+
+  // A late header, field failure or track: one more idle for the first-frame check above.
+  useEffect(() => {
+    if (!renderedRef.current) mapRef.current?.triggerRepaint();
+  }, [header, props.awaitField, track]);
 
   // Field style (layer, theme) and particles.
   useEffect(() => {
