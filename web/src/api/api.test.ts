@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { bodyKey, matchStates, normaliseBody } from "./compare";
 import { type ApiResult, classify, sendRequest } from "./request";
-import { retryDecision, sendUntilAwake, WAKE_CAP_MS } from "./wake";
+import { NETWORK_RETRIES, retryDecision, sendUntilAwake, WAKE_CAP_MS } from "./wake";
 
 const res = (kind: ApiResult["kind"], extra: Partial<ApiResult> = {}): ApiResult => ({ kind, method: "GET", url: "/api/x/v1/meta", status: kind === "ok" ? 200 : 503, ms: 5, ...extra });
 
@@ -93,6 +93,32 @@ describe("retry policy", () => {
     });
     expect(nd).toMatchObject({ outcome: "not-deployed", attempts: 1, woke: false });
     expect(calls).toBe(1);
+  });
+
+  it("retries a network failure twice (1 s, 2 s) without calling it a wake-up, then gives up", async () => {
+    const net = res("error", { status: 0, detail: "Failed to fetch" });
+    expect(retryDecision(net, 0, 0, WAKE_CAP_MS, 0)).toEqual({ action: "retry", delayMs: 1000, network: true });
+    expect(retryDecision(net, 0, 1, WAKE_CAP_MS, 1)).toEqual({ action: "retry", delayMs: 2000, network: true });
+    expect(retryDecision(net, 0, 2, WAKE_CAP_MS, NETWORK_RETRIES)).toMatchObject({ action: "stop", outcome: "error", reason: "Failed to fetch" });
+
+    const slept: number[] = [];
+    const progress: (number | undefined)[] = [];
+    const answers = [net, res("ok", { body: { ok: 1 } })];
+    const ok = await sendUntilAwake(async () => answers.shift()!, { sleep: async (ms) => void slept.push(ms), onProgress: (p) => progress.push(p.networkRetry) });
+    expect(ok).toMatchObject({ outcome: "ok", attempts: 2, woke: false });
+    expect(slept).toEqual([1000]);
+    expect(progress).toEqual([1]);
+
+    let calls = 0;
+    const failed = await sendUntilAwake(
+      async () => {
+        calls++;
+        return net;
+      },
+      { sleep: async () => {} },
+    );
+    expect(failed).toMatchObject({ outcome: "error", attempts: 3, reason: "Failed to fetch" });
+    expect(calls).toBe(1 + NETWORK_RETRIES);
   });
 });
 
