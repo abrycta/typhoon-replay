@@ -49,7 +49,7 @@ func config(impl replay.Impl, contract string) app.Config {
 		limiter = web.TokenBucket(rate)
 	}
 	streams, _ := strconv.Atoi(env("TR_MAX_STREAMS", "200"))
-	perClient, _ := strconv.Atoi(env("TR_MAX_STREAMS_PER_CLIENT", "6"))
+	perClient, _ := strconv.Atoi(env("TR_MAX_STREAMS_PER_CLIENT", "10"))
 	hooks := os.Getenv("TR_TEST_HOOKS")
 	return app.Config{
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
