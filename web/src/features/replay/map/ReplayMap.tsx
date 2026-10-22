@@ -1,4 +1,4 @@
-import { type GeoJSONSource, type LngLatBoundsLike, Map as MaplibreMap, Marker, type Map as MlMap, NavigationControl } from "maplibre-gl";
+import { type GeoJSONSource, type ImageSource, type LngLatBoundsLike, Map as MaplibreMap, Marker, MercatorCoordinate, type Map as MlMap, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // MapLibre 6 derives its worker URL at runtime from import.meta.url, which bundlers cannot see, so the
@@ -14,6 +14,8 @@ import { type FrameStore, type TyfHeader } from "@/data";
 import { hostPause } from "@/shared/ui/host-pause";
 import { FIELDS, fieldLut, type FieldLayer as FieldLayerId } from "@/shared/lib/fields";
 import { isLeavingPage, onPageExit } from "@/shared/lib/page-exit";
+import { ktToMs } from "@/shared/lib/units";
+import { usePrefersReducedMotion } from "@/shared/ui/hooks";
 import type { StormTrack, TrackHour } from "@/shared/model/types";
 
 import type { PlayerClock } from "../player";
@@ -21,6 +23,7 @@ import { BASEMAP_STYLE, type CustomBasemap, fallbackStyle, themeBasemap, type Th
 import { coverZoom } from "./cover-zoom";
 import { eyeAt } from "./eye";
 import { FieldLayer } from "./field-layer";
+import { labelCandidates, overlaps, type Rect, sealAt } from "./seal";
 
 export interface MapView {
   lon: number;
@@ -57,6 +60,89 @@ export interface ReplayMapProps {
   /** The map size `view` was framed for (the embed's baked basemap): at any other size the zoom changes so the map
    * still fills with the same area (cover), at creation and on every resize. */
   viewFrame?: readonly [number, number];
+  /** The storm seal's label on wide maps (wind and time); default m/s and UTC. */
+  sealLabel?: (kt: number | undefined, t: number) => string;
+}
+
+/** Maps narrower than this (phones, the compact embed) show the seal only, without its label. */
+const SEAL_LABEL_MIN_WIDTH = 520;
+
+const defaultSealLabel = (kt: number | undefined, t: number) => {
+  const d = new Date(t * 1000);
+  const when = `${d.getUTCDate()} ${d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${String(d.getUTCHours()).padStart(2, "0")}:00Z`;
+  return kt === undefined ? when : `${Math.round(ktToMs(kt))} m/s · ${when}`;
+};
+
+/** The storm seal: a small 朱 square with the category, on a paper edge, and a mono label beside it (wide maps). */
+function sealMarker(): HTMLElement {
+  const el = document.createElement("div");
+  el.dataset.testid = "storm-seal";
+  el.setAttribute("aria-hidden", "true"); // the hour, wind and category are in the player and the timeline table
+  el.className = "pointer-events-none relative h-0 w-0";
+  el.innerHTML =
+    '<span data-seal class="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2.5px] bg-seal font-mono leading-none font-bold text-ak-on-accent ring-2 ring-background"></span>' +
+    '<span data-label class="absolute rounded-[3px] bg-background/90 px-1.5 py-0.5 font-mono text-ak-2xs leading-tight whitespace-nowrap text-foreground"></span>';
+  return el;
+}
+
+/** Symbol (label) layers of the style, and raster label images drawn above the field (the embed's baked labels). */
+function labelLayers(map: MlMap): { symbols: string[]; images: string[] } {
+  const symbols: string[] = [], images: string[] = [];
+  for (const l of map.getStyle().layers ?? []) {
+    if (l.type === "symbol") symbols.push(l.id);
+    else if (l.type === "raster" && (l.metadata as Record<string, unknown> | undefined)?.["replay:above-field"]) images.push(l.source);
+  }
+  return { symbols, images };
+}
+
+/** Alpha of a label image (an image source), read once per URL; undefined until loaded or when unreadable. */
+const alphaCache = new Map<string, { w: number; h: number; a: Uint8ClampedArray } | null>();
+function imageAlpha(url: string): { w: number; h: number; a: Uint8ClampedArray } | undefined {
+  const hit = alphaCache.get(url);
+  if (hit !== undefined) return hit ?? undefined;
+  alphaCache.set(url, null);
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    try {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const g = c.getContext("2d", { willReadFrequently: true })!;
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      const a = new Uint8ClampedArray(c.width * c.height);
+      for (let k = 0; k < a.length; k++) a[k] = d[k * 4 + 3]!;
+      alphaCache.set(url, { w: c.width, h: c.height, a });
+    } catch {
+      /* unreadable (cross-origin): no collision data */
+    }
+  };
+  img.src = url;
+  return undefined;
+}
+
+/** Does a screen box cover text in a label image source? Samples every 2 px. */
+function imageLabelsIn(map: MlMap, sourceId: string, r: Rect): boolean {
+  const src = map.getSource(sourceId) as ImageSource | undefined;
+  if (!src?.url || !src.coordinates) return false;
+  const px = imageAlpha(src.url);
+  if (!px) return false;
+  const [tl, tr, , bl] = src.coordinates.map((c) => MercatorCoordinate.fromLngLat({ lng: c[0], lat: c[1] }));
+  const x0 = tl!.x, dx = tr!.x - tl!.x, y0 = tl!.y, dy = bl!.y - tl!.y;
+  let hits = 0;
+  for (let y = r.y; y <= r.y + r.h; y += 2) {
+    for (let x = r.x; x <= r.x + r.w; x += 2) {
+      const m = MercatorCoordinate.fromLngLat(map.unproject([x, y]));
+      let mx = m.x;
+      if (mx < x0) mx += 1;
+      else if (mx > x0 + dx) mx -= 1;
+      const u = Math.floor(((mx - x0) / dx) * px.w), v = Math.floor(((m.y - y0) / dy) * px.h);
+      if (u < 0 || v < 0 || u >= px.w || v >= px.h) continue;
+      if (px.a[v * px.w + u]! > 96 && ++hits >= 3) return true;
+    }
+  }
+  return false;
 }
 
 function trackLine(hours: readonly TrackHour[]): [number, number][] {
@@ -112,6 +198,12 @@ export default function ReplayMap(props: ReplayMapProps) {
   useEffect(() => {
     latest.current = props;
   });
+  // Reduced motion: the seal steps hour by hour, and its label changes once per hour, never per frame.
+  const reducedMotion = usePrefersReducedMotion();
+  const reducedRef = useRef(reducedMotion);
+  useEffect(() => {
+    reducedRef.current = reducedMotion;
+  }, [reducedMotion]);
 
   // Create the map once.
   useEffect(() => {
@@ -205,7 +297,6 @@ export default function ReplayMap(props: ReplayMapProps) {
       map.addLayer(fl, firstSymbol);
     }
     const ink = tokenColor("color.text", themeKey);
-    const seal = tokenColor("component.seal.color", themeKey);
     const bg = tokenColor("color.bg", themeKey);
     const hours = track?.hours ?? [];
     const lineData = { type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: trackLine(hours) } };
@@ -220,27 +311,13 @@ export default function ReplayMap(props: ReplayMapProps) {
     } else {
       map.addSource("track", { type: "geojson", data: lineData });
       map.addSource("fixes", { type: "geojson", data: fixData });
-      map.addSource("current", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "track-line", type: "line", source: "track", paint: { "line-color": ink, "line-width": 1.6, "line-opacity": 0.85 } });
       map.addLayer({ id: "track-fixes", type: "circle", source: "fixes", paint: { "circle-radius": 2.4, "circle-color": ink, "circle-stroke-color": bg, "circle-stroke-width": 0.8 } });
-      map.addLayer({
-        id: "current",
-        type: "circle",
-        source: "current",
-        paint: {
-          "circle-radius": 7,
-          "circle-color": ["case", ["get", "observed"], seal, "rgba(0,0,0,0)"],
-          "circle-stroke-color": seal,
-          "circle-stroke-width": 2.5,
-        },
-      });
     }
     for (const id of ["track-line", "track-fixes"]) map.setLayoutProperty(id, "visibility", showTrack ? "visible" : "none");
     map.setPaintProperty("track-line", "line-color", ink);
     map.setPaintProperty("track-fixes", "circle-color", ink);
     map.setPaintProperty("track-fixes", "circle-stroke-color", bg);
-    map.setPaintProperty("current", "circle-stroke-color", seal);
-    map.setPaintProperty("current", "circle-color", ["case", ["get", "observed"], seal, "rgba(0,0,0,0)"]);
     if (!view) {
       const b = bounds(hours);
       if (b) map.fitBounds(b, { padding: 24, animate: false, maxZoom: 6 });
@@ -289,6 +366,94 @@ export default function ReplayMap(props: ReplayMapProps) {
     fl.setParticles({ enabled: particles, color: particleInk as [number, number, number, number], res: lowEnd ? 48 : 72 });
   }, [header, layer, particles, themeKey, styleVersion]);
 
+  // The storm seal (a DOM marker, above every map layer) and where its label goes.
+  const sealRef = useRef<Marker | null>(null);
+  const sealDraw = useRef<((lon: number, lat: number, t: number, prevT: number, nextT: number) => void) | undefined>(undefined);
+  const placeRef = useRef<{ x: number; y: number; text: string; k: number; dirty: boolean }>({ x: 0, y: 0, text: "", k: 0, dirty: true });
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleVersion) return;
+    const layers = labelLayers(map);
+    const marker = (sealRef.current ??= new Marker({ element: sealMarker(), anchor: "center" }));
+    const place = placeRef.current;
+    const dirty = () => (place.dirty = true);
+    // Place labels appear as tiles load and after moves: once the map settles, place the label again.
+    let last: Parameters<NonNullable<typeof sealDraw.current>> | undefined;
+    const settle = () => {
+      if (!last) return;
+      place.dirty = true;
+      sealDraw.current?.(...last);
+    };
+    map.on("moveend", dirty);
+    map.on("resize", dirty);
+    map.on("idle", settle);
+    place.dirty = true;
+    const el = marker.getElement();
+    const square = el.querySelector<HTMLElement>("[data-seal]")!;
+    const label = el.querySelector<HTMLElement>("[data-label]")!;
+    let size = 0, text = "", added = false;
+    sealDraw.current = (lon, lat, t, prevT, nextT) => {
+      last = [lon, lat, t, prevT, nextT];
+      const p = latest.current;
+      const hours = p.track?.hours ?? [];
+      const s = sealAt(hours, t);
+      if (s.size !== size) {
+        size = s.size;
+        Object.assign(square.style, { width: `${size}px`, height: `${size}px` });
+      }
+      if (s.text !== text) {
+        text = s.text;
+        square.textContent = text;
+        square.style.fontSize = text.length > 1 ? "7.5px" : "11px";
+      }
+      marker.setLngLat([lon, lat]);
+      if (!added) {
+        marker.addTo(map);
+        added = true;
+      }
+      // Label: wide maps only; on the side of the track facing up, moved off place labels and the map edge.
+      const container = map.getContainer();
+      const wide = !p.viewFrame && container.clientWidth >= SEAL_LABEL_MIN_WIDTH;
+      label.hidden = !wide;
+      if (!wide) return;
+      const txt = (p.sealLabel ?? defaultSealLabel)(s.kt, t);
+      if (label.textContent !== txt) label.textContent = txt;
+      const pt = map.project([lon, lat]);
+      if (!place.dirty && txt.length === place.text.length && Math.hypot(pt.x - place.x, pt.y - place.y) < 6) return;
+      const a = map.project(eyeAt(hours, prevT, true) ?? { lon, lat }), b = map.project(eyeAt(hours, nextT, true) ?? { lon, lat });
+      const w = label.offsetWidth, h = label.offsetHeight;
+      const cands = labelCandidates(pt.x, pt.y, [b.x - a.x, b.y - a.y], size / 2 + 2, w, h);
+      const W = container.clientWidth, H = container.clientHeight, m = 4;
+      const showTrack = map.getLayoutProperty("track-line", "visibility") !== "none";
+      const score = (r: Rect, k: number) => {
+        let v = r.x < m || r.y < m || r.x + r.w > W - m || r.y + r.h > H - m ? 1000 : 0;
+        // Place labels count with a few px of clearance, so the label never hugs a town name.
+        const pad = { x: r.x - 4, y: r.y - 4, w: r.w + 8, h: r.h + 8 };
+        const box: [[number, number], [number, number]] = [[pad.x, pad.y], [pad.x + pad.w, pad.y + pad.h]];
+        if (layers.symbols.length && map.queryRenderedFeatures(box, { layers: layers.symbols }).length) v += 100;
+        else if (layers.images.some((id) => imageLabelsIn(map, id, pad))) v += 100;
+        if (showTrack && map.queryRenderedFeatures(box, { layers: ["track-line"] }).length) v += 10;
+        if (overlaps(r, { x: pt.x - size / 2 - 2, y: pt.y - size / 2 - 2, w: size + 4, h: size + 4 })) v += 1000;
+        return v + (k === place.k ? 0 : 1); // keep the current side unless another is clearer
+      };
+      let best = 0, bestScore = Infinity;
+      cands.forEach((r, k) => {
+        const v = score(r, k);
+        if (v < bestScore) [best, bestScore] = [k, v];
+      });
+      const r = cands[best]!;
+      Object.assign(label.style, { left: `${Math.round(r.x - pt.x)}px`, top: `${Math.round(r.y - pt.y)}px` });
+      Object.assign(place, { x: pt.x, y: pt.y, text: txt, k: best, dirty: false });
+    };
+    return () => {
+      map.off("moveend", dirty);
+      map.off("resize", dirty);
+      map.off("idle", settle);
+      sealDraw.current = undefined;
+    };
+  }, [styleVersion]);
+  useEffect(() => () => void sealRef.current?.remove(), []);
+
   // Drive the layer from the clock (fractional position, every animation frame).
   useEffect(() => {
     const apply = (pos: number) => {
@@ -306,24 +471,24 @@ export default function ReplayMap(props: ReplayMapProps) {
       }
       const t0 = p.times[i];
       if (t0 !== undefined && p.track) {
-        const at = eyeAt(p.track.hours, t0 + f * ((p.times[j] ?? t0) - t0), clock.snapshot.playing);
-        const src = map.getSource("current") as GeoJSONSource | undefined;
-        if (at && src) src.setData({ type: "Feature", properties: { observed: at.filled }, geometry: { type: "Point", coordinates: [at.lon, at.lat] } });
+        const t = reducedRef.current ? (p.times[Math.round(pos)] ?? t0) : t0 + f * ((p.times[j] ?? t0) - t0);
+        const at = eyeAt(p.track.hours, t, clock.snapshot.playing);
+        if (at) sealDraw.current?.(at.lon, at.lat, t, t - 3600, t + 3600);
       }
       map.triggerRepaint();
     };
     apply(clock.pos);
     const off = clock.onTick(apply);
-    const offState = clock.subscribe(() => apply(clock.pos)); // fill the ring once playback pauses on a fix
+    const offState = clock.subscribe(() => apply(clock.pos));
     const unsub = store?.subscribe(() => apply(clock.pos));
     return () => {
       off();
       offState();
       unsub?.();
     };
-  }, [clock, store, styleVersion, header, track]);
+  }, [clock, store, styleVersion, header, track, reducedMotion]);
 
-  // ERA5 centre marker: a DOM marker (an ✕, unlike the track's ring) with a visible label and an accessible name.
+  // ERA5 centre marker: a DOM marker (an ✕, unlike the track's seal) with a visible label and an accessible name.
   const era5 = props.era5Centre;
   const markerRef = useRef<Marker | null>(null);
   useEffect(() => {
