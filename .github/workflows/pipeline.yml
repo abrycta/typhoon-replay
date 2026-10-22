@@ -22,9 +22,10 @@ on:
 permissions:
   contents: read
 
+# main runs are never cancelled or replaced (own group per run); branches and PRs cancel superseded runs.
 concurrency:
-  group: pipeline-${{ github.ref }}
-  cancel-in-progress: true
+  group: pipeline-${{ github.ref == 'refs/heads/main' && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   actionlint:
