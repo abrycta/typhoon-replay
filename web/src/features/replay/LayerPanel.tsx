@@ -23,7 +23,7 @@ export function LayerPanel(p: LayerPanelProps) {
   const labels = useFieldLabels();
   return (
     <fieldset className="grid gap-3 rounded-sm border border-border p-3" data-testid="layer-panel">
-      <legend className="px-1 font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">{t`Layers`}</legend>
+      <legend className="px-1 font-mono text-ak-2xs tracking-[0.08em] text-muted-foreground uppercase">{t`Layers`}</legend>
       <ToggleGroup
         type="single"
         variant="outline"

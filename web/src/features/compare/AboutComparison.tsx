@@ -86,7 +86,7 @@ export function AboutComparison({ storms, alignment }: { storms: { name: string;
           ) : null}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-[13px]" data-testid="pair-gaps">
+      <div className="flex flex-wrap items-center gap-2 text-ak-sm" data-testid="pair-gaps">
         <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{t`Gaps for this pair`}</span>
         {gaps.length ? (
           gaps.map((s) => {
@@ -104,7 +104,7 @@ export function AboutComparison({ storms, alignment }: { storms: { name: string;
           </span>
         )}
       </div>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-ak-sm text-muted-foreground">
         {t`Sources:`}{" "}
         <a className={linkCls} href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noreferrer">
           {t`IBTrACS v04r01 (NOAA National Centers for Environmental Information)`}

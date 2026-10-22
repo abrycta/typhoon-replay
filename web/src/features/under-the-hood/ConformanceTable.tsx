@@ -14,7 +14,7 @@ export function ConformanceTable({ labels }: { labels: Record<BackendId, string>
   const nf = new Intl.NumberFormat(lang === "ja" ? "ja-JP" : "en-GB");
   const next = <span className="text-muted-foreground">{t`next`}</span>;
   const none = <span className="text-muted-foreground">—</span>;
-  const pass = (p?: PassCount) => (p ? <span className={p.passed === p.total ? "text-[var(--success,#2f6b4f)] dark:text-[var(--success,#7cc4a0)]" : "text-destructive"}>{`${nf.format(p.passed)} / ${nf.format(p.total)}`}</span> : undefined);
+  const pass = (p?: PassCount) => (p ? <span className={p.passed === p.total ? "text-success" : "text-destructive"}>{`${nf.format(p.passed)} / ${nf.format(p.total)}`}</span> : undefined);
   const rows: { label: string; cell: (b: BackendConformance) => ReactNode }[] = [
     { label: t`Scenario tests (paging, caching, errors, live stream)`, cell: (b) => pass(b.scenarios) ?? next },
     { label: t`Generated API cases (Schemathesis)`, cell: (b) => pass(b.generated) ?? next },

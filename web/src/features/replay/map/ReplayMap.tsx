@@ -82,8 +82,8 @@ function era5Marker(): HTMLElement {
   el.className = "pointer-events-none flex items-center gap-1";
   el.innerHTML =
     '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="overflow:visible">' +
-    '<path d="M3 3l10 10M13 3L3 13" stroke="var(--background, #fff)" stroke-width="5" stroke-linecap="round"/>' +
-    '<path d="M3 3l10 10M13 3L3 13" stroke="var(--foreground, #111)" stroke-width="2.25" stroke-linecap="round"/></svg>' +
+    '<path d="M3 3l10 10M13 3L3 13" stroke="var(--background)" stroke-width="5" stroke-linecap="round"/>' +
+    '<path d="M3 3l10 10M13 3L3 13" stroke="var(--foreground)" stroke-width="2.25" stroke-linecap="round"/></svg>' +
     '<span data-label aria-hidden="true" class="rounded-sm bg-background/85 px-1 font-mono text-[10px] text-foreground"></span>';
   return el;
 }

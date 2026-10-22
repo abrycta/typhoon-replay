@@ -249,7 +249,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
             )}
             {webglError ? null : <CentreOffsetNote reading={offset} bestTrackKt={bw?.kt} />}
             {hasFrames && progress < 100 && !snap.error && !frozen ? (
-              <div className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-2 py-0.5 font-mono text-[11px] text-muted-foreground" aria-hidden="true">
+              <div className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-2 py-0.5 font-mono text-ak-2xs text-muted-foreground" aria-hidden="true">
                 {t`frames ${progress}%`}
               </div>
             ) : null}
