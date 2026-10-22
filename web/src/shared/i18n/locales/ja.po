@@ -314,6 +314,14 @@ msgstr "すべて"
 msgid "All {0} storms"
 msgstr "全 {0} 件の台風"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "All four backends read the same Neon Postgres database with PostGIS, which also scales to zero when idle."
+msgstr "4 つのバックエンドはすべて、PostGIS を備えた同じ Neon Postgres データベースを読みます。このデータベースも、使われていないときはゼロまで縮小します。"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception."
+msgstr "Replay のほとんどすべては、あらかじめ用意したファイルから表示されます。台風の進路、風のマップ、町の一覧は前もって作ってオンラインに置いてあるので、サイトはサーバーを待たずに読み込まれます。このページだけは例外です。"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Answers are cached at Cloudflare, so repeat queries are instant"
 msgstr "応答は Cloudflare でキャッシュされ、同じ問い合わせはすぐに返ります"
@@ -367,6 +375,7 @@ msgid "Back to all storms"
 msgstr "台風の一覧に戻る"
 
 #: src/features/under-the-hood/Explorer.tsx
+#: src/features/under-the-hood/HowItWorks.tsx
 msgid "Backend"
 msgstr "バックエンド"
 
@@ -385,6 +394,10 @@ msgstr "気象衛星以前(1960年代まで)の位置と風速は船舶、地上
 #: src/features/compare/DataCard.tsx
 msgid "Before weather satellites: positions from ships, land stations and aircraft"
 msgstr "気象衛星以前:位置は船舶、地上観測所、航空機から"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Behind it sits a small API: a service that answers questions such as \"Which storms passed near Tacloban?\" We wrote down exactly how its answers must look in a single shared rulebook, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules."
+msgstr "このページの裏には小さな API があります。「タクロバンの近くを通った台風は？」といった質問に答えるサービスです。答えの形を 1 つの共通のルールブックに正確に書き、そのうえで同じサービスを Java、Node、Rust、Go の 4 回作りました。共通のテスト一式が、4 つすべてが同じルールを守っているかを確かめます。"
 
 #: src/features/replay/LayerPanel.tsx
 #: src/features/replay/StormReplay.tsx
@@ -487,6 +500,10 @@ msgstr "最接近 (km)"
 msgid "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
 msgstr "ベストトラック中心の最接近です。風速は各機関のベストトラック値で、ERA5 の場ではありません。"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Cloudflare Worker"
+msgstr "Cloudflare Worker"
+
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Cold start on free hosting"
 msgstr "無料ホスティングでのコールドスタート"
@@ -538,6 +555,10 @@ msgstr "データの出典"
 msgid "Data v{0}"
 msgstr "データ v{0}"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Database access"
+msgstr "データベース接続"
+
 #: src/features/dataset-info/DatasetInfo.tsx
 msgid "Dataset unavailable"
 msgstr "データセットを利用できません"
@@ -558,6 +579,10 @@ msgstr "各バックエンドは契約を守っているか"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Duration"
 msgstr "継続時間"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Each backend is pinned once built (exact dependency versions, lockfiles and toolchains) and receives only security fixes, so the race always compares the same code."
+msgstr "各バックエンドは完成した時点で固定し（依存関係の正確なバージョン、ロックファイル、ツールチェーン）、セキュリティ修正だけを受け入れます。そのため、レースは常に同じコードどうしを比べます。"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "each storm's official best track (IBTrACS), with dots at the observed fixes and the hours between interpolated."
@@ -666,9 +691,13 @@ msgstr "エラー"
 msgid "Error"
 msgstr "エラー"
 
-#: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Everything else on this site runs from static files, so it never waits for a server. This page is the exception: it talks to the API, which is written once as an OpenAPI contract and implemented four times, in Java, Node, Rust and Go. Run a query on all four and watch them agree."
-msgstr "このサイトのほかのページはすべて静的ファイルで動くので、サーバーを待つことはありません。このページだけは例外で、API と通信します。API は OpenAPI の契約として一度だけ書かれ、Java、Node、Rust、Go の 4 つの言語で実装されています。4 つすべてに同じ問い合わせを送り、結果が一致するか確かめてみてください。"
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike: it caches public answers, serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
+msgstr "リクエストはすべてこのサイトの /api/ にバックエンド名を付けたパスへ送られます。前段の Cloudflare の関数がそれを振り分け、4 つのバックエンドを同じように扱います。公開の答えをキャッシュし、バックエンドが失敗したら保存済みのコピーを返し、訪問者ごとのリクエスト数を制限し、スリープ中のサーバーやデータベースが起動するあいだは「起動中」と答えます。"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Everything runs on free plans. A daily check reads hosting hours, bandwidth, requests and database usage and opens an issue when a meter passes 70 %."
+msgstr "すべて無料プランで動いています。毎日の点検でホスティング時間、通信量、リクエスト数、データベース使用量を読み、どれかが 70 % を超えると issue を作ります。"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
@@ -741,6 +770,10 @@ msgstr "フレーム {progress}%"
 msgid "Free tier: servers sleep when idle and wake on demand"
 msgstr "無料枠: サーバーはアイドル時にスリープし、要求があると起動します"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Free tiers only"
+msgstr "無料枠のみ"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "From {firstLabel}. No other backend has answered yet."
 msgstr "{firstLabel} の結果です。ほかのバックエンドはまだ応答していません。"
@@ -757,6 +790,10 @@ msgstr "main ブランチの CI 実行より（{0}）。"
 #: src/features/replay/IntensityPanel.tsx
 msgid "From the lossless 3-hourly grid (0.5°)."
 msgstr "3時間ごとの可逆圧縮グリッド（0.5°）から。"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Frozen code"
+msgstr "固定したコード"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "Gaps for this pair"
@@ -807,6 +844,7 @@ msgstr "ホーム"
 msgid "Home"
 msgstr "ホーム"
 
+#: src/features/under-the-hood/HowItWorks.tsx
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Hosting"
 msgstr "ホスティング"
@@ -839,6 +877,7 @@ msgstr "1時間ごとの経路、ベストトラックの強度、ERA5 の風速
 msgid "Hours within 100 km"
 msgstr "100 km 以内の時間"
 
+#: src/features/under-the-hood/HowItWorks.tsx
 #: src/routes/about.tsx
 msgid "How it works"
 msgstr "しくみ"
@@ -908,6 +947,10 @@ msgstr "日本 {dates}"
 #: src/features/compare/SuggestedPairs.tsx
 msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 msgstr "{since}年以降に日本に上陸した最強の2つ: {ktA} ktと{ktB} kt"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "JDBC to Neon, pooled connection"
+msgstr "JDBC で Neon へ（プール接続）"
 
 #: src/features/replay/labels.ts
 msgid "JMA (10-min mean)"
@@ -1136,6 +1179,10 @@ msgstr "名前順 A–Z（名称なしは最後）"
 msgid "Name, PAGASA name, 台風第…号, year or ID"
 msgstr "名前、PAGASA名、台風第…号、年またはID"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Neon serverless SQL over HTTP"
+msgstr "HTTP 経由の Neon サーバーレス SQL"
+
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Newest first"
 msgstr "新しい順"
@@ -1329,6 +1376,22 @@ msgstr "1 つの API、4 つの言語"
 msgid "One conformance suite runs against every backend"
 msgstr "1 つの適合性テストをすべてのバックエンドに実行"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One contract"
+msgstr "1 つの契約"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One contract, four builds, one edge"
+msgstr "1 つの契約、4 つの実装、1 つのエッジ"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One database"
+msgstr "1 つのデータベース"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "One language-neutral test suite runs against every backend in CI: scenario tests plus cases generated from the contract with Schemathesis. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
+msgstr "言語に依存しない 1 つのテストスイートを、CI ですべてのバックエンドに対して実行します。シナリオテストと、契約から Schemathesis で生成したケースです。レースでは、キーの順序、数値の書式、タイムスタンプ、実装固有のフィールドをそろえてから答えを比べます。"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "Only answer so far"
 msgstr "現時点で唯一の応答"
@@ -1439,6 +1502,10 @@ msgstr "再生/一時停止"
 msgid "Playback speed"
 msgstr "再生速度"
 
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Press \"Run on all four\" to send the same question to every version and compare the answers. They should match. Some versions run on free hosting that sleeps when nobody is using it, so the first answer can be slow while a server wakes up. The page waits for it on its own."
+msgstr "「4 つすべてで実行」を押すと、同じ質問をすべてのバージョンに送り、答えを比べられます。答えは一致するはずです。一部のバージョンは、使われていないときにスリープする無料ホスティングで動いているため、サーバーが起動するまで最初の答えに時間がかかることがあります。ページはそのあいだ自動で待ちます。"
+
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Press Send to see the response."
 msgstr "「送信」を押すと応答が表示されます。"
@@ -1448,6 +1515,7 @@ msgstr "「送信」を押すと応答が表示されます。"
 msgid "Pressure"
 msgstr "気圧"
 
+#: src/features/under-the-hood/HowItWorks.tsx
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Proof"
 msgstr "検証"
@@ -1495,6 +1563,14 @@ msgstr "最近の台風"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Region"
 msgstr "地域"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Render free plan; sleeps after 15 minutes idle"
+msgstr "Render 無料プラン、15 分使われないとスリープ"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. Node and Rust run as Cloudflare Workers. Go was tried on Workers first, but it used more CPU per request than the free plan allows."
+msgstr "Render の無料プランでは、月 750 インスタンス時間をすべてのサービスで分け合います。そのため Render で動かすのは Java と Go だけで、Node と Rust は Cloudflare Workers で動かしています。Go も最初は Workers で試しましたが、1 リクエストあたりの CPU 使用量が無料プランの上限を超えました。"
 
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
@@ -1638,6 +1714,14 @@ msgstr "南西"
 msgid "Speed"
 msgstr "速度"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Stack"
+msgstr "スタック"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Static first"
+msgstr "静的ファイルが基本"
+
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Storm"
 msgstr "台風"
@@ -1706,6 +1790,10 @@ msgstr "タクロバン、那覇、Naha…"
 msgid "Tech"
 msgstr "技術"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
+msgstr "API は OpenAPI 3.1 で一度だけ記述し、/v1 で提供しています。CI が契約をチェックし、互換性を壊す変更があれば失敗させます。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
+
 #. placeholder {0}: res.retryAfterS ?? 20
 #: src/features/under-the-hood/Explorer.tsx
 msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
@@ -1722,6 +1810,10 @@ msgstr "カードとタイムラインはJTWCの値を使い、ない場合は�
 #: src/features/compare/AboutComparison.tsx
 msgid "The colours:"
 msgstr "色:"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "The edge"
+msgstr "エッジ"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "The line:"
@@ -1892,6 +1984,10 @@ msgstr "名称なし · {month}"
 msgid "Value"
 msgstr "値"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Visitor pages read prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep. Only this page calls the API."
+msgstr "訪問者向けのページは、Cloudflare Pages とバージョン管理されたデータセットにある用意済みのファイルを読むので、バックエンドがすべてスリープしていてもサイトは動きます。API を呼ぶのはこのページだけです。"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "waking up"
 msgstr "起動中"
@@ -1919,6 +2015,10 @@ msgstr "データの出所、データからわかること・わからないこ
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
 msgstr "なぜ場は台風より弱いのか？"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Why two hosts"
+msgstr "ホストが 2 つある理由"
 
 #: src/features/replay/labels.ts
 msgid "Wind"
