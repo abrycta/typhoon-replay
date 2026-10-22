@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/stamp-shells.mjs && node scripts/bundle-data.mjs",
+    "build": "vite build && node scripts/bundle-data.mjs && node scripts/stamp-shells.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
