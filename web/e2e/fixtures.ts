@@ -9,6 +9,14 @@ export const test = base.extend<{ page: Page }>({
   page: async ({ page }, use) => {
     await page.route(/huggingface\.co|hf\.co/, (r) => r.fulfill({ status: 404, body: "not found" }));
     await page.route(/tiles\.openfreemap\.org/, (r) => r.abort());
+    // The build's bundled storms (scripts/bundle-data.mjs) are real current data; the specs use the fixture
+    // dataset, so they run on a config without the bundle (bundle.spec.ts covers it).
+    await page.route("**/config.json", async (r) => {
+      const res = await r.fetch();
+      const cfg = (await res.json()) as { data: { bundle?: unknown } };
+      delete cfg.data.bundle;
+      await r.fulfill({ response: res, json: cfg });
+    });
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await use(page);

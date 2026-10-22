@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import { filterStorms } from "./catalog";
-import { DataError, framesUrl, loadIndex, loadManifest, loadStormDetail, loadTrack, pointerPath, resolveDataset } from "./dataset";
+import {
+  bakedDataset,
+  DataError,
+  framesUrl,
+  loadIndex,
+  loadManifest,
+  loadStormDetail,
+  loadTrack,
+  ogImageUrl,
+  pointerPath,
+  resolveDataset,
+  sameDataset,
+  stormRoot,
+} from "./dataset";
 
 function host(files: Record<string, unknown>, status: Record<string, number> = {}) {
   return (async (input: RequestInfo | URL) => {
@@ -73,5 +86,30 @@ describe("catalogue filter", () => {
     expect(filterStorms(storms, { q: "2019" }).map((s) => s.name)).toEqual(["Hagibis"]);
     expect(filterStorms(storms, { decade: 2010, country: "PH" }).map((s) => s.name)).toEqual(["Haiyan"]);
     expect(filterStorms(storms, { q: "nothing" })).toEqual([]);
+  });
+});
+
+describe("bundled storms", () => {
+  const cfg = {
+    baseUrl: "https://hf.example/ds/",
+    pointer: "latest.json",
+    fallbackBaseUrls: [],
+    bundle: { root: "/data/", version: 4, path: "v4/", storms: ["2013306N07162"] },
+  };
+
+  it("uses the build's version at once, and the site's copy only for bundled storms", () => {
+    const ds = bakedDataset(cfg)!;
+    expect(ds.root).toBe("https://hf.example/ds/v4/");
+    expect(stormRoot(ds, "2013306N07162")).toBe("/data/v4/storms/2013306N07162/");
+    expect(stormRoot(ds, "2021346N05145")).toBe("https://hf.example/ds/v4/storms/2021346N05145/");
+    expect(ogImageUrl(ds, { sid: "2013306N07162", ogImage: "og.png" })).toBe("https://hf.example/ds/v4/storms/2013306N07162/og.png");
+  });
+
+  it("keeps the baked dataset only while the pointer names the same version", () => {
+    const ds = bakedDataset(cfg)!;
+    expect(sameDataset(ds, { root: "https://hf.example/ds/v4/", baseUrl: cfg.baseUrl, version: 4, source: "primary" })).toBe(true);
+    expect(sameDataset(ds, { root: "https://hf.example/ds/v5/", baseUrl: cfg.baseUrl, version: 5, source: "primary" })).toBe(false);
+    expect(sameDataset(ds, { root: "/fixtures/v1/", baseUrl: "/fixtures/", version: 1, source: "fallback" })).toBe(false);
+    expect(bakedDataset({ ...cfg, bundle: undefined })).toBeUndefined();
   });
 });

@@ -1,10 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { useAppConfig } from "@/shared/config/context";
 import type { StormDetail } from "@/shared/model/types";
 
-import { loadIndex, loadManifest, loadStormDetail, loadTrack, resolveDataset, type ResolvedDataset, stormRoot } from "./dataset";
+import {
+  bakedDataset,
+  loadIndex,
+  loadManifest,
+  loadStormDetail,
+  loadTrack,
+  remoteStormRoot,
+  resolveDataset,
+  type ResolvedDataset,
+  sameDataset,
+  stormRoot,
+} from "./dataset";
 import { frameSource, sourceKey } from "./frames/source";
 import { FrameStore } from "./frames/store";
 import { type PreparedPlace, preparePlaces, queryShardKey, searchPlaces } from "./place-search";
@@ -12,9 +23,31 @@ import { loadPlaceIndex, loadPlaceShard, loadPlaceSlice, loadSliceManifest, type
 
 const STATIC = { staleTime: Infinity, gcTime: 30 * 60_000, retry: 1 } as const;
 
+/**
+ * The dataset version to read. A build that bundled data knows its version already: that one is used at once (no
+ * pointer round trip before the first request), the pointer is read in the background, and a newer version, or the
+ * fallback host when the primary is down, replaces it.
+ */
 export function useDataset() {
   const cfg = useAppConfig();
-  return useQuery({ queryKey: ["dataset", cfg.data.baseUrl], queryFn: () => resolveDataset(cfg.data), ...STATIC });
+  const qc = useQueryClient();
+  const queryKey = ["dataset", cfg.data.baseUrl];
+  return useQuery({
+    queryKey,
+    queryFn: () => {
+      const baked = bakedDataset(cfg.data);
+      if (!baked) return resolveDataset(cfg.data);
+      resolveDataset(cfg.data).then(
+        (live) => {
+          if (!sameDataset(baked, live)) qc.setQueryData(queryKey, live);
+        },
+        // Nothing reachable: the bundled storms still play; everything else reports its own error.
+        () => {},
+      );
+      return baked;
+    },
+    ...STATIC,
+  });
 }
 
 export function useManifest() {
@@ -113,7 +146,10 @@ export function usePlaceShard(url: string | undefined) {
  */
 export function useFrameStore(dataset: ResolvedDataset | undefined, detail: StormDetail | undefined, focus = 0, preset?: FrameStore) {
   const source = useMemo(
-    () => (!preset && dataset && detail ? frameSource(detail.sid, detail.frames, stormRoot(dataset, detail.sid)) : undefined),
+    () =>
+      !preset && dataset && detail
+        ? frameSource(detail.sid, detail.frames, stormRoot(dataset, detail.sid), remoteStormRoot(dataset, detail.sid))
+        : undefined,
     [dataset, detail, preset],
   );
   const key = sourceKey(source);

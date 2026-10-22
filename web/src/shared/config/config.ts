@@ -22,6 +22,18 @@ const Data = z.object({
   pointer: z._default(z.string(), "latest.json"),
   /** Tried in order when the primary dataset is unreachable (e.g. the bundled fixture). */
   fallbackBaseUrls: z._default(z.array(z.string()), []),
+  /**
+   * Written by scripts/bundle-data.mjs at build time: the version the pointer named then, and the storms whose
+   * summary, track and field sheets ship with the site under `root` (same origin, same layout as baseUrl).
+   */
+  bundle: z.optional(
+    z.object({
+      root: z.string(),
+      version: z.number(),
+      path: z.string(),
+      storms: z.array(z.string()),
+    }),
+  ),
 });
 
 export const AppConfig = z.object({
