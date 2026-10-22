@@ -111,6 +111,10 @@ msgstr "{d}s"
 msgid "{days} d {hours} h"
 msgstr "{days} d {hours} h"
 
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "{failed} failures in {total}"
+msgstr "{failed} failures in {total}"
+
 #: src/features/under-the-hood/wake-copy.ts
 msgid "{first} and {second}"
 msgstr "{first} and {second}"
@@ -195,6 +199,10 @@ msgstr "{label} is waking up; opening this page started it."
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} woke up and answered in {0}; the answer itself took {1}."
 msgstr "{label} woke up and answered in {0}; the answer itself took {1}."
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "{label}, every check:"
+msgstr "{label}, every check:"
 
 #: src/features/compare/SlotCard.tsx
 msgid "{landfalls} landfalls"
@@ -547,6 +555,10 @@ msgid "Cloudflare Worker; never sleeps"
 msgstr "Cloudflare Worker; never sleeps"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Cold start is measured by hand, not by CI."
+msgstr "Cold start is measured by hand, not by CI."
+
+#: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Cold start on free hosting"
 msgstr "Cold start on free hosting"
 
@@ -824,11 +836,6 @@ msgstr "From {firstLabel}. No other backend has answered yet."
 msgid "from formation"
 msgstr "from formation"
 
-#. placeholder {0}: formatDate(CONFORMANCE.updatedAt, lang)
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "From the CI run on main, {0}."
-msgstr "From the CI run on main, {0}."
-
 #: src/features/replay/IntensityPanel.tsx
 msgid "From the lossless 3-hourly grid (0.5°)."
 msgstr "From the lossless 3-hourly grid (0.5°)."
@@ -846,8 +853,12 @@ msgid "gateway timeout"
 msgstr "gateway timeout"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Generated API cases (Schemathesis)"
-msgstr "Generated API cases (Schemathesis)"
+msgid "Generated API cases (Schemathesis, gating run)"
+msgstr "Generated API cases (Schemathesis, gating run)"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Generated API cases, every check (informational)"
+msgstr "Generated API cases, every check (informational)"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Go to end"
@@ -1418,6 +1429,10 @@ msgstr "Not recorded"
 msgid "not reported"
 msgstr "not reported"
 
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "not run"
+msgstr "not run"
+
 #: src/features/compare/LineUp.tsx
 msgid "not yet formed"
 msgstr "not yet formed"
@@ -1902,6 +1917,10 @@ msgstr "Tacloban, Naha, 那覇…"
 msgid "Tech"
 msgstr "Tech"
 
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Test rows: each backend's latest passing CI run on main:"
+msgstr "Test rows: each backend's latest passing CI run on main:"
+
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 msgstr "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
@@ -1933,6 +1952,10 @@ msgstr "The colours:"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The edge"
 msgstr "The edge"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
+msgstr "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
 
 #: src/features/compare/AboutComparison.tsx
 msgid "The line:"

@@ -99,6 +99,8 @@ jobs:
     env:
       DATABASE_URL: postgres://tr:tr@localhost:5432/typhoon?sslmode=disable
       SITE_ORIGIN: http://localhost:8788
+      # Checks the gating Schemathesis run leaves out (listed on the Under the hood page with the full run's failures).
+      EXCLUDED_CHECKS: positive_data_acceptance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -158,14 +160,38 @@ jobs:
           docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
 
+      # Every check, informational (does not gate): shows what the gating run below leaves out. Known contract-side
+      # gap (api/java/README.md "Conformance"): generated data the schema can't rule out (a cursor made for another sort,
+      # season combined with from/to) trips positive_data_acceptance. The Under the hood table lists these failures.
+      - name: Schemathesis (every check, informational)
+        continue-on-error: true
+        run: |
+          mkdir -p contracts/conformance/results
+          docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e BASE_URL=http://localhost:8084 \
+            -e TR_SITE_ORIGIN="$SITE_ORIGIN" -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
+            --config-file /c/conformance/schemathesis/backend.toml run /c/dist/openapi.json \
+            --report junit --report-junit-path /c/conformance/results/go-schemathesis-full.xml \
+            | tee contracts/conformance/results/go-schemathesis-full.log
+
+      - name: Reload the fixture
+        run: |
+          docker run --rm --network host -v "$PWD/contracts/db:/db:ro" "$POSTGIS_IMAGE" \
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f /db/seed/seed.sql
+
       - name: Schemathesis (gating, known contract gaps excluded)
         run: |
           mkdir -p contracts/conformance/results
           docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e BASE_URL=http://localhost:8084 \
             -e TR_SITE_ORIGIN="$SITE_ORIGIN" -v "$PWD/contracts:/c" -w /c/conformance/results "$SCHEMATHESIS_IMAGE" \
             --config-file /c/conformance/schemathesis/backend.toml run /c/dist/openapi.json \
-            --exclude-checks positive_data_acceptance --request-retries 3 \
-            --report junit --report-junit-path /c/conformance/results/go-schemathesis.xml
+            --exclude-checks "$EXCLUDED_CHECKS" --request-retries 3 \
+            --report junit --report-junit-path /c/conformance/results/go-schemathesis.xml \
+            | tee contracts/conformance/results/go-schemathesis.log
+
+      # <impl>-conformance.json for the Under the hood table (web/scripts/conformance-from-ci.mjs reads it from main).
+      - name: Conformance summary (for the web page)
+        working-directory: contracts
+        run: node conformance/scripts/summarize.mjs go
 
       - name: Compatibility table
         if: always()

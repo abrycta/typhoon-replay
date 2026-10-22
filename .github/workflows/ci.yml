@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   packages: read # private @abrycta/* packages on GitHub Packages
+  actions: read # the backends' conformance results (web/scripts/conformance-from-ci.mjs)
 
 # Branches and PRs: a newer push cancels the older run. main: never cancelled or replaced (each run has its own
 # group), so every merged commit gets a finished CI run and the deploy that follows it ("Merged means deployed").
@@ -44,6 +45,13 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
             sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
+
+      # The Under the hood conformance table shows each backend's latest passing CI run on main: refresh the bundled
+      # conformance.json from those runs' artifacts (a backend whose artifact can't be found keeps its committed entry).
+      - name: Conformance figures from the backends' CI runs on main
+        run: node web/scripts/conformance-from-ci.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Install, check, build, size guard
         run: bash scripts/ci.sh --clean

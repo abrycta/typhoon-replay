@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 
@@ -290,17 +292,40 @@ test("explorer: request line, status, edge headers and JSON", async ({ page }) =
   await expect(page.getByTestId("explore-body")).toContainText('"code": "backend-not-deployed"');
 });
 
-test("conformance table: every backend measured", async ({ page }) => {
+// The table shows whatever CI generated into conformance.json (web/scripts/conformance-from-ci.mjs), so the
+// expectations come from that file, not from fixed numbers.
+type Count = { total: number; passed?: number; failed: number };
+type CiFigures = { run: { url: string }; scenarios: Count; generated: Count & { excludedChecks: string[] }; full?: Count & { failures: { operation: string }[] } };
+const conformance = JSON.parse(readFileSync(new URL("../src/features/under-the-hood/conformance.json", import.meta.url), "utf8")) as {
+  backends: Record<string, CiFigures>;
+};
+const nf = new Intl.NumberFormat("en-GB");
+const shown = (c: Count) => (c.failed ? `${nf.format(c.failed)} failures in ${nf.format(c.total)}` : `${nf.format(c.passed ?? c.total)} / ${nf.format(c.total)}`);
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+test("conformance table: every backend's figures and run come from CI", async ({ page }) => {
   await mockLanes(page);
   await page.goto("/under-the-hood");
-  const table = page.getByTestId("conformance").getByRole("table");
+  const section = page.getByTestId("conformance");
+  const table = section.getByRole("table");
   await expect(table.getByRole("columnheader")).toHaveText(["Check", "Java", "Node", "Rust", "Go"]);
   const rows = table.getByRole("row");
-  await expect(rows.nth(1)).toHaveText(/Scenario tests.*99 \/ 99\s*86 \/ 86\s*86 \/ 86\s*86 \/ 86/);
-  await expect(rows.nth(2)).toHaveText(/Generated API cases.*2,150 \/ 2,150\s*1,444 \/ 1,444\s*1,443 \/ 1,443\s*1,444 \/ 1,444/);
-  await expect(rows.nth(3)).toContainText("≈ 100 s");
-  await expect(rows).toHaveCount(4);
-  await expect(page.getByTestId("conformance")).not.toContainText("built next");
+  const ids = ["java", "node", "rust", "go"];
+  const ci = ids.map((id) => conformance.backends[id]);
+  expect(ci.every(Boolean)).toBe(true);
+  await expect(rows.nth(1)).toHaveText(new RegExp(`Scenario tests.*${ci.map((b) => esc(shown(b.scenarios))).join("\\s*")}`));
+  await expect(rows.nth(2)).toHaveText(new RegExp(`gating run.*${ci.map((b) => esc(shown(b.generated))).join("\\s*")}`));
+  await expect(rows.nth(3)).toHaveText(new RegExp(`every check.*${ci.map((b) => esc(b.full ? shown(b.full) : "not run")).join("\\s*")}`));
+  await expect(rows.nth(4)).toContainText("≈ 100 s");
+  await expect(rows).toHaveCount(5);
+  // Each backend's date links to the run it came from; excluded checks and every-check failures are spelled out.
+  const runs = section.getByTestId("conformance-runs").getByRole("link");
+  await expect(runs).toHaveCount(4);
+  for (const [i, b] of ci.entries()) await expect(runs.nth(i)).toHaveAttribute("href", b.run.url);
+  for (const check of new Set(ci.flatMap((b) => b.generated.excludedChecks))) await expect(section).toContainText(`leaves out the ${check} check`);
+  for (const f of ci.flatMap((b) => b.full?.failures ?? [])) await expect(section.getByTestId("conformance-failures")).toContainText(f.operation);
+  await expect(section).toContainText("measured by hand, not by CI");
+  await expect(section).not.toContainText("built next");
 });
 
 test("Japanese: nav, page and footer", async ({ page }) => {
