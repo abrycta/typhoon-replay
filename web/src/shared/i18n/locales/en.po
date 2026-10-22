@@ -165,6 +165,10 @@ msgid "{label} is paused until next month to stay within its free hosting hours.
 msgstr "{label} is paused until next month to stay within its free hosting hours."
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
+msgstr "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 msgstr "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
 
@@ -1464,6 +1468,10 @@ msgid "Rainfall rate"
 msgstr "Rainfall rate"
 
 #: src/features/under-the-hood/Race.tsx
+msgid "rate limited"
+msgstr "rate limited"
+
+#: src/features/under-the-hood/Race.tsx
 msgid "ready"
 msgstr "ready"
 
@@ -1802,6 +1810,10 @@ msgstr "Timeline"
 #: src/features/replay/TimelineTable.tsx
 msgid "Timeline table"
 msgstr "Timeline table"
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "Too many requests from this address. Try again in {waitS} s."
+msgstr "Too many requests from this address. Try again in {waitS} s."
 
 #: src/features/compare/DataCard.tsx
 msgid "Track"

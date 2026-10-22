@@ -41,11 +41,14 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
     }
   };
 
+  const waitS = res?.retryAfterS ?? 60;
   const hint =
     res?.kind === "waking"
       ? t`The backend is waking up (about a minute on free hosting). Send again in ${res.retryAfterS ?? 20} s.`
       : res?.kind === "not-deployed"
         ? t`This backend is not deployed yet.`
+        : res?.kind === "rate-limited"
+          ? t`Too many requests from this address. Try again in ${waitS} s.`
         : res?.kind === "paused"
           ? t`This backend is paused until next month to stay within its free hosting hours.`
         : res?.status === 0

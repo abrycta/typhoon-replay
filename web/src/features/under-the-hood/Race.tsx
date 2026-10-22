@@ -28,8 +28,12 @@ const CHIP: Record<LaneStatus, string> = {
   ok: "text-[var(--success,#2f6b4f)] dark:text-[var(--success,#7cc4a0)]",
   "not-deployed": "text-muted-foreground",
   paused: "text-muted-foreground",
+  "rate-limited": "text-[var(--warning,#8a5a12)] dark:text-[var(--warning,#e2b46a)]",
   error: "text-destructive",
 };
+
+/** When a 429 carries no Retry-After: the edge's bucket refills within a minute (edge/src/env.ts). */
+const RATE_LIMIT_FALLBACK_S = 60;
 
 /** The typical cold start, for the waiting bar (it fills to 95 % over this time). */
 const TYPICAL_WAKE_MS = 90_000;
@@ -43,6 +47,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     ok: t`awake`,
     "not-deployed": t`not deployed yet`,
     paused: t`paused this month`,
+    "rate-limited": t`rate limited`,
     error: t`error`,
   };
   // Before a run, the chip shows what the wake-up ping found (Java only); it is not an answer.
@@ -50,7 +55,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
   const waiting = lane.status === "running" || lane.status === "waking";
   const elapsed = waiting && lane.startedAt !== undefined ? now - lane.startedAt : undefined;
   const pct =
-    lane.status === "ok" || lane.status === "not-deployed" || lane.status === "paused" || lane.status === "error"
+    lane.status === "ok" || lane.status === "not-deployed" || lane.status === "paused" || lane.status === "rate-limited" || lane.status === "error"
       ? 100
       : lane.status === "waking" && elapsed !== undefined
         ? Math.min(95, (elapsed / TYPICAL_WAKE_MS) * 100)
@@ -58,6 +63,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
           ? 15
           : 0;
   // The live note changes only when the lane's state changes, never with the ticking clock.
+  const waitS = lane.retryAfterS ?? RATE_LIMIT_FALLBACK_S;
   const note =
     lane.status === "waking"
       ? t`${label} is waking up from sleep: about a minute on free hosting. This page keeps trying.`
@@ -69,6 +75,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
           ? t`${label} is not deployed yet. Nothing to wait for.`
           : lane.status === "paused"
             ? t`${label} is paused until next month to stay within its free hosting hours.`
+          : lane.status === "rate-limited"
+            ? t`${label} is rate limited: too many requests from this address. Try again in ${waitS} s.`
           : lane.status === "error"
             ? lane.reason === "did not wake up in time"
               ? t`${label} did not wake up within 3 minutes.`
@@ -83,6 +91,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
                   ? t`${label} is not deployed yet.`
                   : lane.hint === "paused"
                     ? t`${label} is paused until next month to stay within its free hosting hours.`
+                  : lane.hint === "rate-limited"
+                    ? t`${label} is rate limited: too many requests from this address. Try again in ${waitS} s.`
                   : "";
   const time =
     lane.status === "ok" || (lane.status === "error" && lane.httpStatus) ? formatMs(lane.totalMs ?? 0) : elapsed !== undefined ? formatMs(elapsed, true) : "—";

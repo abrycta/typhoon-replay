@@ -10,8 +10,10 @@ export type ContractPath = keyof paths;
 export type ResultKind =
   /** 2xx JSON from a backend. */
   | "ok"
-  /** The backend is asleep or starting (edge `backend-waking`, gateway 502/503/504, 429): worth retrying. */
+  /** The backend is asleep or starting (edge `backend-waking`, gateway 502/503/504): worth retrying. */
   | "waking"
+  /** Too many requests from this address (429 / `rate-limited`): not a sleeping backend; try again after Retry-After. */
+  | "rate-limited"
   /** No backend behind this route (edge `backend-not-deployed` / `unknown-backend`, or a static host's HTML). */
   | "not-deployed"
   /** The backend is paused until next month to stay within its free hosting hours (edge `backend-paused`). */
@@ -39,7 +41,7 @@ export interface ApiResult {
   detail?: string;
 }
 
-const WAKING_CODES = new Set(["backend-waking", "backend-unavailable", "bad-gateway", "gateway-timeout", "rate-limited"]);
+const WAKING_CODES = new Set(["backend-waking", "backend-unavailable", "bad-gateway", "gateway-timeout"]);
 const NOT_DEPLOYED_CODES = new Set(["backend-not-deployed", "unknown-backend"]);
 
 function retryAfter(h: string | null): number | undefined {
@@ -56,11 +58,12 @@ export function classify(status: number, contentType: string, body: unknown): { 
   const problemCode = status >= 400 ? code : undefined;
   if (problemCode && NOT_DEPLOYED_CODES.has(problemCode)) return { kind: "not-deployed", problemCode };
   if (problemCode === "backend-paused") return { kind: "paused", problemCode };
+  if (problemCode === "rate-limited" || status === 429) return { kind: "rate-limited", problemCode };
   if (problemCode && WAKING_CODES.has(problemCode)) return { kind: "waking", problemCode };
   if (problemCode === "static-mode") return { kind: "error", problemCode };
   // A static host answering /api/* with its SPA page: there is no API behind this address.
   if (contentType.includes("text/html") && (status === 200 || status === 404)) return { kind: "not-deployed", problemCode };
-  if (status === 502 || status === 503 || status === 504 || status === 429) return { kind: "waking", problemCode };
+  if (status === 502 || status === 503 || status === 504) return { kind: "waking", problemCode };
   if (status >= 200 && status < 300 && contentType.includes("json")) return { kind: "ok" };
   return { kind: "error", problemCode };
 }
