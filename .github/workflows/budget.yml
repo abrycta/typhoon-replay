@@ -4,16 +4,20 @@
 # Render hours guard: at 85 % of the workspace's 750 free instance hours it suspends the first running service of the
 # repository variable RENDER_GUARD_SERVICES (comma-separated, in pause order; default typhoon-replay-go; services not
 # listed are never paused) and records it in an issue; the first run of the next month resumes it and closes the
-# issue. workflow_dispatch with dry_run plans the guard's actions without changing anything.
+# issue.
+# Static-mode trip: when Render bandwidth or Neon compute passes 70 % of the monthly free allowance, or today's
+# Workers + Pages Functions requests pass 70 % of the daily one, it writes static_mode=true to the EDGE_FLAGS KV (the
+# edge follows within a minute) and opens an issue saying what tripped and how to switch back. Never switched back
+# automatically. workflow_dispatch with dry_run plans the guard's and the trip's actions without changing anything.
 name: Budget
 
 on:
   schedule:
-    - cron: "17 2 * * *" # daily, 02:17 UTC
+    - cron: "17 2,10,18 * * *" # every 8 hours: 02:17, 10:17, 18:17 UTC
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Plan the Render hours guard's actions without suspending, resuming or writing issues"
+        description: "Plan the guard's and the static-mode trip's actions without suspending, resuming or writing KV or issues"
         type: boolean
         default: true
 
@@ -36,7 +40,7 @@ jobs:
       - name: Guard logic tests (mocked APIs)
         run: node --test scripts/budget-check.test.mjs
 
-      - name: Read usage, apply the Render hours guard
+      - name: Read usage, apply the Render hours guard and the static-mode trip
         id: usage
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -64,7 +68,9 @@ jobs:
         run: |
           title="Free-tier usage over 70 % ($(date -u +%Y-%m))"
           number=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
-          if [ -n "$number" ]; then
+          if [ -n "$number" ] && [ "$(date -u +%H)" -ge 8 ]; then
+            echo "Already reported today: no new comment (the check runs every 8 hours)."
+          elif [ -n "$number" ]; then
             gh issue comment "$number" --body-file report.md
           else
             gh issue create --title "$title" --body-file report.md
