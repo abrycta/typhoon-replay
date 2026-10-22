@@ -151,6 +151,10 @@ msgid "{label} did not answer ({reason})."
 msgstr "{label} did not answer ({reason})."
 
 #: src/features/under-the-hood/Race.tsx
+msgid "{label} did not answer within {timeoutS} seconds; the connection may have stalled."
+msgstr "{label} did not answer within {timeoutS} seconds; the connection may have stalled."
+
+#: src/features/under-the-hood/Race.tsx
 msgid "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
 msgstr "{label} did not answer: the connection dropped. Trying again ({retrying} of {NETWORK_RETRIES})…"
 
@@ -1283,6 +1287,10 @@ msgstr "no"
 #: src/features/under-the-hood/Explorer.tsx
 msgid "No answer (network error)."
 msgstr "No answer (network error)."
+
+#: src/features/under-the-hood/Explorer.tsx
+msgid "No answer within {timeoutS} seconds; the connection may have stalled."
+msgstr "No answer within {timeoutS} seconds; the connection may have stalled."
 
 #: src/features/replay/IntensityPanel.tsx
 msgid "No best-track fix at this hour."

@@ -87,7 +87,7 @@ export function useRace(ids: readonly BackendId[], opts: RaceOptions) {
       dispatch({ type: "start", ids: [...ids], at: performance.now() });
       for (const id of ids) {
         const base = optsRef.current.baseUrlOf(id);
-        void sendUntilAwake(() => sendRequest(base, path, { signal: c.signal }), {
+        void sendUntilAwake(({ timeoutMs }) => sendRequest(base, path, { signal: c.signal, timeoutMs }), {
           signal: c.signal,
           capMs: optsRef.current.capMs,
           onProgress: (p) => dispatch(p.networkRetry ? { type: "network-retry", id, retry: p.networkRetry } : { type: "waking", id }),

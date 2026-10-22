@@ -39,7 +39,17 @@ export interface ApiResult {
   /** Parsed JSON body (problem bodies included), undefined for non-JSON. */
   body?: unknown;
   detail?: string;
+  /** True when no complete answer arrived within the request's timeout (`detail` is then {@link TIMEOUT_DETAIL}). */
+  timedOut?: boolean;
 }
+
+/**
+ * Per-request deadline. The edge always answers within about 8 s (its origin timeout), even for a sleeping
+ * backend, so anything slower is a stalled connection (a mobile hand-off, a proxy), not a slow backend.
+ */
+export const REQUEST_TIMEOUT_MS = 15_000;
+/** `detail` (and the lane's reason) of a request that hit its deadline. */
+export const TIMEOUT_DETAIL = "timed out";
 
 const WAKING_CODES = new Set(["backend-waking", "backend-unavailable", "bad-gateway", "gateway-timeout"]);
 const NOT_DEPLOYED_CODES = new Set(["backend-not-deployed", "unknown-backend"]);
@@ -73,44 +83,72 @@ export interface SendOptions {
   fetchImpl?: typeof fetch;
   /** Fetch priority hint (the wake-up ping uses "low"). */
   priority?: "high" | "low" | "auto";
+  /** Deadline for the whole request, body included (default {@link REQUEST_TIMEOUT_MS}). */
+  timeoutMs?: number;
 }
 
-/** GET `path` from the backend at `baseUrl` (e.g. "/api/java"). Never throws, except when aborted. */
+/**
+ * GET `path` from the backend at `baseUrl` (e.g. "/api/java"). Never throws, except when `opts.signal` aborts.
+ * A request with no complete answer within `timeoutMs` is aborted and returned as an `error` with `timedOut`.
+ */
 export async function sendRequest(baseUrl: string, path: ApiPath, opts: SendOptions = {}): Promise<ApiResult> {
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
   const f = opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const outer = opts.signal;
+  if (outer?.aborted) throw outer.reason ?? new DOMException("Aborted", "AbortError");
+  // One controller per request, aborted by the caller's signal or by the deadline.
+  const ctrl = new AbortController();
+  const onOuterAbort = () => ctrl.abort(outer?.reason);
+  outer?.addEventListener("abort", onOuterAbort, { once: true });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ctrl.abort(new DOMException(TIMEOUT_DETAIL, "TimeoutError"));
+  }, opts.timeoutMs ?? REQUEST_TIMEOUT_MS);
   const t0 = performance.now();
-  let res: Response;
+  const elapsed = () => Math.round(performance.now() - t0);
+  const fail = (e: unknown): ApiResult => {
+    if (outer?.aborted) throw e;
+    if (timedOut) return { kind: "error", method: "GET", url, status: 0, ms: elapsed(), detail: TIMEOUT_DETAIL, timedOut: true };
+    return { kind: "error", method: "GET", url, status: 0, ms: elapsed(), detail: e instanceof Error ? e.message : "network error" };
+  };
   try {
-    res = await f(url, { method: "GET", headers: { Accept: "application/json" }, credentials: "omit", cache: "no-store", signal: opts.signal, priority: opts.priority } as RequestInit);
-  } catch (e) {
-    if (opts.signal?.aborted) throw e;
-    return { kind: "error", method: "GET", url, status: 0, ms: Math.round(performance.now() - t0), detail: e instanceof Error ? e.message : "network error" };
-  }
-  const contentType = res.headers.get("Content-Type") ?? "";
-  let body: unknown;
-  let detail: string | undefined;
-  if (contentType.includes("json")) {
+    let res: Response;
     try {
-      body = await res.json();
-    } catch {
-      detail = "invalid JSON";
+      res = await f(url, { method: "GET", headers: { Accept: "application/json" }, credentials: "omit", cache: "no-store", signal: ctrl.signal, priority: opts.priority } as RequestInit);
+    } catch (e) {
+      return fail(e);
     }
-  } else {
-    await res.text().catch(() => "");
+    const contentType = res.headers.get("Content-Type") ?? "";
+    let body: unknown;
+    let detail: string | undefined;
+    if (contentType.includes("json")) {
+      try {
+        body = await res.json();
+      } catch (e) {
+        if (ctrl.signal.aborted) return fail(e);
+        detail = "invalid JSON";
+      }
+    } else {
+      await res.text().catch(() => "");
+      if (ctrl.signal.aborted) return fail(ctrl.signal.reason);
+    }
+    const ms = elapsed();
+    const { kind, problemCode } = classify(res.status, contentType, body);
+    const out: ApiResult = { kind: detail ? "error" : kind, method: "GET", url, status: res.status, ms };
+    const impl = res.headers.get("X-Backend-Impl");
+    const edgeCache = res.headers.get("X-Edge-Cache");
+    const ra = retryAfter(res.headers.get("Retry-After"));
+    if (impl) out.impl = impl;
+    if (edgeCache) out.edgeCache = edgeCache;
+    if (ra !== undefined) out.retryAfterS = ra;
+    if (problemCode) out.problemCode = problemCode;
+    if (body !== undefined) out.body = body;
+    if (detail) out.detail = detail;
+    else if (kind === "error" && !res.ok) out.detail = (body as { title?: string } | undefined)?.title ?? `HTTP ${res.status}`;
+    return out;
+  } finally {
+    clearTimeout(timer);
+    outer?.removeEventListener("abort", onOuterAbort);
   }
-  const ms = Math.round(performance.now() - t0);
-  const { kind, problemCode } = classify(res.status, contentType, body);
-  const out: ApiResult = { kind: detail ? "error" : kind, method: "GET", url, status: res.status, ms };
-  const impl = res.headers.get("X-Backend-Impl");
-  const edgeCache = res.headers.get("X-Edge-Cache");
-  const ra = retryAfter(res.headers.get("Retry-After"));
-  if (impl) out.impl = impl;
-  if (edgeCache) out.edgeCache = edgeCache;
-  if (ra !== undefined) out.retryAfterS = ra;
-  if (problemCode) out.problemCode = problemCode;
-  if (body !== undefined) out.body = body;
-  if (detail) out.detail = detail;
-  else if (kind === "error" && !res.ok) out.detail = (body as { title?: string } | undefined)?.title ?? `HTTP ${res.status}`;
-  return out;
 }

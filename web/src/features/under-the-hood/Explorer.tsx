@@ -2,12 +2,15 @@ import { Button, Label, NativeSelect, NativeSelectOption, Spinner } from "@abryc
 import { useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 
-import { type ApiResult, sendRequest } from "@/api";
+import { type ApiResult, REQUEST_TIMEOUT_MS, sendRequest } from "@/api";
 import type { BackendId } from "@/shared/config/config";
 
 import { ENDPOINTS, type EndpointId, RACE_BACKENDS } from "./catalogue";
 import { formatMs } from "./format";
 import { useWakeCopy } from "./wake-copy";
+
+/** The per-request deadline in seconds, for the "did not answer" notes. */
+const timeoutS = REQUEST_TIMEOUT_MS / 1000;
 
 const MAX_LINES = 400;
 
@@ -61,8 +64,10 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
           ? t`Too many requests from this address. Try again in ${waitS} s.`
         : res?.kind === "paused"
           ? t`This backend is paused until next month to stay within its free hosting hours.`
-        : res?.status === 0
-          ? t`No answer (network error).`
+        : res?.timedOut
+          ? t`No answer within ${timeoutS} seconds; the connection may have stalled.`
+          : res?.status === 0
+            ? t`No answer (network error).`
           : "";
 
   return (
