@@ -1,8 +1,8 @@
 // The wake-up story, in one place: which backends sleep, how long they take to wake, and every sentence that says so.
-// Wake times come only from the conformance table's "Cold start on free hosting" row (conformance.json, coldStartS),
+// Wake times come only from the conformance table's "Cold start on free hosting" row (coldStartS in catalogue.ts),
 // so the copy, the table and the lanes' waiting bar show the same measured number. A backend without a measured
 // figure gets no number anywhere ("a minute or more" in the copy, "—" in the table); its figure appears here
-// automatically once CI writes it.
+// automatically once it is measured and added there (by hand: CI does not measure cold starts).
 import { useLingui } from "@lingui/react/macro";
 import { useMemo } from "react";
 

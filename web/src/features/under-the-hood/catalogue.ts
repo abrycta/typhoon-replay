@@ -37,23 +37,63 @@ export const ENDPOINTS: Record<EndpointId, Endpoint> = {
 // ---------------------------------------------------------------------------------------------- conformance
 
 export interface PassCount {
-  passed: number;
   total: number;
+  /** Absent when Schemathesis found failures (it then reports unique failures, not passed cases). */
+  passed?: number;
+  failed: number;
+  skipped: number;
 }
 
-export interface BackendConformance {
+export interface CiRun {
+  id: number;
+  url: string;
+  sha: string;
+  /** YYYY-MM-DD */
+  date: string;
+}
+
+export interface SchemathesisFailure {
+  operation: string;
+  code?: string;
+  title: string;
+}
+
+/** One backend's figures from one CI run on main (contracts/conformance/scripts/summarize.mjs). */
+export interface CiConformance {
+  run: CiRun;
+  /** The Vitest scenario suite. */
+  scenarios: PassCount;
+  /** The gating Schemathesis run, with the checks it leaves out. */
+  generated: PassCount & { excludedChecks: string[] };
+  /** The full-config Schemathesis run (every check; informational, does not gate). */
+  full?: PassCount & { failures: SchemathesisFailure[] };
+}
+
+/** Figures CI does not measure: kept here, by hand. */
+interface BackendFacts {
   stack: string;
-  status: "measured" | "next";
-  scenarios?: PassCount;
-  generated?: PassCount;
+  /** Observed by hand on Render's free plan, not by CI. */
   coldStartS?: number;
 }
 
+const FACTS: Record<BackendId, BackendFacts> = {
+  java: { stack: "Spring Boot 4.1 · Java 25", coldStartS: 100 },
+  node: { stack: "Hono 4.13 · TypeScript · Workers" },
+  rust: { stack: "Axum 0.8 · Rust 1.99 · Workers" },
+  go: { stack: "net/http · oapi-codegen · Go 1.27" },
+};
+
+export type BackendConformance = BackendFacts & { ci?: CiConformance };
+
 export interface Conformance {
-  source: string;
-  updatedAt: string;
   backends: Record<BackendId, BackendConformance>;
 }
 
-/** conformance.json, checked into the build (it is imported, so Vite inlines it at build time). */
-export const CONFORMANCE: Conformance = conformanceJson as Conformance;
+/**
+ * conformance.json is generated from each backend's latest passing CI run on main (web/scripts/conformance-from-ci.mjs,
+ * run by CI before the build); it is imported, so Vite inlines it at build time. A backend without CI figures has no `ci`.
+ */
+const ciFigures = (conformanceJson as { backends: Partial<Record<BackendId, CiConformance>> }).backends;
+export const CONFORMANCE: Conformance = {
+  backends: Object.fromEntries(RACE_BACKENDS.map((id) => [id, { ...FACTS[id], ci: ciFigures[id] }])) as Record<BackendId, BackendConformance>,
+};

@@ -43,11 +43,13 @@ src/
 
 ## Conformance figures
 
-The Tech page's (/under-the-hood) conformance table is `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). Today it is edited by hand from the Java CI run (99/99 scenario tests, 2,150/2,150 Schemathesis cases, cold start ≈100 s on Render free). The plan for CI:
+The Tech page's (/under-the-hood) conformance table reads `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). The file is generated, never edited by hand:
 
-1. Each backend's workflow uploads a `conformance-<impl>.json` artifact on `main` with the same per-backend shape (`scenarios`, `generated`, `coldStartS`, `status: "measured"`).
-2. A small job merges the latest artifact of every backend into this file, sets `updatedAt`, and opens a PR (or commits to `main` when only numbers changed), so the next deploy carries the figures.
-3. A backend without an artifact keeps `status: "next"` and shows "next" / "—".
+1. Each backend's workflow (`.github/workflows/{java,node,rust,go}.yml`) runs the Vitest scenarios, a full-config Schemathesis run with every check (informational, `continue-on-error`) and the gating Schemathesis run that leaves out `EXCLUDED_CHECKS` (today `positive_data_acceptance`, a known contract-side gap). `contracts/conformance/scripts/summarize.mjs` turns them into `<impl>-conformance.json` (counts, excluded checks, the full run's failures by operation, and the run's id, URL, commit and date), uploaded in the `<impl>-conformance-results` artifact.
+2. CI (`ci.yml`) runs `node web/scripts/conformance-from-ci.mjs` before every build: it takes each backend's latest passing `main` run that has that artifact and rewrites `conformance.json`. A backend whose artifact can't be found keeps its committed entry (which names its own run) with a warning. Run it locally (needs `gh`) and commit the result to refresh the committed fallback.
+3. The table links each backend's date to its run, names the excluded checks and lists the every-check run's failures. Stack and cold start are not measured by CI: they live in `catalogue.ts` and the table says so.
+
+A backend-only merge rebuilds nothing on the web side, so its new figures appear with the next CI build of `main`.
 
 ## Replay
 

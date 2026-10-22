@@ -111,6 +111,10 @@ msgstr "{d}年代"
 msgid "{days} d {hours} h"
 msgstr "{days}日{hours}時間"
 
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "{failed} failures in {total}"
+msgstr "{total} 件中 {failed} 件の失敗"
+
 #: src/features/under-the-hood/wake-copy.ts
 msgid "{first} and {second}"
 msgstr "{first}、{second}"
@@ -197,6 +201,10 @@ msgstr "{label} は起動中です（このページを開いたときに起動�
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} woke up and answered in {0}; the answer itself took {1}."
 msgstr "{label} は起動して {0} で応答しました（応答そのものは {1}）。"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "{label}, every check:"
+msgstr "{label}、全チェック："
 
 #: src/features/compare/SlotCard.tsx
 msgid "{landfalls} landfalls"
@@ -525,6 +533,10 @@ msgid "Cloudflare Worker; never sleeps"
 msgstr "Cloudflare Worker、スリープしない"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Cold start is measured by hand, not by CI."
+msgstr "コールドスタートは CI ではなく手動で計測しています。"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Cold start on free hosting"
 msgstr "無料ホスティングでのコールドスタート"
 
@@ -798,11 +810,6 @@ msgstr "{firstLabel} の結果です。ほかのバックエンドはまだ応�
 msgid "from formation"
 msgstr "発生時"
 
-#. placeholder {0}: formatDate(CONFORMANCE.updatedAt, lang)
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "From the CI run on main, {0}."
-msgstr "main ブランチの CI 実行より（{0}）。"
-
 #: src/features/replay/IntensityPanel.tsx
 msgid "From the lossless 3-hourly grid (0.5°)."
 msgstr "3時間ごとの可逆圧縮グリッド（0.5°）から。"
@@ -816,8 +823,12 @@ msgid "Gaps for this pair"
 msgstr "この組み合わせの欠測"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Generated API cases (Schemathesis)"
-msgstr "自動生成の API テストケース (Schemathesis)"
+msgid "Generated API cases (Schemathesis, gating run)"
+msgstr "自動生成の API テストケース (Schemathesis、合否判定の実行)"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Generated API cases, every check (informational)"
+msgstr "自動生成の API テストケース、全チェック (参考)"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Go to end"
@@ -1356,6 +1367,10 @@ msgstr "記録なし"
 msgid "not reported"
 msgstr "報告なし"
 
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "not run"
+msgstr "未実行"
+
 #: src/features/compare/LineUp.tsx
 msgid "not yet formed"
 msgstr "発生前"
@@ -1818,6 +1833,10 @@ msgstr "タクロバン、那覇、Naha…"
 msgid "Tech"
 msgstr "技術"
 
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "Test rows: each backend's latest passing CI run on main:"
+msgstr "テストの行：各バックエンドの main ブランチで最後に成功した CI 実行より："
+
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 msgstr "API は OpenAPI 3.1 で一度だけ記述し、/v1 で提供しています。CI が契約をチェックし、互換性を壊す変更があれば失敗させます。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
@@ -1849,6 +1868,10 @@ msgstr "色:"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The edge"
 msgstr "エッジ"
+
+#: src/features/under-the-hood/ConformanceTable.tsx
+msgid "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
+msgstr "合否判定の実行では {excluded} チェックを除外しています。契約（スキーマ）では、自動生成される一部のリクエスト（別の並び順で作られたカーソル、season と from/to の併用）をまだ除外できず、バックエンドはこれらに 400 を返すためです。並行して行う全チェックの実行は、ビルドの合否には影響しません。"
 
 #: src/features/compare/AboutComparison.tsx
 msgid "The line:"
