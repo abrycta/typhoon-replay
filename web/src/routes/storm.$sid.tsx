@@ -17,8 +17,9 @@ import { useCallback, useState } from "react";
 
 import { NotFound } from "@/app/errors";
 import { usePageCrumbs } from "@/app/header-crumbs";
-import { DataError, useStormDetail } from "@/data";
+import { DataError, useStormDetail, useStormTrack } from "@/data";
 import { type ReplayUrlState, StormHeading, StormReplay } from "@/features/replay";
+import { loadReplayMap } from "@/features/replay/map/load";
 import { AffectedPlaces } from "@/features/storm-places";
 import { stormLabel } from "@/shared/lib/names";
 import { MapGlyph } from "@/shared/ui/map-glyph";
@@ -30,6 +31,8 @@ import { replayDefaults, replaySearch } from "./-search";
 export const Route = createFileRoute("/storm/$sid")({
   validateSearch: replaySearch,
   search: { middlewares: [stripSearchParams(replayDefaults)] },
+  // The map chunk downloads beside the storm's summary, not after it.
+  loader: () => void loadReplayMap(),
   component: StormPage,
 });
 
@@ -104,6 +107,8 @@ function StormPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const d = useStormDetail(sid);
+  // The track needs only the sid: fetch it beside the summary (the replay reads it from the same query).
+  useStormTrack(sid);
   const stormName = useStormName();
   // An unnamed storm's name already carries its start month and year ("Unnamed storm · Feb 1940"): no second year.
   const titled = (x: NonNullable<typeof d.data>) => (stormLabel(x).kind === "unnamed" && x.startedAt ? stormName(x) : `${stormName(x)} ${x.season}`);

@@ -3,8 +3,9 @@ import { useLingui } from "@lingui/react/macro";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { decades, sortStorms, useStormDetail, useStormIndex } from "@/data";
+import { decades, sortStorms, useStormDetail, useStormIndex, useStormTrack } from "@/data";
 import { StormReplay } from "@/features/replay";
+import { loadReplayMap } from "@/features/replay/map/load";
 import { StormList } from "@/features/storm-search";
 import { MapGlyph } from "@/shared/ui/map-glyph";
 import { useStormName } from "@/shared/ui/use-storm-name";
@@ -12,12 +13,14 @@ import { useDocumentTitle } from "@/shared/ui/use-title";
 
 const FEATURED_SID = "2013306N07162"; // Haiyan / Yolanda
 
-export const Route = createFileRoute("/")({ component: Home });
+// The featured replay's map chunk downloads beside its summary, not after it.
+export const Route = createFileRoute("/")({ loader: () => void loadReplayMap(), component: Home });
 
 function Featured() {
   const { t } = useLingui();
   const stormName = useStormName();
   const d = useStormDetail(FEATURED_SID);
+  useStormTrack(FEATURED_SID); // beside the summary, not after it
   if (!d.data || !d.dataset) return <MapGlyph className="aspect-[4/3] w-full rounded-sm sm:aspect-[16/10]" />;
   return (
     <figure className="m-0 grid gap-2" aria-label={t`Featured replay`}>

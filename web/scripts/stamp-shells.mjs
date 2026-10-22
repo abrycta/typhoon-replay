@@ -8,10 +8,16 @@
 //                           canonical names itself (index.html, the SPA fallback, names the home page)
 //   dist/sitemap.xml, dist/robots.txt
 //
+// Preload hints (audit 2026-10-22, finding 1): the home and storm shells name the files the replay needs before
+// the app asks for them, so they download while the entry chunk runs instead of one after another: the route's
+// chunks and the map chunk (Vite's manifest, dist/.vite/manifest.json, deleted afterwards), and the storm's
+// summary.json and track.json at the data version the app starts with (the bundled copy, scripts/bundle-data.mjs,
+// when the storm is bundled). If the live version has moved on, the app simply doesn't use them.
+//
 // The index comes from the published dataset when reachable (config.json data.baseUrl + pointer), else from
 // the bundled fixture (web/fixtures). Env: SITE_URL overrides config.json siteUrl; STAMP_OFFLINE=1 skips the
 // network. The build never fails because the dataset host is down.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const web = resolve(import.meta.dirname, "..");
@@ -89,6 +95,49 @@ function stamp(template, tags, noscript) {
   return html;
 }
 
+// --- Preload hints ---------------------------------------------------------------------------------------------
+const manifestPath = join(dist, ".vite/manifest.json");
+const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {};
+const entryKey = Object.keys(manifest).find((k) => manifest[k].isEntry && k === "index.html");
+/** Chunk files (and their CSS) a manifest entry needs, following static imports. */
+function closure(key, seen = new Set(), css = new Set()) {
+  const m = manifest[key];
+  if (!m || seen.has(m.file)) return { js: seen, css };
+  seen.add(m.file);
+  for (const c of m.css ?? []) css.add(c);
+  for (const i of m.imports ?? []) closure(i, seen, css);
+  return { js: seen, css };
+}
+const { js: inEntry, css: inEntryCss } = entryKey ? closure(entryKey) : { js: new Set(), css: new Set() };
+function chunkHints(keys) {
+  const js = new Set(), css = new Set();
+  for (const k of keys) {
+    const c = closure(k);
+    c.js.forEach((f) => inEntry.has(f) || js.add(f));
+    c.css.forEach((f) => inEntryCss.has(f) || css.add(f));
+  }
+  return [
+    ...[...js].map((f) => `<link rel="modulepreload" crossorigin href="/${f}" />`),
+    ...[...css].map((f) => `<link rel="preload" as="style" crossorigin href="/${f}" />`),
+  ];
+}
+const MAP = "src/features/replay/map/ReplayMap.tsx";
+const homeChunks = chunkHints(["src/routes/index.tsx?tsr-split=component", MAP]);
+const stormChunks = chunkHints(["src/routes/storm.$sid.tsx?tsr-split=component", MAP]);
+if (!homeChunks.length || !stormChunks.length) console.warn("stamp-shells: no Vite manifest entries for the route or map chunks; no chunk preloads");
+
+// The data version the app starts with: the bundled one (dist/config.json data.bundle), else whatever the pointer
+// names (no data preloads then: the app reads the pointer first anyway).
+const runtime = JSON.parse(readFileSync(join(dist, "config.json"), "utf8"));
+const bundle = runtime.data?.bundle;
+const bundled = new Set(bundle?.storms ?? []);
+function dataHints(sid) {
+  if (!bundle?.path) return [];
+  const dir = bundled.has(sid) ? `${slash(bundle.root)}${bundle.path}storms/${sid}/` : `${slash(runtime.data.baseUrl)}${bundle.path}storms/${sid}/`;
+  return ["summary.json", "track.json"].map((f) => `<link rel="preload" as="fetch" crossorigin="anonymous" href="${esc(dir + f)}" />`);
+}
+const FEATURED = "2013306N07162";
+
 const template = readFileSync(join(dist, "index.html"), "utf8");
 const { storms, root, source } = await loadIndex();
 
@@ -98,7 +147,10 @@ const home = {
   url: `${site}/`,
   image: `${site}/og-card.png`,
 };
-writeFileSync(join(dist, "index.html"), stamp(template, headTags(home), "Replay needs JavaScript for the interactive replay."));
+writeFileSync(
+  join(dist, "index.html"),
+  stamp(template, [headTags(home), ...homeChunks, ...dataHints(FEATURED)].join("\n    "), "Replay needs JavaScript for the interactive replay."),
+);
 // The app's other pages get their own shell (Pages serves /about from about.html) so each names its own canonical
 // URL; index.html stays the SPA fallback for everything else.
 for (const page of ["storms", "compare", "town", "about", "under-the-hood"]) {
@@ -109,7 +161,9 @@ mkdirSync(join(dist, "storm"), { recursive: true });
 for (const s of storms) {
   if (!/^[0-9]{7}[NS][0-9]{5}$/.test(s.sid)) continue;
   const d = describe(s);
-  const tags = headTags({ title: d.title, text: d.text, url: `${site}/storm/${s.sid}`, image: `${root}storms/${s.sid}/og.png` });
+  const tags = [headTags({ title: d.title, text: d.text, url: `${site}/storm/${s.sid}`, image: `${root}storms/${s.sid}/og.png` }), ...stormChunks, ...dataHints(s.sid)].join(
+    "\n    ",
+  );
   writeFileSync(join(dist, "storm", `${s.sid}.html`), stamp(template, tags, d.text));
 }
 
@@ -128,4 +182,5 @@ writeFileSync(
   join(dist, "robots.txt"),
   `User-agent: *\nAllow: /\nDisallow: /api/\n\n${aiCrawlers.map((ua) => `User-agent: ${ua}\n`).join("")}Disallow: /\n\nSitemap: ${site}/sitemap.xml\n`,
 );
+rmSync(join(dist, ".vite"), { recursive: true, force: true });
 console.log(`stamp-shells: ${storms.length} storm shells + sitemap (${urls.length} URLs) from the ${source} index, site ${site}`);
