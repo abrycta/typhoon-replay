@@ -383,6 +383,7 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "気象衛星以前:位置は船舶、地上観測所、航空機から"
 
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "ベストトラック"
 
@@ -1718,7 +1719,11 @@ msgstr "色:"
 msgid "The line:"
 msgstr "線:"
 
-#: src/features/replay/StormReplay.tsx
+#: src/features/replay/MapDescription.tsx
+msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated)."
+msgstr "地図には台風に追従する ERA5 の場の範囲、線で示したベストトラック（点は観測値）、現在の中心（観測値は塗りつぶし、補間値は中抜きの円）を表示します。"
+
+#: src/features/replay/MapDescription.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
 msgstr "地図には台風に追従する ERA5 の場の範囲、線で示したベストトラック（点は観測値）、現在の中心（観測値は塗りつぶし、補間値は中抜きの円）を表示します。下のタイムライン表に同じデータを文字で示しています。"
 
@@ -1767,7 +1772,11 @@ msgstr "このバックエンドはまだデプロイされていません。"
 msgid "This backend is paused until next month to stay within its free hosting hours."
 msgstr "このバックエンドは無料ホスティングの利用時間内に収めるため、来月まで一時停止中です。"
 
-#: src/features/replay/StormReplay.tsx
+#: src/features/replay/MapDescription.tsx
+msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing."
+msgstr "このブラウザは WebGL 地図を描画できないため、経路を簡易図で表示しています。"
+
+#: src/features/replay/MapDescription.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
 msgstr "このブラウザは WebGL 地図を描画できないため、経路を簡易図で表示しています。すべてのデータはタイムライン表にあります。"
 

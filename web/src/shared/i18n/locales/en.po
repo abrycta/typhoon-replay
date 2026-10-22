@@ -383,6 +383,7 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "Before weather satellites: positions from ships, land stations and aircraft"
 
 #: src/features/replay/LayerPanel.tsx
+#: src/features/replay/StormReplay.tsx
 msgid "Best track"
 msgstr "Best track"
 
@@ -1718,7 +1719,11 @@ msgstr "The colours:"
 msgid "The line:"
 msgstr "The line:"
 
-#: src/features/replay/StormReplay.tsx
+#: src/features/replay/MapDescription.tsx
+msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated)."
+msgstr "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated)."
+
+#: src/features/replay/MapDescription.tsx
 msgid "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
 msgstr "The map shows the storm-following ERA5 field window, the best track as a line with observed fixes as dots, and the current centre as a ring (filled at observed fixes, hollow when interpolated). The timeline table below has the same data as text."
 
@@ -1767,7 +1772,11 @@ msgstr "This backend is not deployed yet."
 msgid "This backend is paused until next month to stay within its free hosting hours."
 msgstr "This backend is paused until next month to stay within its free hosting hours."
 
-#: src/features/replay/StormReplay.tsx
+#: src/features/replay/MapDescription.tsx
+msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing."
+msgstr "This browser cannot draw the WebGL map, so the track is shown as a simple drawing."
+
+#: src/features/replay/MapDescription.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
 msgstr "This browser cannot draw the WebGL map, so the track is shown as a simple drawing. The timeline table has all the data."
 
