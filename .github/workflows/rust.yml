@@ -76,8 +76,9 @@ jobs:
         run: |
           rustup show active-toolchain || rustup toolchain install
           rustc --version
-          command -v worker-build >/dev/null && worker-build --version | grep -q "$WORKER_BUILD_VERSION" \
-            || cargo install worker-build --version "$WORKER_BUILD_VERSION" --locked --force
+          if ! { command -v worker-build >/dev/null && worker-build --version | grep -q "$WORKER_BUILD_VERSION"; }; then
+            cargo install worker-build --version "$WORKER_BUILD_VERSION" --locked --force
+          fi
 
       - name: Generated contract types are up to date
         working-directory: api/rust

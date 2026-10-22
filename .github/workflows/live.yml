@@ -44,6 +44,7 @@ jobs:
         env:
           ONLY: ${{ inputs.impl }}
         run: |
+          # shellcheck disable=SC2016 # the single-quoted node script is JavaScript, not shell
           node -e '
             const fs = require("fs");
             const text = fs.readFileSync("wrangler.jsonc", "utf8").replace(/^\s*\/\/.*$/gm, "");

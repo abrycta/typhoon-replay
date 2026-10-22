@@ -7,10 +7,8 @@ on:
   pull_request:
     paths:
       - pipeline/**
-      - .github/workflows/pipeline.yml
-      - .github/workflows/backfill.yml
-      - .github/workflows/refresh.yml
-      - .github/actions/setup-pipeline/**
+      - .github/workflows/**   # the actionlint job lints every workflow
+      - .github/actions/**
       - contracts/db/migrations/**
   push:
     branches: [main]

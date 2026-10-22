@@ -50,7 +50,7 @@ jobs:
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
         run: |
           set +e
-          node scripts/budget-check.mjs $DRY_RUN > report.md
+          node scripts/budget-check.mjs ${DRY_RUN:+"$DRY_RUN"} > report.md
           status=$?
           set -e
           cat report.md >> "$GITHUB_STEP_SUMMARY"
