@@ -4,7 +4,7 @@
 #   conformance  the Docker image against PostGIS 18 with the migrations and seed, reached through Neon's open-source
 #                SQL-over-HTTP proxy; Vitest scenarios (SSE heartbeat and a no-hooks instance included) and
 #                Schemathesis, like java.yml
-#   deploy       main only, after conformance: scripts/render-deploy.mjs (Render's auto-deploy is off), then
+#   deploy       main only, after build and conformance: scripts/render-deploy.mjs (Render's auto-deploy is off), then
 #   live         the live checks against the deployed service (live.yml)
 name: Go
 
@@ -78,7 +78,7 @@ jobs:
 
   conformance:
     name: Conformance (scenarios + Schemathesis)
-    needs: build
+    # Builds its own image (or Worker) from the checkout, so it runs alongside build; deploy waits for both.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -215,7 +215,7 @@ jobs:
   # Render auto-deploy is off: main deploys here, only after the tests and conformance above passed.
   deploy:
     name: Deploy to Render
-    needs: conformance
+    needs: [build, conformance]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -3,7 +3,7 @@
 #   conformance  the Worker in local workerd (wrangler dev) against PostGIS 18 with the migrations and seed, reached
 #                through Neon's open-source SQL-over-HTTP proxy; Vitest scenarios (SSE heartbeat and a no-hooks
 #                instance included) and Schemathesis, like java.yml
-#   deploy       main only, after conformance: wrangler deploy (free plan)
+#   deploy       main only, after build and conformance: wrangler deploy (free plan)
 #   live         the live checks against the deployed Worker (live.yml)
 name: Node
 
@@ -70,7 +70,7 @@ jobs:
 
   conformance:
     name: Conformance (scenarios + Schemathesis)
-    needs: build
+    # Builds its own image (or Worker) from the checkout, so it runs alongside build; deploy waits for both.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -211,7 +211,7 @@ jobs:
 
   deploy:
     name: Deploy (Cloudflare Workers)
-    needs: conformance
+    needs: [build, conformance]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
