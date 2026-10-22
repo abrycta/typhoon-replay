@@ -1511,10 +1511,6 @@ msgstr "リプレイの時刻"
 msgid "Response body"
 msgstr "応答本文"
 
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Response time, storms list (p95, local)"
-msgstr "応答時間・台風一覧 (p95、ローカル)"
-
 #: src/features/under-the-hood/Race.tsx
 msgid "Run again"
 msgstr "もう一度実行"

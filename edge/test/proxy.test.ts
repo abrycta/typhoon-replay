@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseCacheControl } from "../src/cache";
 import { parseOrigins } from "../src/env";
 import { etagMatches, uuidv7 } from "../src/http";
-import { MAX_BODY_BYTES } from "../src/proxy";
+import { dedupeTokens, MAX_BODY_BYTES } from "../src/proxy";
 import { CATALOGUE, delay, type Harness, harness, json, ORIGIN, problemOf } from "./helpers";
 
 let h: Harness;
@@ -34,6 +34,18 @@ describe("routing and path rewrite", () => {
     expect(await res.json()).toEqual({ via: "binding" });
     expect(seen).toEqual(["https://replay-api-node.example.workers.dev/v1/meta"]);
     expect(h.calls).toHaveLength(0);
+  });
+
+  it("sends one Vary token of each kind when the origin repeats one (Render adds its own Accept-Encoding)", async () => {
+    expect(dedupeTokens("Accept-Encoding, accept-encoding,Accept-Language")).toBe("Accept-Encoding, Accept-Language");
+    h.setOrigin(() => {
+      const headers = new Headers({ "Content-Type": "application/json", "Cache-Control": "no-store" });
+      headers.append("Vary", "Accept-Encoding");
+      headers.append("Vary", "Accept-Encoding");
+      return new Response("{}", { headers });
+    });
+    const { res } = await h.call("/api/go/healthz", {}, { BACKEND_ORIGINS: JSON.stringify({ java: ORIGIN, go: ORIGIN }) });
+    expect(res.headers.get("Vary")).toBe("Accept-Encoding");
   });
 
   it("maps /healthz and /readyz to the backend root", async () => {

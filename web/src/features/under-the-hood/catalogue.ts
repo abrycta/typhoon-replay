@@ -46,7 +46,6 @@ export interface BackendConformance {
   status: "measured" | "next";
   scenarios?: PassCount;
   generated?: PassCount;
-  p95StormsListMs?: number;
   coldStartS?: number;
 }
 
