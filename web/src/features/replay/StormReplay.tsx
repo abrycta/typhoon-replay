@@ -4,7 +4,7 @@ import { lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useS
 
 import { bestWind, type FrameStore, hourAt, maxNear, type ResolvedDataset, useFrameStore, useStormTrack } from "@/data";
 import type { FieldLayer } from "@/shared/lib/fields";
-import { formatDateTime, fromUrlHour, isoToUnix, type TimeZoneChoice, toUrlHour } from "@/shared/lib/time";
+import { formatDateTime, formatShort, fromUrlHour, isoToUnix, type TimeZoneChoice, toUrlHour } from "@/shared/lib/time";
 import { ktToMs, msToKt, type SpeedUnit } from "@/shared/lib/units";
 import type { StormDetail } from "@/shared/model/types";
 import { useHighContrast, useMapTheme, usePrefersReducedMotion } from "@/shared/ui/hooks";
@@ -210,6 +210,11 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     .join(", ");
 
   const speed = (kt: number) => (url.units === "kt" ? `${fmt(kt)} kt` : `${fmt(ktToMs(kt), 1)} m/s`);
+  const tzShort = tzChoice === "UTC" ? "UTC" : tzChoice === "Asia/Tokyo" ? "JST" : "PHT";
+  const sealLabel = (kt: number | undefined, t: number) =>
+    [kt === undefined ? undefined : url.units === "kt" ? `${Math.round(kt)} kt` : `${Math.round(ktToMs(kt))} m/s`, `${formatShort(t, lang, tzChoice)} ${tzShort}`]
+      .filter(Boolean)
+      .join(" · ");
   const speedMs = (ms: number) => (url.units === "kt" ? `${fmt(msToKt(ms))} kt` : `${fmt(ms, 1)} m/s`);
   const progress = detail.frames ? Math.round((snap.loadedFrames / detail.frames.frames) * 100) : 100;
   const layerName = layer === "none" ? t`no` : fieldLabels[layer].long;
@@ -247,6 +252,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
                   viewFrame={frozen?.compact?.viewFrame}
                   onUnavailable={setWebglError}
                   era5Centre={era5Centre}
+                  sealLabel={sealLabel}
                 />
               </Suspense>
             )}
