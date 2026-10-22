@@ -1,4 +1,4 @@
-# Merged means deployed (portfolio rule 23): every hour, is the live site at main's newest commit that its
+# Merged means deployed (portfolio rule 24): every hour, is the live site at main's newest commit that its
 # deploy covers? .github/scripts/live-check.sh compares <url>/deploy.json with main (.github/deploy-target).
 # Stale for more than 30 minutes -> this run fails (red) and dispatches the deploy workflow on main, which
 # deploys the newest commit whose CI is green. Undeployed commits under 30 minutes old count as pending.

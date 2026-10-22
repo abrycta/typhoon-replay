@@ -3,7 +3,7 @@
 #   CI passed on a pull request -> preview at https://pr-<number>.<project>.pages.dev,
 #                                  with the URL commented on the PR
 #
-# Merged means deployed (portfolio rules 17 and 23): this runs whenever CI finishes. Production always deploys
+# Merged means deployed (portfolio rules 17 and 24): this runs whenever CI finishes. Production always deploys
 # main's NEWEST commit once that commit's CI is green (.github/scripts/deploy-gate.sh), from that run's `web-dist`
 # artifact (never building again): a run triggered by an older commit deploys the newest one, so nothing merged
 # is left behind; if the newest commit's CI is still running, its own completion deploys it; if it is red, the
