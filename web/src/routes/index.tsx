@@ -86,7 +86,7 @@ function Home() {
       </section>
 
       <section aria-labelledby="browse-h" className="grid gap-4">
-        <h2 id="browse-h" className="font-heading text-2xl font-semibold">
+        <h2 id="browse-h" className="font-heading text-ak-subsection font-semibold">
           {t`Browse`}
         </h2>
         <nav aria-label={t`Browse by decade and country`} className="flex flex-wrap gap-2">
