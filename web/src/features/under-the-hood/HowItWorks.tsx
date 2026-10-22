@@ -21,12 +21,12 @@ export function HowItWorks({ labels }: { labels: Record<BackendId, string> }) {
     },
     node: {
       stack: "Hono 4.13 · TypeScript",
-      hosting: t`Cloudflare Worker`,
+      hosting: t`Cloudflare Worker; never sleeps`,
       db: t`Neon serverless SQL over HTTP`,
     },
     rust: {
       stack: "Axum 0.8 · workers-rs (wasm)",
-      hosting: t`Cloudflare Worker`,
+      hosting: t`Cloudflare Worker; never sleeps`,
       db: t`Neon serverless SQL over HTTP`,
     },
     go: {

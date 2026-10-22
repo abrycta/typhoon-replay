@@ -9,6 +9,7 @@ import { CONFORMANCE, QUESTIONS, type QuestionId } from "./catalogue";
 import { formatMs } from "./format";
 import { ResultTable } from "./ResultTable";
 import type { LaneState, LaneStatus, useRace } from "./use-race";
+import { typicalWakeMs, useWakeCopy } from "./wake-copy";
 
 /** Re-render every `ms` while `active` (the live elapsed time of waiting lanes). */
 function useTick(active: boolean, ms = 500) {
@@ -35,11 +36,9 @@ const CHIP: Record<LaneStatus, string> = {
 /** When a 429 carries no Retry-After: the edge's bucket refills within a minute (edge/src/env.ts). */
 const RATE_LIMIT_FALLBACK_S = 60;
 
-/** The typical cold start, for the waiting bar (it fills to 95 % over this time). */
-const TYPICAL_WAKE_MS = 90_000;
-
 function Lane({ lane, label, match, now }: { lane: LaneState; label: string; match?: MatchState; now: number }) {
   const { t } = useLingui();
+  const wake = useWakeCopy();
   const chip: Record<LaneStatus, string> = {
     idle: t`ready`,
     running: t`asking`,
@@ -50,7 +49,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     "rate-limited": t`rate limited`,
     error: t`error`,
   };
-  // Before a run, the chip shows what the wake-up ping found (Java only); it is not an answer.
+  // Before a run, the chip shows what the wake-up ping found (Java and Go, the backends that sleep); it is not an answer.
   const chipStatus: LaneStatus = lane.status === "idle" && lane.hint ? lane.hint : lane.status;
   const waiting = lane.status === "running" || lane.status === "waking";
   const elapsed = waiting && lane.startedAt !== undefined ? now - lane.startedAt : undefined;
@@ -58,7 +57,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     lane.status === "ok" || lane.status === "not-deployed" || lane.status === "paused" || lane.status === "rate-limited" || lane.status === "error"
       ? 100
       : lane.status === "waking" && elapsed !== undefined
-        ? Math.min(95, (elapsed / TYPICAL_WAKE_MS) * 100)
+        ? Math.min(95, (elapsed / typicalWakeMs(lane.id)) * 100)
         : lane.status === "running"
           ? 15
           : 0;
@@ -66,7 +65,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
   const waitS = lane.retryAfterS ?? RATE_LIMIT_FALLBACK_S;
   const note =
     lane.status === "waking"
-      ? t`${label} is waking up from sleep: about a minute on free hosting. This page keeps trying.`
+      ? wake.laneWaking(label, lane.id)
       : lane.status === "ok"
         ? lane.woke
           ? t`${label} woke up and answered in ${formatMs(lane.totalMs ?? 0)}; the answer itself took ${formatMs(lane.lastMs ?? 0)}.`
@@ -86,7 +85,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
             : lane.hint === "ok"
               ? t`${label} is awake.`
               : lane.hint === "waking"
-                ? t`${label} is waking up; opening this page started it.`
+                ? wake.laneWakingHint(label)
                 : lane.hint === "not-deployed"
                   ? t`${label} is not deployed yet.`
                   : lane.hint === "paused"
@@ -129,6 +128,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
 
 export function Race({ race, labels }: { race: ReturnType<typeof useRace>; labels: Record<BackendId, string> }) {
   const { t } = useLingui();
+  const wake = useWakeCopy(labels);
   const [question, setQuestion] = useState<QuestionId>("town");
   const [shown, setShown] = useState<QuestionId>("town");
   const now = useTick(race.running);
@@ -145,7 +145,7 @@ export function Race({ race, labels }: { race: ReturnType<typeof useRace>; label
         {t`Same question, four answers`}
       </h2>
       <p className="max-w-[66ch] text-muted-foreground">
-        {t`A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically.`}
+        {wake.raceIntro}
       </p>
       <div className="my-2 flex flex-wrap items-end gap-2.5">
         <div className="grid min-w-0 gap-1.5">

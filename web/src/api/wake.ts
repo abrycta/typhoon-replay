@@ -1,5 +1,6 @@
-// Waiting for a sleeping backend. Render's free services sleep after 15 minutes idle and take about a minute
-// to wake; the edge answers 503 `backend-waking` with Retry-After meanwhile (edge/README.md, "Cold starts").
+// Waiting for a sleeping backend. Render's free services (Java, Go) sleep after 15 minutes idle; their measured wake time is
+// the coldStartS figure in conformance.json (the Tech page's cold-start row). The edge answers 503 `backend-waking`
+// with Retry-After meanwhile (edge/README.md, "Cold starts").
 import type { ApiResult } from "./request";
 
 /** How long to keep waking a backend before giving up (a cold start is ~60-100 s; leave headroom). */

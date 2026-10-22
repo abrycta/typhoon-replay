@@ -135,10 +135,15 @@ async function mockLanes(page: Page) {
 test("race: java answers, node wakes then answers the same, rust is not deployed, go is paused", async ({ page }) => {
   const count = await mockLanes(page);
   await page.goto("/under-the-hood");
-  // Wake-on-entry: exactly one idle-time /healthz, to Java only.
+  // Wake-on-entry: exactly one idle-time /healthz to each backend that sleeps (Java and Go), none to Node or Rust.
   await expect.poll(() => count["java /api/java/healthz"]).toBe(1);
+  await expect.poll(() => count["go /api/go/healthz"]).toBe(1);
   await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
-  expect(Object.keys(count)).toEqual(["java /api/java/healthz"]);
+  await expect(page.getByTestId("lane-go-state")).toHaveText("paused this month");
+  expect(Object.keys(count).sort()).toEqual(["go /api/go/healthz", "java /api/java/healthz"]);
+  // One wake story: only measured cold starts get a number (Java's, from the conformance table); Go has none yet.
+  await expect(page.getByText(/Waking takes about 100 s for Java and a minute or more for Go/)).toBeVisible();
+  await expect(page.getByText(/Node and Rust run as Cloudflare Workers and never sleep/)).toBeVisible();
   // The ping is not an answer: no time, no match line.
   await expect(page.getByTestId("lane-java-note")).toHaveText("Java is awake.");
   await expect(page.getByTestId("lane-java-time")).toHaveText("—");
@@ -147,7 +152,7 @@ test("race: java answers, node wakes then answers the same, rust is not deployed
   await expect(page.getByLabel("Question", { exact: true })).toHaveValue("town");
   await page.getByTestId("race-run").click();
   await expect(page.getByTestId("lane-node-state")).toHaveText("waking up");
-  await expect(page.getByTestId("lane-node-note")).toContainText("about a minute on free hosting");
+  await expect(page.getByTestId("lane-node-note")).toHaveText("Node is not answering yet. This page keeps trying.");
   await expect(page.getByTestId("lane-rust-state")).toHaveText("not deployed yet");
   await expect(page.getByTestId("lane-go-state")).toHaveText("paused this month");
   await expect(page.getByTestId("lane-go-note")).toContainText("paused until next month");

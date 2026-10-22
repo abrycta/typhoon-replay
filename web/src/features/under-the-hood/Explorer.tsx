@@ -7,6 +7,7 @@ import type { BackendId } from "@/shared/config/config";
 
 import { ENDPOINTS, type EndpointId, RACE_BACKENDS } from "./catalogue";
 import { formatMs } from "./format";
+import { useWakeCopy } from "./wake-copy";
 
 const MAX_LINES = 400;
 
@@ -19,6 +20,7 @@ function pretty(body: unknown): string {
 /** One request to one backend, shown in full: request line, status, the edge/implementation headers, the JSON. */
 export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, string>; baseUrlOf: (id: BackendId) => string }) {
   const { t } = useLingui();
+  const wake = useWakeCopy(labels);
   const [backend, setBackend] = useState<BackendId>("java");
   const [endpoint, setEndpoint] = useState<EndpointId>("meta");
   const [busy, setBusy] = useState(false);
@@ -52,7 +54,7 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
   const waitS = res?.retryAfterS ?? 60;
   const hint =
     res?.kind === "waking"
-      ? t`The backend is waking up (about a minute on free hosting). Send again in ${res.retryAfterS ?? 20} s.`
+      ? wake.explorerWaking(backend, res.retryAfterS ?? 20)
       : res?.kind === "not-deployed"
         ? t`This backend is not deployed yet.`
         : res?.kind === "rate-limited"

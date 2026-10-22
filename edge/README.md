@@ -134,7 +134,9 @@ a full 200. Two cases need more:
 
 ## Cold starts
 
-Render's free services sleep after 15 minutes and take about a minute to wake.
+Render's free services (Java and Go) sleep after 15 minutes idle. Java's measured cold start is about 100 s; Go's is not
+measured yet. The measured figures live in `web/src/features/under-the-hood/conformance.json` (`coldStartS`), which
+the Tech page shows. Node and Rust run as Cloudflare Workers and never sleep.
 - A `GET` that misses the cache and gets no response headers within `ORIGIN_TIMEOUT_MS` (8 s) returns a 503
   `backend-waking` with `Retry-After: 20`. The request keeps running under `waitUntil`, which wakes the backend and
   fills the cache when it finishes within 30 s.
