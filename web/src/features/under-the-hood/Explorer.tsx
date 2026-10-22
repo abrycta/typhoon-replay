@@ -1,9 +1,10 @@
-import { Button, Label, NativeSelect, NativeSelectOption, Spinner } from "@abrycta/akari/react";
+import { Button, Label, NativeSelect, NativeSelectOption } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 
 import { type ApiResult, sendRequest } from "@/api";
 import type { BackendId } from "@/shared/config/config";
+import { GlyphLoading } from "@/shared/ui/glyph-loading";
 
 import { ENDPOINTS, type EndpointId, RACE_BACKENDS } from "./catalogue";
 import { formatMs } from "./format";
@@ -99,8 +100,8 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
               ))}
             </NativeSelect>
           </div>
-          <Button type="submit" variant="outline" disabled={busy} data-testid="explore-send">
-            {busy ? <Spinner /> : null}
+          <Button type="submit" variant="outline" disabled={busy} aria-busy={busy} data-testid="explore-send">
+            {busy ? <GlyphLoading /> : null}
             {t`Send`}
           </Button>
         </form>
