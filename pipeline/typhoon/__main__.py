@@ -11,7 +11,8 @@ Stages, in order (each reads the previous stages' Parquet under data/processed/)
     exposure                   place x storm exposure bands
     selection [--target 1000]  which storms get frames (documented score, decade floor)
     prepare [--refresh]        all of the above, in order (what CI's prepare job runs)
-    plan --batches N [--list FILE] [--mode all|missing|changed --previous ROOT]   balanced batches
+    plan --batches N [--list FILE] [--mode all|missing|changed --previous ROOT] [--canary 0.05]
+                               balanced batches (+ canary batches c0, c1, ... run first by backfill.yml)
     frames --sid S | --list FILE | --batch I --plan FILE   ERA5 frames per storm
     dataset build|check --version N [--previous ROOT] [--frames-uploaded]
     publish upload|verify|flip|rollback|current|all
@@ -48,8 +49,36 @@ def prepare(refresh: bool) -> None:
     man.write(RUN_MANIFEST)
 
 
+def carve_canary(batches: dict[str, list[str]], hours: dict[str, int], fraction: float,
+                 jobs: int = 4) -> dict[str, list[str]]:
+    """Move about `fraction` of the planned storm-hours into canary batches "c0".."c<jobs-1>".
+
+    The canary is a stratified sample: every k-th storm by length (k = 1/fraction), so it holds long and short
+    storms alike. backfill.yml builds, validates and uploads the canary batches with the same checks as the
+    others and starts the full run only if all of them pass. Storms move, not copy, so no work is repeated.
+    """
+    if fraction <= 0:
+        return batches
+    ranked = sorted((sid for b in batches.values() for sid in b), key=lambda sid: (-hours[sid], sid))
+    if not ranked:
+        return batches
+    step = max(1, round(1 / fraction))
+    picks = ranked[step // 2::step] or ranked[:1]
+    chosen = set(picks)
+    out = {k: [sid for sid in v if sid not in chosen] for k, v in batches.items()}
+    n = max(1, min(jobs, len(picks)))
+    loads = [0] * n
+    canary: list[list[str]] = [[] for _ in range(n)]
+    for sid in picks:  # longest first: greedy balance, as plan() does
+        i = loads.index(min(loads))
+        canary[i].append(sid)
+        loads[i] += hours[sid]
+    out.update({f"c{i}": c for i, c in enumerate(canary)})
+    return out
+
+
 def plan(batches: int, list_file: Path | None, previous: str | None, mode: str = "all",
-         selected: bool = False) -> dict[str, list[str]]:
+         selected: bool = False, canary: float = 0.0, canary_jobs: int = 4) -> dict[str, list[str]]:
     """Greedy longest-first split of storms into `batches` with balanced storm-hours.
 
     mode "all": every selected storm; "missing" (backfill): storms whose published frames are absent or
@@ -86,7 +115,7 @@ def plan(batches: int, list_file: Path | None, previous: str | None, mode: str =
         i = loads.index(min(loads))
         out[str(i)].append(str(sid))
         loads[i] += int(hours)
-    return out
+    return carve_canary(out, {str(k): int(v) for k, v in zip(st.sid, st.hours, strict=True)}, canary, canary_jobs)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -120,9 +149,12 @@ def main(argv: list[str] | None = None) -> int:
         ap.add_argument("--mode", choices=["all", "missing", "changed"], default="all")
         ap.add_argument("--previous", help="dataset root (URL or dir) of the published version, for --mode")
         ap.add_argument("--selected", action="store_true", help="only storms chosen by typhoon.selection")
+        ap.add_argument("--canary", type=float, default=0.0,
+                        help="share of storm-hours moved into canary batches c0, c1, ... (e.g. 0.05)")
+        ap.add_argument("--canary-jobs", type=int, default=4, help="number of canary batches (run in parallel)")
         ap.add_argument("--out", type=Path)
         a = ap.parse_args(rest)
-        p = plan(a.batches, a.list, a.previous, a.mode, a.selected)
+        p = plan(a.batches, a.list, a.previous, a.mode, a.selected, a.canary, a.canary_jobs)
         text = json.dumps(p)
         if a.out:
             a.out.write_text(text)

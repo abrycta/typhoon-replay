@@ -328,3 +328,22 @@ def test_centre_offsets_find_era5_low_and_refuse_a_missing_one() -> None:
     assert out["km"][1] is None   # flat: no closed low
     assert out["km"][2] is None   # ~700 km away: beyond the search edge, not this storm's centre
     assert out["frameIndex"] == [0, 3, 6]
+
+
+# ----------------------------------------------------------------------------- backfill canary
+
+def test_carve_canary_moves_about_five_percent_into_canary_batches() -> None:
+    from typhoon.__main__ import carve_canary
+
+    hours = {f"s{i:03d}": 10 + i for i in range(200)}
+    sids = sorted(hours, key=lambda s: -hours[s])
+    batches = {str(b): sids[b::4] for b in range(4)}
+    out = carve_canary(batches, hours, 0.05, jobs=2)
+    canary = [sid for k in ("c0", "c1") for sid in out[k]]
+    full = [sid for k in "0123" for sid in out[k]]
+    assert sorted(canary + full) == sorted(hours)  # moved, never duplicated or lost
+    assert len(canary) == 10
+    share = sum(hours[s] for s in canary) / sum(hours.values())
+    assert 0.04 < share < 0.06
+    assert carve_canary(batches, hours, 0.0) == batches
+    assert carve_canary({"0": ["s001"]}, hours, 0.05) == {"0": [], "c0": ["s001"]}
