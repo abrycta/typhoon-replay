@@ -73,14 +73,16 @@ A response is stored only when all of these hold:
 - its status is 200, 203, 404 or 410;
 - its `Cache-Control` has `public` and a positive `max-age` or `s-maxage`, and no `private`, `no-store` or `no-cache`;
 - it has no `Set-Cookie`;
-- its `Vary` lists only `Accept-Encoding`, `Accept` or `Accept-Language`;
+- its `Vary` lists only `Accept-Encoding` or `Accept`;
 - it isn't an event stream.
 
 Under the contract's table (CONTRACT-GUIDE §6), that covers catalogue reads, `/v1/meta`, `/v1/openapi.json` and
 catalogue 404s. The live snapshot (`no-cache`), `/me`, auth, errors and health never qualify.
 
-**Key.** The key is the full URL with its query parameters sorted, plus a hash of `Accept` and `Accept-Language`
-(the request headers a `Vary` may name) and `KEY_VERSION` (`edge/src/cache.ts`, now `3`). Query parameters with
+**Key.** The key is the full URL with its query parameters sorted, plus a hash of the normalised `Accept`
+(lower case, no whitespace, absent read as `*/*`; the one request header a `Vary` may name) and `KEY_VERSION`
+(`edge/src/cache.ts`, now `4`). `Accept-Language` is not part of the key: no backend varies on it, and keying on it
+split the cache per browser language. Query parameters with
 different values never share an entry. Bumping `KEY_VERSION` orphans every stored entry on the next deploy: that is
 the purge.
 
