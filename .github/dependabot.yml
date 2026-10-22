@@ -4,8 +4,9 @@
 # are upgraded by hand.
 version: 2
 registries:
-  # @abrycta/akari comes from GitHub Packages. Dependabot secret DEPENDABOT_PACKAGES_TOKEN: a classic
-  # personal access token with read:packages only.
+  # @abrycta/akari comes from GitHub Packages. Dependabot secret DEPENDABOT_PACKAGES_TOKEN (set 2026-10-22): a
+  # classic personal access token with read:packages only. Without it every npm update job fails with
+  # "Secret Not Found"; a change to this file re-runs the update jobs.
   github-packages:
     type: npm-registry
     url: https://npm.pkg.github.com
