@@ -12,7 +12,9 @@
 //                    own responseStart leaves out emulated latency)
 //   fcp, lcp         first-contentful-paint, last largest-contentful-paint
 //   app              the pre-load glyph is gone (React's first render)
-//   frame            first field frame ready on the map: [data-frame-ready=true] and a MapLibre canvas in the DOM
+//   frame            the first full frame on the map: basemap, track and the field drawn (the app's
+//                    "replay:first-frame-drawn" user-timing mark, set on the map's first idle with a field frame)
+//   decoded          the field frame at the playhead is decoded ([data-frame-ready=true]), drawn or not
 //   list             first storm card in a storm list
 // plus requests and transferred bytes (encoded bodies, page and workers) until the page settles.
 //
@@ -56,9 +58,12 @@ function probe() {
   new PerformanceObserver((l) => {
     for (const e of l.getEntries()) m.lcp = Math.round(e.startTime);
   }).observe({ type: "largest-contentful-paint", buffered: true });
+  new PerformanceObserver((l) => {
+    for (const e of l.getEntries()) if (e.name === "replay:first-frame-drawn") m.frame ??= Math.round(e.startTime);
+  }).observe({ type: "mark", buffered: true });
   const check = () => {
     if (!document.querySelector(".glyph-seal") && document.getElementById("root")?.childElementCount) at("app");
-    if (document.querySelector('[data-frame-ready="true"]') && document.querySelector("canvas.maplibregl-canvas")) at("frame");
+    if (document.querySelector('[data-frame-ready="true"]')) at("decoded");
     if (document.querySelector('ul[role="list"] > li a[href^="/storm/"]')) at("list");
   };
   new MutationObserver(check).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-frame-ready", "class"] });
@@ -117,7 +122,7 @@ async function once(profile, page) {
   return { ...m, ttfb, requests, kb: Math.round(bytes / 1024), throttledWorkers: p.network ? workers : undefined };
 }
 
-const KEYS = ["ttfb", "fcp", "app", "lcp", "frame", "list", "requests", "kb"];
+const KEYS = ["ttfb", "fcp", "app", "lcp", "decoded", "frame", "list", "requests", "kb"];
 const out = { base, date: new Date().toISOString(), runs, results: {} };
 for (const profile of args.profiles.split(",")) {
   for (const page of args.pages.split(",")) {
