@@ -82,9 +82,27 @@ export interface StormReplayProps {
   loop?: boolean;
   mapClassName?: string;
   frozen?: FrozenReplay;
+  /** Called once, when the frames have finished loading (or failed): the home page then loads its storm list. */
+  onFramesSettled?: () => void;
 }
 
-export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTable = true, leader, leaderOffset = 0, mapOverlay, compact, autoplay, loop, mapClassName, frozen }: StormReplayProps) {
+export function StormReplay({
+  detail,
+  dataset,
+  url,
+  onUrl,
+  pageKeyboard,
+  showTable = true,
+  leader,
+  leaderOffset = 0,
+  mapOverlay,
+  compact,
+  autoplay,
+  loop,
+  mapClassName,
+  frozen,
+  onFramesSettled,
+}: StormReplayProps) {
   const { t } = useLingui();
   const { lang } = useLang();
   const fieldLabels = useFieldLabels();
@@ -114,6 +132,11 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     }
     return (track.data?.hours ?? []).map((h) => h.t);
   }, [header, detail.frames, track.data]);
+
+  const settled = !detail.frames || snap.done;
+  useEffect(() => {
+    if (settled) onFramesSettled?.();
+  }, [settled, onFramesSettled]);
 
   const startIndex = initialT !== undefined ? Math.max(0, times.findIndex((x) => x >= initialT)) : 0;
   const { clock, state } = usePlayerClock(times.length, { index: startIndex, speed: url.speed }, { loop });

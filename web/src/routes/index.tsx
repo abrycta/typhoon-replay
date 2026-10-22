@@ -1,12 +1,13 @@
 import { Button, Input, Label, Skeleton } from "@abrycta/akari/react";
 import { useLingui } from "@lingui/react/macro";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { decades, sortStorms, useStormDetail, useStormIndex, useStormTrack } from "@/data";
 import { StormReplay } from "@/features/replay";
 import { loadReplayMap } from "@/features/replay/map/load";
 import { StormList } from "@/features/storm-search";
+import { useDesktopClass, useNearViewport } from "@/shared/ui/hooks";
 import { MapGlyph } from "@/shared/ui/map-glyph";
 import { useStormName } from "@/shared/ui/use-storm-name";
 import { useDocumentTitle } from "@/shared/ui/use-title";
@@ -16,7 +17,7 @@ const FEATURED_SID = "2013306N07162"; // Haiyan / Yolanda
 // The featured replay's map chunk downloads beside its summary, not after it.
 export const Route = createFileRoute("/")({ loader: () => void loadReplayMap(), component: Home });
 
-function Featured() {
+function Featured({ onFramesSettled }: { onFramesSettled?: () => void }) {
   const { t } = useLingui();
   const stormName = useStormName();
   const d = useStormDetail(FEATURED_SID);
@@ -32,6 +33,7 @@ function Featured() {
         compact
         autoplay
         loop
+        onFramesSettled={onFramesSettled}
       />
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <span>{t`${stormName(d.data)}, ${d.data.season}: ERA5 10 m wind (reanalysis context) and the best track.`}</span>
@@ -48,7 +50,13 @@ function Featured() {
 function Home() {
   const { t } = useLingui();
   const navigate = useNavigate();
-  const index = useStormIndex();
+  // Phones (and Save-Data): the storm index (about 180 KB on the wire) waits until the featured replay's frames are
+  // in, or the Browse section is on screen, so it doesn't share a slow link with the replay. Desktops load it at once.
+  const browseRef = useRef<HTMLElement>(null);
+  const desktop = useDesktopClass();
+  const [replayLoaded, setReplayLoaded] = useState(false);
+  const near = useNearViewport(browseRef, "0px", desktop || replayLoaded);
+  const index = useStormIndex(desktop || replayLoaded || near);
   const [q, setQ] = useState("");
   useDocumentTitle(undefined);
   const storms = index.data ?? [];
@@ -86,10 +94,10 @@ function Home() {
             </Button>
           </div>
         </div>
-        <Featured />
+        <Featured onFramesSettled={() => setReplayLoaded(true)} />
       </section>
 
-      <section aria-labelledby="browse-h" className="grid gap-4">
+      <section ref={browseRef} aria-labelledby="browse-h" className="grid gap-4">
         <h2 id="browse-h" className="font-heading text-ak-subsection font-semibold">
           {t`Browse`}
         </h2>

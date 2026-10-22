@@ -20,3 +20,17 @@ test("360 px: replay controls are usable by touch", async ({ page }) => {
   const box = await page.getByTestId("play-toggle").boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(24); // WCAG 2.2 target size (minimum)
 });
+
+test("phone home page: the live replay first, then the storm list", async ({ page }) => {
+  const order: string[] = [];
+  page.on("request", (r) => {
+    const u = r.url();
+    if (/\/index\.json$/.test(u)) order.push("index");
+    else if (/\.field\.\w+\.webp$/.test(u)) order.push("sheet");
+  });
+  await page.goto("/");
+  // The featured replay plays on phones, and the storm list still arrives without scrolling.
+  await expect(page.getByRole("figure", { name: "Featured replay" }).getByTestId("storm-replay")).toHaveAttribute("data-frame-ready", "true");
+  await expect(page.getByRole("list", { name: "Recent storms" }).getByRole("listitem").first()).toBeVisible();
+  expect(order.lastIndexOf("sheet")).toBeLessThan(order.indexOf("index"));
+});

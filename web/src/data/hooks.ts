@@ -56,12 +56,13 @@ export function useManifest() {
   return { ...q, dataset: ds.data, error: ds.error ?? q.error };
 }
 
-export function useStormIndex() {
+/** The whole storm index (about 1 MB). `enabled: false` defers it (the home page's list on phones). */
+export function useStormIndex(enabled = true) {
   const ds = useDataset();
   const q = useQuery({
     queryKey: ["index", ds.data?.root],
     queryFn: () => loadIndex(ds.data as ResolvedDataset),
-    enabled: !!ds.data,
+    enabled: enabled && !!ds.data,
     ...STATIC,
   });
   return { ...q, error: ds.error ?? q.error, isPending: ds.isPending || q.isPending, dataset: ds.data };
