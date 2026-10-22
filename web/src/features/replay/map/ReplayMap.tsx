@@ -68,6 +68,9 @@ export interface ReplayMapProps {
   sealLabel?: (kt: number | undefined, t: number) => string;
 }
 
+/** User-timing mark set when the first map on the page has drawn its first full frame. */
+const DRAWN_MARK = "replay:first-frame-drawn";
+
 /** Maps narrower than this (phones, the compact embed) show the seal only, without its label. */
 const SEAL_LABEL_MIN_WIDTH = 520;
 
@@ -338,6 +341,8 @@ export default function ReplayMap(props: ReplayMapProps) {
         if ((p.header || p.awaitField) && !fieldRef.current?.hasFrame) return;
         renderedRef.current = true;
         map.off("idle", check);
+        // The first full frame (basemap, track and field) on screen: the load-timing milestone (scripts/measure-load.mjs).
+        if (!performance.getEntriesByName(DRAWN_MARK).length) performance.mark(DRAWN_MARK);
         latest.current.onRendered?.();
       };
       map.on("idle", check);
