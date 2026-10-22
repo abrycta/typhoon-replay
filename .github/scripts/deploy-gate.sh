@@ -10,7 +10,7 @@
 #   success            -> deploy=true, sha=<commit>, run_id=<its CI run>  (GITHUB_OUTPUT)
 #   queued / running   -> deploy=false: that run's own success deploys it (CI on main is never cancelled)
 #   anything else      -> exit 1: main's newest commit is red, so production stays behind; fix main
-# Same file in every deployed repo; canonical copy in portfolio-docs tools/lib/deploy-gate.sh.
+# Same file in every deployed repo; canonical copy in the workspace tools/lib/deploy-gate.sh.
 set -euo pipefail
 ci="$1" job="${2:-}"
 repo="$GITHUB_REPOSITORY"

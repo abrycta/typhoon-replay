@@ -15,7 +15,7 @@
 # the deploy workflow is dispatched on main (it deploys the newest commit whose CI is green).
 # Also prints INFO lines for cancelled or skipped runs of the deploy workflow on main since its last success.
 #
-# Canonical copy: portfolio-docs tools/lib/live-check.sh (tools/ci-red.sh runs it); each deployed repo carries
+# Canonical copy: the workspace tools/lib/live-check.sh (tools/ci-red.sh runs it); each deployed repo carries
 # the same file as .github/scripts/live-check.sh for its hourly live-check workflow. Keep them identical.
 set -uo pipefail
 redeploy=0
