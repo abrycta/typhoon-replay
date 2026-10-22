@@ -1,4 +1,4 @@
-// The baked basemap (scripts/build-embed.mjs): two images per theme placed by their corner coordinates, the
+// The baked basemap (scripts/build-embed.mjs): two images per theme (all four, high contrast included) placed by their corner coordinates, the
 // land and sea under the field and the place labels above it, as in the live app. Only the active theme's
 // images are fetched; a theme change swaps them in place.
 import type { ImageSource, Map as MlMap, StyleSpecification } from "maplibre-gl";
@@ -7,7 +7,7 @@ import type { CustomBasemap, ThemeKey } from "@/features/replay";
 
 import { EMBED } from "./haiyan.generated";
 
-const images = (key: ThemeKey) => (key.startsWith("dark") ? EMBED.basemap.dark : EMBED.basemap.light);
+const images = (key: ThemeKey) => EMBED.basemap[key];
 const coordinates = EMBED.basemap.coordinates.map(([lon, lat]) => [lon, lat]) as [[number, number], [number, number], [number, number], [number, number]];
 
 export const bakedBasemap: CustomBasemap = {

@@ -3,7 +3,7 @@
 //
 //   public/embed-data/haiyan-<hash>.json         the one packed data file: the storm summary (trimmed), its track,
 //                                                the .tyf header and the one lossless field frame on show
-//   public/embed-data/haiyan-{base,labels}-{light,dark}-<hash>.webp
+//   public/embed-data/haiyan-{base,labels}-{light,dark,light-hc,dark-hc}-<hash>.webp
 //                                                the basemap baked at 2x of the map box: everything under the field
 //                                                (base) and the place labels drawn above it (labels, transparent)
 //   src/embed/haiyan.generated.ts                file names, view, time and the images' corner coordinates
@@ -84,8 +84,14 @@ const pack = {
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const images = {};
 let corners, attribution;
-for (const scheme of ["light", "dark"]) {
-  const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "reduce" });
+for (const scheme of ["light", "dark", "light-hc", "dark-hc"]) {
+  const ctx = await browser.newContext({
+    viewport: VIEWPORT,
+    deviceScaleFactor: 2,
+    colorScheme: scheme.startsWith("dark") ? "dark" : "light",
+    contrast: scheme.endsWith("-hc") ? "more" : "no-preference",
+    reducedMotion: "reduce",
+  });
   const page = await ctx.newPage();
   const q = new URLSearchParams({ t: T, v: `${VIEW.lon},${VIEW.lat},${VIEW.zoom}`, layer: "none", particles: "false", track: "false", lang: "en" });
   await page.goto(`${APP}/storm/${SID}?${q}`, { waitUntil: "load" });
@@ -94,7 +100,7 @@ for (const scheme of ["light", "dark"]) {
     page.evaluate(async (part) => {
       const map = window.__trMaps.at(-1);
       const style = map.getStyle();
-      const own = new Set(["era5-field", "track-line", "track-fixes", "current"]);
+      const own = new Set(["era5-field", "track-line-halo", "track-line", "track-fixes", "current"]);
       for (const l of style.layers) {
         const keep = !own.has(l.id) && (part === "labels" ? l.type === "symbol" : l.type !== "symbol");
         map.setLayoutProperty(l.id, "visibility", keep ? "visible" : "none");
@@ -155,6 +161,8 @@ export const EMBED = ${JSON.stringify(
         attribution,
         light: { base: img["base-light"], labels: img["labels-light"] },
         dark: { base: img["base-dark"], labels: img["labels-dark"] },
+        "light-hc": { base: img["base-light-hc"], labels: img["labels-light-hc"] },
+        "dark-hc": { base: img["base-dark-hc"], labels: img["labels-dark-hc"] },
       },
     },
     null,

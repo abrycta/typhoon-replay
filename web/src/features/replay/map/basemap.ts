@@ -1,6 +1,6 @@
-import { applyBasemapTheme } from "@abrycta/akari/maps";
+import { applyBasemapTheme, coastlineLayer } from "@abrycta/akari/maps";
 import { flat } from "@abrycta/akari/tokens";
-import type { Map as MlMap, StyleSpecification } from "maplibre-gl";
+import type { LayerSpecification, Map as MlMap, StyleSpecification } from "maplibre-gl";
 
 /** Keyless vector basemap (OpenFreeMap, OpenMapTiles schema), recoloured with Akari's map tokens. */
 export const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
@@ -31,17 +31,26 @@ export function fallbackStyle(key: ThemeKey): StyleSpecification {
     version: 8,
     sources: { coast: { type: "geojson", data: "/basemap/coast.geojson", attribution: "Natural Earth" } },
     layers: [
-      { id: "background", type: "background", paint: { "background-color": tokenColor("color.bg", key) } },
-      { id: "coastline", type: "line", source: "coast", paint: { "line-color": tokenColor("color.text-muted", key), "line-width": 0.8 } },
+      { id: "background", type: "background", paint: { "background-color": tokenColor("map.background", key) } },
+      { id: "coastline", type: "line", source: "coast", paint: { "line-color": tokenColor("map.coast", key), "line-width": 0.8 } },
     ],
   };
 }
 
 export function themeBasemap(map: MlMap, key: ThemeKey, usingFallback: boolean) {
   if (usingFallback) {
-    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", tokenColor("color.bg", key));
-    if (map.getLayer("coastline")) map.setPaintProperty("coastline", "line-color", tokenColor("color.text-muted", key));
+    if (map.getLayer("background")) map.setPaintProperty("background", "background-color", tokenColor("map.background", key));
+    if (map.getLayer("coastline")) map.setPaintProperty("coastline", "line-color", tokenColor("map.coast", key));
     return;
   }
-  applyBasemapTheme(map, key.startsWith("dark") ? "dark" : "light");
+  applyBasemapTheme(map, key);
+  // A coastline on the water polygons' edges (OpenMapTiles "water"), above the water fill: land and sea separate in every theme.
+  const coast = coastlineLayer({ id: "akari-coastline", source: "openmaptiles", theme: key });
+  if (!map.getSource("openmaptiles")) return;
+  if (!map.getLayer(coast.id)) {
+    const layers = map.getStyle().layers ?? [];
+    const lastWater = layers.map((l) => l.id).lastIndexOf("water");
+    const before = lastWater >= 0 ? layers[lastWater + 1]?.id : undefined;
+    map.addLayer(coast as unknown as LayerSpecification, before);
+  } else map.setPaintProperty(coast.id, "line-color", coast.paint["line-color"]);
 }

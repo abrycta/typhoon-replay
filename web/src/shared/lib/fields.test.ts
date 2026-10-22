@@ -41,3 +41,23 @@ describe("time and units", () => {
     expect(lon180(-180)).toBe(180);
   });
 });
+
+describe("particle ink", () => {
+  it("keeps particles at 3:1 or more on the basemap and every field colour, in all four themes", async () => {
+    const { contrastRatio } = await import("@abrycta/akari/maps");
+    const { map } = await import("@abrycta/akari/tokens");
+    const { particleInkLut, fieldLut, PARTICLE_ALPHA } = await import("./fields");
+    const hex = (c: number[]) => `#${c.map((x) => Math.round(x).toString(16).padStart(2, "0")).join("")}`;
+    for (const theme of ["light", "dark", "light-hc", "dark-hc"] as const) {
+      const ink = particleInkLut(theme), field = fieldLut(theme.startsWith("dark") ? "dark" : "light");
+      const ground = [1, 3, 5].map((i) => parseInt(map[theme].background.slice(i, i + 2), 16));
+      for (let i = 0; i < 256; i += 5) {
+        const a = field[i * 4 + 3]! / 255;
+        const under = [0, 1, 2].map((c) => field[i * 4 + c]! * a + ground[c]! * (1 - a));
+        const head = [0, 1, 2].map((c) => ink[i * 4 + c]! * PARTICLE_ALPHA + under[c]! * (1 - PARTICLE_ALPHA));
+        expect(contrastRatio(hex(head), hex(under)), `${theme} t=${i}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+});
+
