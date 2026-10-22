@@ -31,12 +31,14 @@ fi
 
 # The filtered listing (?head_sha=) can leave out runs that are still in progress, which includes the run this
 # deploy job belongs to, so the gate would report "not started" and skip its own commit. Look in the newest
-# unfiltered runs first; the filtered query only finds older commits that have dropped out of that page.
+# unfiltered runs first; for older commits fall back to the repo-wide ?head_sha= listing (the per-workflow
+# filtered endpoint has also returned 0 for runs that existed), keeping only this workflow's runs.
 # shellcheck disable=SC2016 # $sha is a jq variable
 pick='[.workflow_runs[] | select(.head_sha == $sha and .head_branch == "main" and .event == "push")]
   | sort_by(.created_at) | last // empty | "\(.id) \(.status) \(.conclusion)"'
 run="$(gh api "repos/$repo/actions/workflows/$ci/runs?per_page=100" | jq -r --arg sha "$sha" "$pick")"
-[ -n "$run" ] || run="$(gh api "repos/$repo/actions/workflows/$ci/runs?head_sha=$sha&event=push&per_page=20" \
+[ -n "$run" ] || run="$(gh api "repos/$repo/actions/runs?head_sha=$sha&event=push&per_page=100" \
+  | jq -r --arg sha "$sha" --arg wf ".github/workflows/$ci" '.workflow_runs |= map(select(.path == $wf))' \
   | jq -r --arg sha "$sha" "$pick")"
 read -r run_id status conclusion <<<"${run:-- none none}"
 if [ -n "$job" ] && [ "$run_id" != "-" ]; then
