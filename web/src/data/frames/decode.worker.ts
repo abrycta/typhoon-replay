@@ -27,7 +27,7 @@ const api = {
     let tyf = source.kind === "tyf" ? source : undefined;
     if (source.kind === "webp") {
       try {
-        return await new WebpLoader(source, local, { signal: abort.signal }).run();
+        return await new WebpLoader(source, local, { signal: abort.signal, first: opts.first }).run();
       } catch (e) {
         if (abort.signal.aborted || !source.fallback) throw e;
         // A navigation away cancels the sheets first and tells this worker a moment later.

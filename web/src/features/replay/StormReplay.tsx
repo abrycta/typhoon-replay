@@ -93,7 +93,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const hc = useHighContrast();
   const track = useStormTrack(detail.sid);
   const initialT = fromUrlHour(url.t);
-  const { store, snap } = useFrameStore(dataset, detail, 0, frozen?.store);
+  const { store, snap } = useFrameStore(dataset, detail, 0, frozen?.store, url.layer);
   const header = snap.header;
   const descId = useId();
   /** The timeline table (the map's text alternative) is hidden in the compact view and the frozen embeds. */
@@ -121,8 +121,8 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   useEffect(() => {
     // Wait for a frame only while it can still arrive: once the load has finished (or failed, which the
     // alert below reports), play on with the best track rather than hold forever.
-    clock.setReady((i) => !hasFrames || !!store?.has(i) || !!store?.getSnapshot().done);
-  }, [clock, store, hasFrames]);
+    clock.setReady((i) => !hasFrames || !!store?.ready(i, url.layer) || !!store?.getSnapshot().done);
+  }, [clock, store, hasFrames, url.layer]);
 
   // Autoplay (home page) unless the user asked for reduced motion.
   const autoplayed = useRef(false);
@@ -149,9 +149,9 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
     if (!leader || !hasFrames) return;
     return leader.addReadyCheck((p) => {
       const i = Math.floor(p + 1e-6) - leaderOffset;
-      return i < 0 || i >= times.length || !!store?.has(i) || !!store?.getSnapshot().done;
+      return i < 0 || i >= times.length || !!store?.ready(i, url.layer) || !!store?.getSnapshot().done;
     });
-  }, [leader, leaderOffset, store, hasFrames, times.length]);
+  }, [leader, leaderOffset, store, hasFrames, times.length, url.layer]);
 
   // Keep the URL's time in step while paused (scrubs, steps, jumps), never on every playing frame.
   useEffect(() => {
@@ -230,7 +230,7 @@ export function StormReplay({ detail, dataset, url, onUrl, pageKeyboard, showTab
   const mapLabel = t`Map of ${stormName}'s track with the ERA5 field (${layerName}) at ${timeLabel}`;
 
   return (
-    <div className="grid gap-4" data-testid="storm-replay" data-frame-ready={hasFrames ? String(!!store?.has(state.index)) : undefined}>
+    <div className="grid gap-4" data-testid="storm-replay" data-frame-ready={hasFrames ? String(!!store?.ready(state.index, layer)) : undefined}>
       <div className={compact ? "grid gap-3" : "grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]"}>
         <div className="grid gap-3">
           <div className={mapClassName ?? "relative aspect-[4/3] w-full overflow-hidden rounded-sm border border-border sm:aspect-[16/10]"}>

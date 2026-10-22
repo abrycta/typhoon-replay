@@ -181,6 +181,26 @@ describe("WebpLoader", () => {
     expect(b.uv).toEqual(uvFromCodes(codes.u, codes.v, V.u, V.v, 255));
   });
 
+  it("with a layer on show, loads its sheet and u/v first and emits them before the other layers", async () => {
+    const { fetch, decode, requested } = host();
+    const { s, out } = sink();
+    await new WebpLoader(source(), s, { fetch, decode, cache: null, first: "gust" }).run();
+    // gust, u and v are requested before any other sheet
+    expect(new Set(requested.slice(0, 3))).toEqual(new Set(["/frames/x.field.gust.webp", "/frames/x.field.u.webp", "/frames/x.field.v.webp"]));
+    expect(requested).toHaveLength(6);
+    expect(out.batches).toHaveLength(2);
+    const [early, full] = out.batches as [DecodedFrames, DecodedFrames];
+    expect(early.missing).toEqual(["wind", "mslp", "tp"]);
+    expect(early.uv).toEqual(uvFromCodes(codes.u, codes.v, V.u, V.v, 255));
+    for (let f = 0; f < 5; f++) {
+      const frame = early.raw.subarray(f * 4 * n, (f + 1) * 4 * n);
+      expect(frame.subarray(n, 2 * n)).toEqual(codes.gust.subarray(f * n, (f + 1) * n));
+      expect(frame.subarray(0, n).every((c) => c === 255)).toBe(true); // wind not in yet: nodata
+    }
+    expect(full.missing).toBeUndefined();
+    expect(full.raw.subarray(0, n)).toEqual(codes.wind.subarray(0, n));
+  });
+
   it("loads the lossless exact grid on request; readouts use it, not the lossy sheets", async () => {
     const { fetch, decode } = host();
     const { s, out } = sink();

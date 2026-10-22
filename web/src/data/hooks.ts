@@ -144,7 +144,14 @@ export function usePlaceShard(url: string | undefined) {
  * Opens the storm's frames (WebP preferred, else .tyf) in a worker for as long as the component is mounted.
  * A `preset` store (the frozen embed's packed frame) is used as it is: no worker, no requests.
  */
-export function useFrameStore(dataset: ResolvedDataset | undefined, detail: StormDetail | undefined, focus = 0, preset?: FrameStore) {
+export function useFrameStore(
+  dataset: ResolvedDataset | undefined,
+  detail: StormDetail | undefined,
+  focus = 0,
+  preset?: FrameStore,
+  /** The layer on show when the store opens: it loads before the others. */
+  first?: string,
+) {
   const source = useMemo(
     () =>
       !preset && dataset && detail
@@ -156,7 +163,7 @@ export function useFrameStore(dataset: ResolvedDataset | undefined, detail: Stor
   const [store, setStore] = useState<FrameStore | undefined>();
   useEffect(() => {
     if (!source) return;
-    const s = FrameStore.open(source, focus);
+    const s = FrameStore.open(source, focus, first);
     // The store wraps an external system (a worker); publishing it to render is the point of this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStore(s);
@@ -165,7 +172,7 @@ export function useFrameStore(dataset: ResolvedDataset | undefined, detail: Stor
       setStore(undefined);
     };
     // Reopen only when the files change (key); focus only seeds the first window, later moves go through
-    // store.prioritise().
+    // store.prioritise(), and first only orders the first load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   const active = preset ?? store;
