@@ -102,11 +102,12 @@ Do these once, in this order. Nothing here needs a credit card.
 - **Every push and PR** runs `ci.yml`: a clean install, typecheck, lint, unit
   tests, the production build, the size guard and the end-to-end tests. The
   verified build is kept 3 days as the `web-dist` artifact.
-- **When CI passes on `main`**, `deploy.yml` (a `workflow_run` of CI) publishes
-  that artifact with `wrangler pages deploy` to production at
-  <https://typhoon-replay.pages.dev>; it never builds again, and a red CI never
-  deploys. Production deploys run one at a time and are never cancelled midway;
-  stacked pushes deploy only the newest commit.
+- **When CI finishes on `main`**, `deploy.yml` (a `workflow_run` of CI) deploys
+  **main's newest commit** once its CI is green, from that run's artifact, with
+  `wrangler pages deploy` to production at <https://typhoon-replay.pages.dev>;
+  it never builds again, and a red CI never deploys (the run goes red). CI on
+  `main` is never cancelled, so every merge ends up live; `/deploy.json` names
+  the live commit and `live-check.yml` checks it against `main` every hour.
 - **When CI passes on a pull request**, `deploy.yml` deploys a preview to
   `https://pr-<number>.typhoon-replay.pages.dev` and posts the URL as a PR
   comment. The comment is updated on every push. A newer push cancels the

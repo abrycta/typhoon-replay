@@ -3,10 +3,12 @@
 #   CI passed on a pull request -> preview at https://pr-<number>.<project>.pages.dev,
 #                                  with the URL commented on the PR
 #
-# Deploys follow CI (portfolio rule 17): this runs when the CI workflow (ci.yml) finishes, only when it
-# succeeded, and publishes the `web-dist` artifact that CI built and tested for that commit; it never
-# builds again. A manual run (workflow_dispatch) redeploys main's tip from the artifact of its last
-# successful CI run, and fails if there is none (CI keeps the artifact 3 days).
+# Merged means deployed (portfolio rules 17 and 23): this runs whenever CI finishes. Production always deploys
+# main's NEWEST commit once that commit's CI is green (.github/scripts/deploy-gate.sh), from that run's `web-dist`
+# artifact (never building again): a run triggered by an older commit deploys the newest one, so nothing merged
+# is left behind; if the newest commit's CI is still running, its own completion deploys it; if it is red, the
+# run fails (red, never grey). Manual runs and live-check.yml dispatches do the same. Each production deploy
+# writes /deploy.json with the deployed commit (CI keeps the artifact 3 days).
 # Pull requests from forks are never deployed (their artifact is untrusted and they get no secrets).
 # Until the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repo secrets exist, the job skips with a notice.
 name: Deploy
@@ -21,27 +23,23 @@ permissions:
   contents: read
 
 concurrency:
-  # One production deploy at a time, never cancelled midway; while one runs only the newest pending
-  # production deploy is kept, so stacked pushes deploy just the newest commit. A newer CI pass on a PR
-  # cancels that PR's older preview deploy. Runs for a failed or cancelled CI get a group of their own,
-  # so they never displace a pending deploy of a green commit.
+  # One production deploy at a time, never cancelled midway; a newer pending one may replace an older pending
+  # one, and both would deploy main's newest green commit. A newer CI pass on a PR cancels its older preview.
   group: >-
-    ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') &&
-    (github.event.workflow_run.event == 'pull_request' &&
-    format('deploy-pr-{0}', github.event.workflow_run.head_branch) || 'deploy-production') ||
-    format('deploy-skip-{0}', github.run_id) }}
+    ${{ github.event.workflow_run.event == 'pull_request' &&
+    format('deploy-pr-{0}', github.event.workflow_run.head_branch) || 'deploy-production' }}
   cancel-in-progress: ${{ github.event.workflow_run.event == 'pull_request' }}
 
 jobs:
   deploy:
     name: ${{ github.event.workflow_run.event == 'pull_request' && 'Preview' || 'Production' }}
-    # CI succeeded for a push to main, or for a PR from this repository; or a manual production redeploy.
+    # Production: any CI run on main finishing (the gate picks main's newest green commit), or a manual/dispatched
+    # run. Preview: CI succeeded for a PR from this repository.
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      ((github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') ||
-      (github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.head_repository.full_name == github.repository)))
+      (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -62,6 +60,19 @@ jobs:
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/checkout@v7
+        if: steps.secrets.outputs.enabled == 'true'
+        with:
+          sparse-checkout: .github
+          persist-credentials: false
+
+      - name: Production gate (main's newest green commit)
+        id: gate
+        if: steps.secrets.outputs.enabled == 'true' && github.event.workflow_run.event != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/deploy-gate.sh ci.yml
+
       - name: CI run and commit to deploy
         id: run
         if: steps.secrets.outputs.enabled == 'true'
@@ -69,42 +80,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           RUN_SHA: ${{ github.event.workflow_run.head_sha }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
           RUN_EVENT: ${{ github.event.workflow_run.event }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          GATE_DEPLOY: ${{ steps.gate.outputs.deploy }}
+          GATE_SHA: ${{ steps.gate.outputs.sha }}
+          GATE_RUN: ${{ steps.gate.outputs.run_id }}
         run: |
-          if [ -z "$RUN_ID" ]; then
-            # Manual redeploy: main's tip, from its newest successful CI push run.
-            RUN_SHA="$GITHUB_SHA"
-            found=$(gh api \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$RUN_SHA&event=push&status=success&per_page=1" \
-              --jq '.workflow_runs[0] // empty | "\(.id) \(.html_url)"' || true)
-            RUN_ID="${found%% *}" RUN_URL="${found#* }"
-            if [ -z "$RUN_ID" ]; then
-              echo "::error title=CI has not passed::No successful CI push run for $RUN_SHA; not deploying."
-              exit 1
-            fi
-          fi
-          branch=main
           if [ "$RUN_EVENT" = pull_request ]; then
             # The PR number for this head branch (workflow_run.pull_requests can be empty).
             pr=$(gh pr list -R "$GITHUB_REPOSITORY" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number')
             [ -n "$pr" ] || { echo "::error::No open PR for branch $HEAD_BRANCH"; exit 1; }
-            branch="pr-$pr"
-            echo "pr=$pr" >> "$GITHUB_OUTPUT"
+            { echo "go=true"; echo "pr=$pr"; echo "id=$RUN_ID"; echo "sha=$RUN_SHA"; echo "branch=pr-$pr"; } >> "$GITHUB_OUTPUT"
+            echo "Preview of \`${RUN_SHA:0:7}\` as \`pr-$pr\`" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$GATE_DEPLOY" = true ]; then
+            { echo "go=true"; echo "id=$GATE_RUN"; echo "sha=$GATE_SHA"; echo "branch=main"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
           fi
-          { echo "id=$RUN_ID"; echo "sha=$RUN_SHA"; echo "branch=$branch"; } >> "$GITHUB_OUTPUT"
-          echo "Deploying \`${RUN_SHA:0:7}\` as \`$branch\`, built and verified by CI: $RUN_URL" >> "$GITHUB_STEP_SUMMARY"
 
       # Functions (functions/, edge/) and wrangler.jsonc come from the same commit as the build.
       - uses: actions/checkout@v7
-        if: steps.secrets.outputs.enabled == 'true'
+        if: steps.run.outputs.go == 'true'
         with:
           ref: ${{ steps.run.outputs.sha }}
           persist-credentials: false
 
       - name: Download CI's verified build
-        if: steps.secrets.outputs.enabled == 'true'
+        if: steps.run.outputs.go == 'true'
         uses: actions/download-artifact@v8
         with:
           name: web-dist
@@ -113,7 +115,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - uses: actions/setup-node@v7
-        if: steps.secrets.outputs.enabled == 'true'
+        if: steps.run.outputs.go == 'true'
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -121,12 +123,12 @@ jobs:
 
       # Root tooling only (wrangler; public packages): the app's dependencies are not needed to deploy.
       - name: Install wrangler
-        if: steps.secrets.outputs.enabled == 'true'
+        if: steps.run.outputs.go == 'true'
         run: npm ci
 
       - name: Deploy to Cloudflare Pages
         id: deploy
-        if: steps.secrets.outputs.enabled == 'true'
+        if: steps.run.outputs.go == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -137,13 +139,17 @@ jobs:
           source scripts/lib.sh
           load_pages_config
           [[ -f "$DIST_DIR/index.html" ]] || die "CI's artifact has no index.html"
+          # Production records the deployed commit for live-check.yml.
+          if [ "$BRANCH" = main ]; then
+            printf '{"sha":"%s","run":"%s/%s/actions/runs/%s"}\n' "$SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > "$DIST_DIR/deploy.json"
+          fi
           ensure_pages_project
           wrangler pages deploy --branch="$BRANCH" --commit-hash="$SHA" --commit-dirty=true
           jq -r 'select(.type == "pages-deploy-detailed") | "url=\(.url // "")\nalias=\(.alias // "")"' \
             "$WRANGLER_OUTPUT_FILE_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Summary
-        if: steps.secrets.outputs.enabled == 'true'
+        if: steps.run.outputs.go == 'true'
         env:
           URL: ${{ steps.deploy.outputs.url }}
           ALIAS: ${{ steps.deploy.outputs.alias }}
@@ -156,7 +162,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment preview URL on the PR
-        if: steps.secrets.outputs.enabled == 'true' && steps.run.outputs.pr != ''
+        if: steps.run.outputs.go == 'true' && steps.run.outputs.pr != ''
         uses: actions/github-script@v9
         env:
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}

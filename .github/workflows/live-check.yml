@@ -1,0 +1,34 @@
+# Merged means deployed (portfolio rule 23): every hour, is the live site at main's newest commit that its
+# deploy covers? .github/scripts/live-check.sh compares <url>/deploy.json with main (.github/deploy-target).
+# Stale for more than 30 minutes -> this run fails (red) and dispatches the deploy workflow on main, which
+# deploys the newest commit whose CI is green. Undeployed commits under 30 minutes old count as pending.
+name: Live check
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write # dispatch the deploy workflow when live is stale
+
+concurrency:
+  group: live-check
+  cancel-in-progress: true
+
+jobs:
+  live:
+    name: Live is main's newest commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github
+      - name: Compare live deploy.json with main (redeploy when stale)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          .github/scripts/live-check.sh --redeploy | tee -a "$GITHUB_STEP_SUMMARY"
