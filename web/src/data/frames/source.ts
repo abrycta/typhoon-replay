@@ -90,11 +90,12 @@ export function tyfSource(fr: FramesManifest, stormDir: string): TyfSource | und
 
 /**
  * Frames to play: WebP when the summary has it (with the .tyf as fallback), else the .tyf. The lossless
- * readout grid is requested only when the summary lacks the per-frame `series`.
+ * readout grid is requested only when the summary lacks the per-frame `series`. `tyfDir`: where the .tyf lives when
+ * it is not beside the sheets (bundled storms ship only the sheets).
  */
-export function frameSource(sid: string, fr: FramesManifest | undefined, stormDir: string): FrameSource | undefined {
+export function frameSource(sid: string, fr: FramesManifest | undefined, stormDir: string, tyfDir = stormDir): FrameSource | undefined {
   if (!fr) return undefined;
-  const tyf = tyfSource(fr, stormDir);
+  const tyf = tyfSource(fr, tyfDir);
   const webp = webpSource(sid, fr, stormDir, { exact: !fr.series?.era5MaxWindMs });
   if (webp) return tyf ? { ...webp, fallback: tyf } : webp;
   return tyf;

@@ -20,6 +20,8 @@ export interface DataSourceConfig {
   baseUrl: string;
   pointer: string;
   fallbackBaseUrls: string[];
+  /** Storms shipped with the site at build time (scripts/bundle-data.mjs). */
+  bundle?: { root: string; version: number; path: string; storms: string[] };
 }
 
 export interface ResolvedDataset {
@@ -30,6 +32,11 @@ export interface ResolvedDataset {
   /** "fallback" when the primary host failed and a bundled fixture is used. */
   source: "primary" | "fallback";
   primaryError?: string;
+  /**
+   * Storms whose files are served from the site itself (same origin: no redirect hops, no US frame CDN), at
+   * `root`, a copy of this version's layout. Set only while the dataset is the version the site was built with.
+   */
+  bundle?: { root: string; sids: ReadonlySet<string> };
 }
 
 export class DataError extends Error {
@@ -103,6 +110,26 @@ export async function resolveDataset(cfg: DataSourceConfig, f: Fetch = fetch): P
   throw new DataError(`No dataset reachable (${primaryError ?? "no hosts configured"})`);
 }
 
+/**
+ * The dataset as the site was built with it, without asking the pointer: its version from the build, its storms
+ * from the bundle. Undefined when the build bundled nothing. The pointer is still read in the background
+ * (useDataset), and a newer version or an unreachable host replaces this one.
+ */
+export function bakedDataset(cfg: DataSourceConfig): ResolvedDataset | undefined {
+  const b = cfg.bundle;
+  if (!b?.version || !b.path) return undefined;
+  return {
+    root: cfg.baseUrl + slash(b.path),
+    baseUrl: cfg.baseUrl,
+    version: b.version,
+    source: "primary",
+    bundle: { root: slash(b.root) + slash(b.path), sids: new Set(b.storms) },
+  };
+}
+
+/** Whether `live` (from the pointer) names the same files as `baked`, so the baked one (with its bundle) can stay. */
+export const sameDataset = (baked: ResolvedDataset, live: ResolvedDataset) => live.source === baked.source && live.root === baked.root;
+
 export async function loadIndex(ds: ResolvedDataset, f: Fetch = fetch): Promise<StormSummary[]> {
   const raw = await getJson<unknown>(ds.root + "index.json", f);
   const list = (Array.isArray(raw) ? raw : ((raw as { storms?: unknown[] }).storms ?? [])) as StormSummary[];
@@ -111,7 +138,12 @@ export async function loadIndex(ds: ResolvedDataset, f: Fetch = fetch): Promise<
     .map((s) => ({ ...s, landfallCountries: s.landfallCountries ?? [] }));
 }
 
-export const stormRoot = (ds: ResolvedDataset, sid: string) => `${ds.root}storms/${encodeURIComponent(sid)}/`;
+/** The storm's directory on the dataset host. */
+export const remoteStormRoot = (ds: ResolvedDataset, sid: string) => `${ds.root}storms/${encodeURIComponent(sid)}/`;
+
+/** The storm's directory for its summary, track and WebP sheets: the site's own copy when the storm is bundled. */
+export const stormRoot = (ds: ResolvedDataset, sid: string) =>
+  ds.bundle?.sids.has(sid) ? `${ds.bundle.root}storms/${encodeURIComponent(sid)}/` : remoteStormRoot(ds, sid);
 
 export async function loadStormDetail(ds: ResolvedDataset, sid: string, f: Fetch = fetch): Promise<StormDetail> {
   const d = await getJson<StormDetail>(stormRoot(ds, sid) + "summary.json", f);
@@ -134,9 +166,9 @@ export async function loadTrack(ds: ResolvedDataset, sid: string, f: Fetch = fet
 
 /** URL of the storm's .tyf, if it has one (frames/source.ts picks between it and the WebP sets). */
 export function framesUrl(ds: ResolvedDataset, d: StormDetail): string | undefined {
-  return d.frames ? tyfSource(d.frames, stormRoot(ds, d.sid))?.url : undefined;
+  return d.frames ? tyfSource(d.frames, remoteStormRoot(ds, d.sid))?.url : undefined;
 }
 
 export function ogImageUrl(ds: ResolvedDataset, d: Pick<StormDetail, "sid" | "ogImage">): string | undefined {
-  return d.ogImage ? stormRoot(ds, d.sid) + d.ogImage : undefined;
+  return d.ogImage ? remoteStormRoot(ds, d.sid) + d.ogImage : undefined;
 }
