@@ -10,9 +10,31 @@
     <meta name="robots" content="noindex" />
     <!-- The one packed data file (scripts/build-embed.mjs rewrites this name). -->
     <link rel="preload" href="/embed-data/haiyan-d50f193b3135.json" as="fetch" crossorigin="anonymous" />
+    <!-- Pre-load still: the project's kanji glyph, the same quiet tile as krtmtthw.dev's embed slots (Akari muted tokens),
+      until the view is ready. Over the page until the first full frame is drawn (html[data-embed-ready]). -->
+    <style>
+      .glyph-seal {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        font-family: var(--font-heading);
+        font-size: clamp(48px, 9vw, 80px);
+        font-weight: 700;
+        line-height: 1;
+        pointer-events: none;
+      }
+      html[data-embed-ready] .glyph-seal {
+        display: none;
+      }
+    </style>
     <title>Haiyan (Yolanda) 2013 · Replay</title>
   </head>
   <body>
+    <div class="glyph-seal" aria-hidden="true" lang="ja">再</div>
     <div id="root"></div>
     <script type="module" src="/src/embed/main.tsx"></script>
   </body>

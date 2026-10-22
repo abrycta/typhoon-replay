@@ -13,10 +13,31 @@
     <link rel="preload" href="/config.json" as="fetch" crossorigin="anonymous" />
     <link rel="preconnect" href="https://huggingface.co" crossorigin />
     <meta name="description" content="Replay any typhoon that hit the Philippines or Japan, hour by hour." />
+    <!-- Pre-load still: the project's kanji glyph, the same quiet tile as krtmtthw.dev's embed slots (Akari muted tokens),
+      until the view is ready. Inside #root, so React's first render replaces it. -->
+    <style>
+      .glyph-seal {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        font-family: var(--font-heading);
+        font-size: clamp(48px, 9vw, 80px);
+        font-weight: 700;
+        line-height: 1;
+        pointer-events: none;
+      }
+      html[data-embed-ready] .glyph-seal {
+        display: none;
+      }
+    </style>
     <title>Replay</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="glyph-seal" aria-hidden="true" lang="ja">再</div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
