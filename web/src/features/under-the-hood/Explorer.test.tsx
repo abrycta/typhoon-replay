@@ -16,7 +16,8 @@ import { Explorer } from "./Explorer";
 
 // Each call returns a promise the test settles by hand (and that ignores abort), so answers can arrive out of order.
 const pending: { url: string; resolve: (r: ApiResult) => void }[] = [];
-vi.mock("@/api", () => ({
+vi.mock("@/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api")>()),
   sendRequest: (base: string, path: string) =>
     new Promise<ApiResult>((resolve) =>
       pending.push({ url: `${base}${path}`, resolve }),
