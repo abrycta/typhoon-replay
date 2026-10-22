@@ -29,8 +29,15 @@ else
 fi
 [ -n "$sha" ] || { echo "::error::could not find the newest main commit"; exit 1; }
 
-run="$(gh api "repos/$repo/actions/workflows/$ci/runs?head_sha=$sha&event=push&per_page=20" \
-  --jq '[.workflow_runs[] | select(.head_branch == "main")] | sort_by(.created_at) | last // empty | "\(.id) \(.status) \(.conclusion)"')"
+# The filtered listing (?head_sha=) can leave out runs that are still in progress, which includes the run this
+# deploy job belongs to, so the gate would report "not started" and skip its own commit. Look in the newest
+# unfiltered runs first; the filtered query only finds older commits that have dropped out of that page.
+# shellcheck disable=SC2016 # $sha is a jq variable
+pick='[.workflow_runs[] | select(.head_sha == $sha and .head_branch == "main" and .event == "push")]
+  | sort_by(.created_at) | last // empty | "\(.id) \(.status) \(.conclusion)"'
+run="$(gh api "repos/$repo/actions/workflows/$ci/runs?per_page=100" | jq -r --arg sha "$sha" "$pick")"
+[ -n "$run" ] || run="$(gh api "repos/$repo/actions/workflows/$ci/runs?head_sha=$sha&event=push&per_page=20" \
+  | jq -r --arg sha "$sha" "$pick")"
 read -r run_id status conclusion <<<"${run:-- none none}"
 if [ -n "$job" ] && [ "$run_id" != "-" ]; then
   read -r status conclusion <<<"$(gh api "repos/$repo/actions/runs/$run_id/jobs" \
