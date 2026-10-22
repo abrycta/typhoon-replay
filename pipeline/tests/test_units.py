@@ -175,6 +175,17 @@ def test_narrow_water_between_land_is_not_a_new_landfall() -> None:
     assert [e["place_id"] for e in lf] == ["PH-0000000007"]
 
 
+def test_track_within_the_coast_buffer_makes_landfall() -> None:
+    # Haiyan off Guiuan: the track passes ~1.3 km south of the coast, so it never crosses the polygon
+    land = catalog.Land(places_frame([square(125.0, 11.0, 0.05)], ["PH-0000000009"]))
+    t = np.array(["2013-11-07T20", "2013-11-07T21"], dtype="datetime64[s]")
+    lf = land.entries(np.array([124.8, 125.2]), np.array([10.938, 10.938]), t)   # 0.012 deg (~1.3 km) off
+    assert [e["place_id"] for e in lf] == ["PH-0000000009"]
+    assert lf[0]["lat"] == pytest.approx(10.938)        # on the track, at its closest approach to the coast
+    assert pd.Timestamp("2013-11-07T20:22Z") <= lf[0]["at"] <= pd.Timestamp("2013-11-07T20:38Z")
+    assert land.entries(np.array([124.8, 125.2]), np.array([10.92, 10.92]), t) == []   # ~3.3 km off: a miss
+
+
 def test_exposure_distances_and_bands() -> None:
     # place: 0.1 deg square at the equator-ish; track passes due north at about 1 deg (~111 km) away
     pl = places_frame([square(125.0, 10.0, 0.05)], ["PH-0000000003"])

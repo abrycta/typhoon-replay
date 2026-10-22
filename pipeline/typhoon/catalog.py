@@ -35,6 +35,10 @@ KM_PER_DEG = 111.32
 # A landfall is land reached after at least this much open water along the track (km). Shorter gaps are
 # boundary slivers, river mouths and islets of one coast; longer ones are a new island or coast.
 MIN_SEA_KM = 10.0
+# A track passing this close to a place (km) makes landfall there even if the line misses the polygon.
+COAST_BUFFER_KM = 2.0
+# A close pass by the place of the previous landfall within this time is part of that landfall.
+SAME_PLACE_WITHIN = pd.Timedelta(hours=6)
 NATURE = {"DS": "disturbance", "TS": "tropical", "ET": "extratropical", "SS": "subtropical",
           "NR": "not-reported", "MX": "mixed"}
 
@@ -83,41 +87,63 @@ class Land:
         """Sea-to-land crossings along an hourly track, including every island crossed within one hour.
 
         Land is followed along the whole track, not hour by hour: a crossing counts when at least
-        MIN_SEA_KM of water lies between it and the last land, wherever the hourly points fall.
+        MIN_SEA_KM of water lies between it and the last land, wherever the hourly points fall. A track
+        that passes within COAST_BUFFER_KM of a coast without crossing it also makes landfall there.
         """
         x = lon180(np.asarray(lon, float))
         land = self.on_land(lon, lat)
         segs = shapely.linestrings(np.stack([np.stack([x[:-1], x[1:]], 1), np.stack([lat[:-1], lat[1:]], 1)], 2))
         far = np.abs(x[1:] - x[:-1]) > 180  # dateline jump: never near PH/JP
-        i_seg, i_g = self.tree.query(segs, predicate="intersects")
+        i_seg, i_g = self.tree.query(segs, predicate="dwithin", distance=COAST_BUFFER_KM / KM_PER_DEG)
         hits: dict[int, list[int]] = {}
         for s, g in zip(i_seg, i_g, strict=True):
             if not far[s]:
                 hits.setdefault(int(s), []).append(int(g))
-        # Land along the track as [from, to] km from its start, one span per polygon piece crossed.
+        # Land along the track as [from, to] km from its start, one span per polygon piece crossed; a segment
+        # that only passes within COAST_BUFFER_KM of a place adds a point span at its closest approach, where
+        # it makes landfall (the best track's centre is not precise to a kilometre or two).
         km = np.hypot((x[1:] - x[:-1]) * np.cos(np.radians((lat[1:] + lat[:-1]) / 2)), lat[1:] - lat[:-1]) * KM_PER_DEG
         at_km = np.concatenate([[0.0], np.cumsum(km)])
-        spans: list[tuple[float, float, int, int, float]] = []   # from_km, to_km, place, segment, fraction
-        for s in sorted(hits):
+        spans: list[tuple[float, float, bool, float, int, int]] = []  # from/to km, near miss, landfall fraction, place, seg
+
+        def pieces(s: int, geom: shapely.Geometry) -> list[tuple[float, float]]:
             seg_len = float(shapely.length(segs[s]))
-            for g in hits[s]:
-                for part in shapely.get_parts(shapely.intersection(segs[s], self.geoms[g])):
-                    if part.is_empty:
-                        continue
+            out: list[tuple[float, float]] = []
+            for part in shapely.get_parts(shapely.intersection(segs[s], geom)):
+                if not part.is_empty:
                     d = shapely.line_locate_point(segs[s], shapely.points(shapely.get_coordinates(part)))
-                    f0, f1 = (float(d.min()) / seg_len, float(d.max()) / seg_len) if seg_len else (0.0, 0.0)
-                    spans.append((at_km[s] + f0 * km[s], at_km[s] + f1 * km[s], g, s, f0))
+                    out.append((float(d.min()) / seg_len, float(d.max()) / seg_len) if seg_len else (0.0, 0.0))
+            return out
+
+        for s in sorted(hits):
+            for g in hits[s]:
+                crossed = pieces(s, self.geoms[g])
+                if crossed:
+                    spans += [(at_km[s] + f0 * km[s], at_km[s] + f1 * km[s], False, f0, g, s) for f0, f1 in crossed]
+                    continue
+                closest = shapely.get_point(shapely.shortest_line(segs[s], self.geoms[g]), 0)  # on the track
+                f = float(shapely.line_locate_point(segs[s], closest, normalized=True))
+                spans.append((at_km[s] + f * km[s], at_km[s] + f * km[s], True, f, g, s))
         spans.sort()
-        out = []
+        # Group the spans into stretches of land separated by MIN_SEA_KM of open water; each stretch is one
+        # landfall, at its first real coast crossing, or at its first close pass when the track never crosses.
+        groups: list[list[tuple[float, float, bool, float, int, int]]] = []
         reach = 0.0 if land[0] >= 0 else -np.inf     # a track that starts on land has not made landfall yet
-        for k0, k1, g, s, f in spans:
-            if k0 > reach + MIN_SEA_KM:     # open water since the last land: a new landfall
-                at = t[s] + (t[s + 1] - t[s]) * f
-                xy = shapely.line_interpolate_point(segs[s], f, normalized=True)
-                out.append({"at": pd.Timestamp(at).tz_localize("UTC").floor("min"), "country": str(self.country[g]),
-                            "lon": round(float(xy.x), 4), "lat": round(float(xy.y), 4),
-                            "place_id": str(self.ids[g])})
-            reach = max(reach, k1)
+        for span in spans:
+            if span[0] > reach + MIN_SEA_KM:
+                groups.append([])
+            if groups:
+                groups[-1].append(span)
+            reach = max(reach, span[1])
+        out: list[dict[str, Any]] = []
+        for grp in groups:
+            _, _, near_miss, f, g, s = min(grp, key=lambda sp: (sp[2], sp[0]))
+            at = pd.Timestamp(t[s] + (t[s + 1] - t[s]) * f).tz_localize("UTC").floor("min")
+            if near_miss and out and out[-1]["place_id"] == str(self.ids[g]) and at - out[-1]["at"] < SAME_PLACE_WITHIN:
+                continue                                 # a close pass by the place just hit: the same landfall
+            xy = shapely.line_interpolate_point(segs[s], f, normalized=True)
+            out.append({"at": at, "country": str(self.country[g]), "lon": round(float(xy.x), 4),
+                        "lat": round(float(xy.y), 4), "place_id": str(self.ids[g])})
         return out
 
 
