@@ -46,10 +46,9 @@ jobs:
           printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
             sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
 
-      # Playwright: the browser is cached per Playwright version, so a cache hit downloads nothing and only the OS
-      # packages come from apt (kept fast by the step above). Each install is bounded (2.5 min per attempt, one retry,
-      # step timeout), so a stalled mirror or download fails in minutes with a clear error instead of using up the
-      # job. scripts/ci.sh's `npm run e2e:install` then finds the browser in place and downloads nothing.
+      # Playwright: the browser and the .deb files apt fetched are cached per Playwright version, so a cache hit
+      # downloads neither. Installs are bounded (2.5 min per attempt, one retry on another mirror, step timeout), so a
+      # stalled mirror or download fails in minutes with a clear error instead of using up the job.
       - name: Playwright version
         id: pw
         working-directory: web
@@ -58,29 +57,16 @@ jobs:
         id: pw-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/ms-playwright
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/playwright-debs
           key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium
       - name: Install Playwright OS packages (and the browser on a cache miss)
         timeout-minutes: 6
         env:
           PW_VERSION: ${{ steps.pw.outputs.version }}
           CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
-        run: |
-          bounded() { # bounded <what>: <command...> — 150 s per attempt, one retry
-            local what=$1; shift
-            for i in 1 2; do
-              timeout -k 10 150 "$@" && return 0
-              echo "::warning::$what failed or stalled (attempt $i of 2)"
-            done
-            echo "::error title=Playwright install::$what failed twice (2.5 min per attempt); see the log above"
-            return 1
-          }
-          bounded "OS packages (apt)" npx --yes "playwright@$PW_VERSION" install-deps chromium
-          if [ "$CACHE_HIT" = true ]; then
-            echo "Playwright $PW_VERSION browser restored from cache: no download."
-          else
-            bounded "Browser download" npx --yes "playwright@$PW_VERSION" install chromium
-          fi
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/playwright-install.sh" "$PW_VERSION" "$CACHE_HIT"
 
       # The Under the hood conformance table shows each backend's latest passing CI run on main: refresh the bundled
       # conformance.json from those runs' artifacts (a backend whose artifact can't be found keeps its committed entry).
