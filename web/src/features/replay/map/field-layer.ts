@@ -106,6 +106,8 @@ export class FieldLayer implements CustomLayerInterface {
   private b?: FrameInput;
   private mixT = 0;
   private uploaded = { a: -1, b: -1, var: -1, lut: undefined as Uint8Array | undefined };
+  /** The frame arrays last uploaded: a later batch for the same hour (the other layers arriving) re-uploads it. */
+  private uploadedRaw: { a?: Uint8Array; b?: Uint8Array } = {};
   private style?: FieldStyle;
   private particles: ParticleStyle = { enabled: false, res: 96, color: [1, 1, 1, 0.8], fade: 0.9 };
   private domain: [number, number, number, number] = [0, 0, 1, 1];
@@ -209,12 +211,14 @@ export class FieldLayer implements CustomLayerInterface {
     const n = h.nx * h.ny;
     const vi = st.varIndex;
     if (this.uploaded.var !== vi) this.uploaded = { ...this.uploaded, a: -1, b: -1, var: vi };
-    if (this.uploaded.a !== this.a.index) {
+    if (this.uploaded.a !== this.a.index || this.uploadedRaw.a !== this.a.raw) {
+      this.uploadedRaw.a = this.a.raw;
       upload(gl, this.texA!, "R8", h.nx, h.ny, this.a.raw.subarray(vi * n, (vi + 1) * n));
       upload(gl, this.uvA!, "RG8", h.nx, h.ny, this.a.uv);
       this.uploaded.a = this.a.index;
     }
-    if (this.uploaded.b !== this.b.index) {
+    if (this.uploaded.b !== this.b.index || this.uploadedRaw.b !== this.b.raw) {
+      this.uploadedRaw.b = this.b.raw;
       upload(gl, this.texB!, "R8", h.nx, h.ny, this.b.raw.subarray(vi * n, (vi + 1) * n));
       upload(gl, this.uvB!, "RG8", h.nx, h.ny, this.b.uv);
       this.uploaded.b = this.b.index;

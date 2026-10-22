@@ -247,11 +247,14 @@ export interface WebpLoadOptions {
   concurrency?: number;
   /** Sheet bytes kept across visits (./sheetcache.ts); null for none. Default: Cache Storage where available. */
   cache?: SheetCache | null;
+  /** The drawable layer on show (wind, gust, mslp, tp): its sheet and u/v load first and are emitted on their own. */
+  first?: string;
 }
 
 /**
- * Loads a storm's WebP field sheets and emits every frame in one batch once all six are decoded (a sheet
- * holds every hour, so there is nothing to emit earlier). Then, when requested, the exact sheets for readouts.
+ * Loads a storm's WebP field sheets and emits every frame once all six are decoded (a sheet holds every hour);
+ * with `first`, the layer on show is emitted before the others (fieldTiles). Then, when requested, the exact sheets
+ * for readouts.
  */
 export class WebpLoader {
   private loaded = 0;
@@ -278,9 +281,9 @@ export class WebpLoader {
     return { buf, cached: false };
   }
 
-  private async sheet(v: SheetVar, g: SheetGeometry, total?: number): Promise<Uint8Array> {
+  private async sheet(v: SheetVar, g: SheetGeometry, total?: number, got?: Promise<{ buf: ArrayBuffer; cached: boolean }>): Promise<Uint8Array> {
     const decode = this.opts.decode ?? decodeImage;
-    const { buf, cached } = await this.bytes(v);
+    const { buf, cached } = await (got ?? this.bytes(v));
     this.loaded += buf.byteLength;
     this.sink.progress?.(this.loaded, total);
     try {
@@ -293,28 +296,61 @@ export class WebpLoader {
     }
   }
 
+  /**
+   * Every field sheet, decoded, in field.vars order. With `opts.first` (the layer on show), its sheet and u/v (the
+   * particles) download first, on their own, and a batch with only those is emitted at once (the other layers'
+   * codes as nodata, named in `missing`); the other sheets start when the first ones have arrived.
+   */
+  private async fieldTiles(total?: number): Promise<Uint8Array[]> {
+    const { header, field } = this.source;
+    const conc = this.opts.concurrency ?? 6;
+    const firstNames = new Set(this.opts.first && header.vars.some((x) => x.name === this.opts.first) ? [this.opts.first, "u", "v"] : []);
+    const first = field.vars.filter((v) => firstNames.has(v.name));
+    const rest = field.vars.filter((v) => !firstNames.has(v.name));
+    if (!first.length || !rest.length) return mapLimit(field.vars, conc, (v) => this.sheet(v, field.geometry, total));
+    const got = first.map((v) => this.bytes(v));
+    // The other sheets start once the first ones are in (they would share the link with them otherwise).
+    const later = Promise.allSettled(got).then(() => mapLimit(rest, conc, (v) => this.sheet(v, field.geometry, total)));
+    later.catch(() => {}); // awaited below; a failure there must not surface as unhandled meanwhile
+    const firstTiles = await Promise.all(first.map((v, i) => this.sheet(v, field.geometry, total, got[i])));
+    const codes = new Map<string, Uint8Array>(first.map((v, i) => [v.name, firstTiles[i]!]));
+    this.emit(codes);
+    const restTiles = await later;
+    rest.forEach((v, i) => codes.set(v.name, restTiles[i]!));
+    return field.vars.map((v) => codes.get(v.name)!);
+  }
+
+  /** One batch of every frame from the decoded sheets in `codes`; drawable layers not in it are nodata. */
+  private emit(codes: Map<string, Uint8Array>) {
+    const { header, field } = this.source;
+    const meta = (name: string) => {
+      const v = field.vars.find((x) => x.name === name);
+      if (!v || !codes.has(name)) throw new FrameLoadError(`frames: no ${name} sheet`);
+      return v.meta;
+    };
+    const n = header.nx * header.ny;
+    this.opts.signal?.throwIfAborted();
+    const missing = header.vars.filter((x) => !codes.has(x.name)).map((x) => x.name);
+    const blank = missing.length ? new Uint8Array(header.frames * n).fill(header.nodata) : undefined;
+    const batch: DecodedFrames = {
+      start: 0,
+      count: header.frames,
+      raw: interleave(header.frames, n, header.vars.map((x) => codes.get(x.name) ?? blank!)),
+      uv: uvFromCodes(codes.get("u")!, codes.get("v")!, meta("u"), meta("v"), header.nodata),
+      ...(missing.length ? { missing } : {}),
+    };
+    this.sink.frames(batch);
+  }
+
   async run(): Promise<"webp"> {
     const { header, field, exact } = this.source;
     const known = field.vars.every((v) => v.bytes);
     const total = known ? field.vars.reduce((s, v) => s + v.bytes!, 0) : undefined;
     this.sink.header(header, "webp", total);
     if (!this.opts.decode) void warmDecoder();
-    const tiles = await mapLimit(field.vars, this.opts.concurrency ?? 6, (v) => this.sheet(v, field.geometry, total));
-    const by = (name: string) => {
-      const i = field.vars.findIndex((v) => v.name === name);
-      if (i < 0) throw new FrameLoadError(`frames: no ${name} sheet`);
-      return { codes: tiles[i]!, meta: field.vars[i]!.meta };
-    };
-    const n = header.nx * header.ny;
-    const u = by("u"), v = by("v");
-    this.opts.signal?.throwIfAborted();
-    const batch: DecodedFrames = {
-      start: 0,
-      count: header.frames,
-      raw: interleave(header.frames, n, header.vars.map((x) => by(x.name).codes)),
-      uv: uvFromCodes(u.codes, v.codes, u.meta, v.meta, header.nodata),
-    };
-    this.sink.frames(batch);
+    const tiles = await this.fieldTiles(total);
+    for (const [i, v] of field.vars.entries()) if (!tiles[i]) throw new FrameLoadError(`frames: no ${v.name} sheet`);
+    this.emit(new Map(field.vars.map((v, i) => [v.name, tiles[i]!])));
 
     if (exact) {
       // Readouts only: a failure here leaves the drawing intact.

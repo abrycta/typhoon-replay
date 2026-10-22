@@ -21,6 +21,8 @@ export interface DecodedFrames {
   /** `count` frames of u/v (RG8) for the particle layer, concatenated. */
   uv: Uint8Array;
   count: number;
+  /** Drawable variables not loaded yet (nodata in `raw`); a later batch for the same frames brings them. */
+  missing?: string[];
 }
 
 export interface FrameSink {
@@ -35,6 +37,8 @@ export interface LoadOptions {
   format?: "tyf" | "tyf.gz";
   /** Frame to load first. */
   focus?: number;
+  /** WebP: the layer on show, loaded before the other layers. */
+  first?: string;
   probeBytes?: number;
   windowFrames?: number;
   concurrency?: number;
