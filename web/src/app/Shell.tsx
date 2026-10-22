@@ -57,7 +57,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <AppShell
       header={
         <Header
-          brand={{ name: "Replay", glyph: "嵐", href: "/", srSuffix: t({ message: "home", context: "brand link suffix" }) }}
+          brand={{ name: "Replay", glyph: "再", href: "/", srSuffix: t({ message: "home", context: "brand link suffix" }) }}
           navLabel={t`Main`}
           nav={[
             { href: "/", label: t`Home` },
