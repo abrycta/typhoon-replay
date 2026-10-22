@@ -1,8 +1,9 @@
 // Field layers and their fixed colour domains. Domains are the same for every storm, so colours are
 // comparable across storms and decades (a 30 m/s wind is the same blue on Haiyan and on Vera).
-import { scaleColors } from "@abrycta/akari/maps";
+import { markInk, scaleColors, type ThemeName } from "@abrycta/akari/maps";
+import { map as mapTokens } from "@abrycta/akari/tokens";
 
-import { buildLut, gradientCss } from "./color";
+import { buildLut, gradientCss, hexToRgb } from "./color";
 
 export type FieldLayer = "wind" | "gust" | "rain" | "pressure";
 export const FIELD_LAYERS: readonly FieldLayer[] = ["wind", "gust", "rain", "pressure"];
@@ -42,9 +43,34 @@ export type MapTheme = "light" | "dark";
 /** Akari's sequential data scale for the theme (high contrast shares the base data scales). */
 export const fieldStops = (theme: MapTheme) => scaleColors("seq", theme).slice(1); // the lightest step is the basemap's own tone
 
-/** 256-entry RGBA LUT indexed by ramp position. Calm values fade out so the basemap stays readable. */
+/** Field opacity at ramp position t: calm values fade out so the basemap stays readable. */
+const fieldAlpha = (t: number) => Math.min(0.9, 0.05 + t * 2);
+
+/** 256-entry RGBA LUT indexed by ramp position. */
 export function fieldLut(theme: MapTheme): Uint8Array {
-  return buildLut(fieldStops(theme), (t) => Math.min(0.9, 0.05 + t * 2));
+  return buildLut(fieldStops(theme), fieldAlpha);
+}
+
+/** Wind particles are near-opaque so their heads keep ≥ 3:1 on the basemap and on every field colour. */
+export const PARTICLE_ALPHA = 0.9;
+
+/**
+ * 256-entry RGBA LUT of particle ink by ramp position: for each field colour (composited on the basemap, as drawn),
+ * Akari's markInk() picks map.particle or map.particle-strong, whichever contrasts more. With no field on show,
+ * every entry is the ink for the bare basemap.
+ */
+export function particleInkLut(theme: ThemeName, noField = false): Uint8Array {
+  const base = theme.startsWith("dark") ? "dark" : "light";
+  const field = fieldLut(base);
+  const ground = hexToRgb(mapTokens[theme].background);
+  const out = new Uint8Array(256 * 4);
+  for (let i = 0; i < 256; i++) {
+    const a = noField ? 0 : field[i * 4 + 3]! / 255;
+    const under = [0, 1, 2].map((c) => Math.round(field[i * 4 + c]! * a + ground[c]! * (1 - a)));
+    const ink = hexToRgb(markInk(`#${under.map((x) => x.toString(16).padStart(2, "0")).join("")}`, theme));
+    out.set([ink[0]!, ink[1]!, ink[2]!, 255], i * 4);
+  }
+  return out;
 }
 
 export function legendGradient(theme: MapTheme): string {

@@ -7,7 +7,7 @@ export const EMBED = {
     "lat": 11.17,
     "zoom": 4.6
   },
-  "pack": "/embed-data/haiyan-d50f193b3135.json",
+  "pack": "/embed-data/haiyan-e489c917320f.json",
   "deepLink": "https://replay.krtmtthw.dev/storm/2013306N07162?t=2013-11-07T21:00Z&v=124.31,11.17,4.6",
   "mapSize": [
     750,
@@ -34,12 +34,20 @@ export const EMBED = {
     ],
     "attribution": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
     "light": {
-      "base": "/embed-data/haiyan-base-light-5ec0e9100e8e.webp",
-      "labels": "/embed-data/haiyan-labels-light-da7e89cc543a.webp"
+      "base": "/embed-data/haiyan-base-light-bee5dd1bf276.webp",
+      "labels": "/embed-data/haiyan-labels-light-00ea070481b0.webp"
     },
     "dark": {
-      "base": "/embed-data/haiyan-base-dark-d573484a32ce.webp",
-      "labels": "/embed-data/haiyan-labels-dark-086d8d800bd7.webp"
+      "base": "/embed-data/haiyan-base-dark-7e62be3798d4.webp",
+      "labels": "/embed-data/haiyan-labels-dark-2c6075b32c34.webp"
+    },
+    "light-hc": {
+      "base": "/embed-data/haiyan-base-light-hc-2ebab44944d2.webp",
+      "labels": "/embed-data/haiyan-labels-light-hc-c82776aee34b.webp"
+    },
+    "dark-hc": {
+      "base": "/embed-data/haiyan-base-dark-hc-f95d2a219ba6.webp",
+      "labels": "/embed-data/haiyan-labels-dark-hc-4c867a290f6c.webp"
     }
   }
 } as const;

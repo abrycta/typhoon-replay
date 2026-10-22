@@ -23,6 +23,8 @@ export interface FieldStyle {
   domain: [number, number];
   norm: number; // 0 linear, 1 sqrt, 2 reverse
   lut: Uint8Array;
+  /** 256-entry RGBA particle ink by ramp position (fields.particleInkLut): Akari map ink that contrasts with the field. */
+  inkLut: Uint8Array;
   opacity: number;
   visible: boolean;
 }
@@ -31,7 +33,8 @@ export interface ParticleStyle {
   enabled: boolean;
   /** Particle state texture side: count = res². */
   res: number;
-  color: [number, number, number, number];
+  /** Particle opacity; the colour comes from the style's inkLut. */
+  alpha: number;
   fade: number;
 }
 
@@ -90,6 +93,7 @@ export class FieldLayer implements CustomLayerInterface {
   private uvA?: WebGLTexture;
   private uvB?: WebGLTexture;
   private lutTex?: WebGLTexture;
+  private inkTex?: WebGLTexture;
   private state0?: WebGLTexture;
   private state1?: WebGLTexture;
   private stateFb?: WebGLFramebuffer;
@@ -105,9 +109,9 @@ export class FieldLayer implements CustomLayerInterface {
   private a?: FrameInput;
   private b?: FrameInput;
   private mixT = 0;
-  private uploaded = { a: -1, b: -1, var: -1, lut: undefined as Uint8Array | undefined };
+  private uploaded = { a: -1, b: -1, var: -1, lut: undefined as Uint8Array | undefined, ink: undefined as Uint8Array | undefined };
   private style?: FieldStyle;
-  private particles: ParticleStyle = { enabled: false, res: 96, color: [1, 1, 1, 0.8], fade: 0.9 };
+  private particles: ParticleStyle = { enabled: false, res: 96, alpha: 0.9, fade: 0.9 };
   private domain: [number, number, number, number] = [0, 0, 1, 1];
   private clearTrails = true;
   private onMove = () => {
@@ -186,6 +190,7 @@ export class FieldLayer implements CustomLayerInterface {
     this.uvA = texture(gl, "RG8", 1, 1, new Uint8Array(2));
     this.uvB = texture(gl, "RG8", 1, 1, new Uint8Array(2));
     this.lutTex = texture(gl, "RGBA8", 256, 1, new Uint8Array(1024));
+    this.inkTex = texture(gl, "RGBA8", 256, 1, new Uint8Array(1024));
     this.stateFb = gl.createFramebuffer()!;
     this.screenFb = gl.createFramebuffer()!;
     map.on("move", this.onMove);
@@ -195,7 +200,7 @@ export class FieldLayer implements CustomLayerInterface {
   onRemove(map: MlMap, gl: WebGL2RenderingContext) {
     map.off("move", this.onMove);
     map.off("resize", this.onMove);
-    for (const t of [this.texA, this.texB, this.uvA, this.uvB, this.lutTex, this.state0, this.state1, this.screen0, this.screen1]) if (t) gl.deleteTexture(t);
+    for (const t of [this.texA, this.texB, this.uvA, this.uvB, this.lutTex, this.inkTex, this.state0, this.state1, this.screen0, this.screen1]) if (t) gl.deleteTexture(t);
     for (const b of [this.quad, this.fieldQuad, this.indexBuf]) if (b) gl.deleteBuffer(b);
     if (this.vao) gl.deleteVertexArray(this.vao);
     if (this.stateFb) gl.deleteFramebuffer(this.stateFb);
@@ -222,6 +227,10 @@ export class FieldLayer implements CustomLayerInterface {
     if (this.uploaded.lut !== st.lut) {
       upload(gl, this.lutTex!, "RGBA8", 256, 1, st.lut);
       this.uploaded.lut = st.lut;
+    }
+    if (this.uploaded.ink !== st.inkLut) {
+      upload(gl, this.inkTex!, "RGBA8", 256, 1, st.inkLut);
+      this.uploaded.ink = st.inkLut;
     }
     return true;
   }
@@ -347,8 +356,21 @@ export class FieldLayer implements CustomLayerInterface {
     gl.uniform1f(dp.u.u_lonShift!, this.shift());
     gl.uniformMatrix4fv(dp.u.u_matrix!, false, options.defaultProjectionData.mainMatrix as Float32Array);
     gl.uniform1f(dp.u.u_pointSize!, Math.max(1, window.devicePixelRatio));
-    const [r, g, b, a] = this.particles.color;
-    gl.uniform4f(dp.u.u_color!, r * a, g * a, b * a, a);
+    // Ink per particle: the field value under it picks the colour from the ink LUT (contrast on every field level).
+    const st = this.style!;
+    bindTexture(gl, this.texA!, 1);
+    bindTexture(gl, this.texB!, 2);
+    bindTexture(gl, this.inkTex!, 3);
+    gl.uniform1i(dp.u.u_texA!, 1);
+    gl.uniform1i(dp.u.u_texB!, 2);
+    gl.uniform1i(dp.u.u_ink!, 3);
+    gl.uniform2i(dp.u.u_size!, h.nx, h.ny);
+    gl.uniform1f(dp.u.u_mix!, this.mixT);
+    gl.uniform4fv(dp.u.u_geoA!, ga);
+    gl.uniform4fv(dp.u.u_geoB!, gb);
+    gl.uniform4f(dp.u.u_dec!, st.encoding, st.scale, st.offset, h.nodata);
+    gl.uniform3f(dp.u.u_ramp!, st.domain[0], st.domain[1], st.norm);
+    gl.uniform1f(dp.u.u_alpha!, this.particles.alpha);
     gl.drawArrays(gl.POINTS, 0, res * res);
     [this.screen0, this.screen1] = [this.screen1, this.screen0];
 

@@ -1,4 +1,4 @@
-import { type GeoJSONSource, type ImageSource, type LngLatBoundsLike, Map as MaplibreMap, Marker, MercatorCoordinate, type Map as MlMap, NavigationControl } from "maplibre-gl";
+import { type GeoJSONSource, type ImageSource, type LayerSpecification, type LngLatBoundsLike, Map as MaplibreMap, Marker, MercatorCoordinate, type Map as MlMap, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // MapLibre 6 derives its worker URL at runtime from import.meta.url, which bundlers cannot see, so the
@@ -12,7 +12,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { type FrameStore, type TyfHeader } from "@/data";
 import { hostPause } from "@/shared/ui/host-pause";
-import { FIELDS, fieldLut, type FieldLayer as FieldLayerId } from "@/shared/lib/fields";
+import { lineHalo } from "@abrycta/akari/maps";
+import { FIELDS, fieldLut, PARTICLE_ALPHA, particleInkLut, type FieldLayer as FieldLayerId } from "@/shared/lib/fields";
 import { isLeavingPage, onPageExit } from "@/shared/lib/page-exit";
 import { ktToMs } from "@/shared/lib/units";
 import { usePrefersReducedMotion } from "@/shared/ui/hooks";
@@ -83,7 +84,7 @@ function sealMarker(): HTMLElement {
   el.setAttribute("aria-hidden", "true"); // the hour, wind and category are in the player and the timeline table
   el.className = "pointer-events-none relative h-0 w-0";
   el.innerHTML =
-    '<span data-seal class="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2.5px] bg-seal font-mono leading-none font-bold text-ak-on-accent ring-2 ring-background"></span>' +
+    '<span data-seal class="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2.5px] bg-seal font-mono leading-none font-bold text-ak-on-accent ring-2 ring-ak-map-halo outline-1 outline-offset-2 outline-ak-map-track"></span>' +
     '<span data-label class="absolute rounded-[3px] bg-background/90 px-1.5 py-0.5 font-mono text-ak-2xs leading-tight whitespace-nowrap text-foreground"></span>';
   return el;
 }
@@ -299,8 +300,8 @@ export default function ReplayMap(props: ReplayMapProps) {
       fieldRef.current = fl;
       map.addLayer(fl, firstSymbol);
     }
-    const ink = tokenColor("color.text", themeKey);
-    const bg = tokenColor("color.bg", themeKey);
+    const ink = tokenColor("map.track", themeKey);
+    const halo = tokenColor("map.halo", themeKey);
     const hours = track?.hours ?? [];
     const lineData = { type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: trackLine(hours) } };
     const fixData = {
@@ -314,13 +315,17 @@ export default function ReplayMap(props: ReplayMapProps) {
     } else {
       map.addSource("track", { type: "geojson", data: lineData });
       map.addSource("fixes", { type: "geojson", data: fixData });
-      map.addLayer({ id: "track-line", type: "line", source: "track", paint: { "line-color": ink, "line-width": 1.6, "line-opacity": 0.85 } });
-      map.addLayer({ id: "track-fixes", type: "circle", source: "fixes", paint: { "circle-radius": 2.4, "circle-color": ink, "circle-stroke-color": bg, "circle-stroke-width": 0.8 } });
+      // The track over the wind field: ink in a halo (Akari lineHalo), so it reads on every wind level.
+      const line = { id: "track-line", type: "line", source: "track", paint: { "line-color": ink, "line-width": 1.6 } } as const;
+      map.addLayer(lineHalo(line, { theme: themeKey }) as unknown as LayerSpecification);
+      map.addLayer(line);
+      map.addLayer({ id: "track-fixes", type: "circle", source: "fixes", paint: { "circle-radius": 2.4, "circle-color": ink, "circle-stroke-color": halo, "circle-stroke-width": 1.2 } });
     }
-    for (const id of ["track-line", "track-fixes"]) map.setLayoutProperty(id, "visibility", showTrack ? "visible" : "none");
+    for (const id of ["track-line-halo", "track-line", "track-fixes"]) map.setLayoutProperty(id, "visibility", showTrack ? "visible" : "none");
+    map.setPaintProperty("track-line-halo", "line-color", halo);
     map.setPaintProperty("track-line", "line-color", ink);
     map.setPaintProperty("track-fixes", "circle-color", ink);
-    map.setPaintProperty("track-fixes", "circle-stroke-color", bg);
+    map.setPaintProperty("track-fixes", "circle-stroke-color", halo);
     if (!view) {
       const b = bounds(hours);
       if (b) map.fitBounds(b, { padding: 24, animate: false, maxZoom: 6 });
@@ -367,13 +372,13 @@ export default function ReplayMap(props: ReplayMapProps) {
       domain: spec.domain,
       norm: spec.norm === "sqrt" ? 1 : spec.norm === "reverse" ? 2 : 0,
       lut: fieldLut(themeKey.startsWith("dark") ? "dark" : "light"),
+      inkLut: particleInkLut(themeKey, layer === "none"),
       opacity: 1,
       visible: layer !== "none",
     });
-    const particleInk = themeKey.startsWith("dark") ? [0.95, 0.95, 0.92, 0.7] : [0.1, 0.11, 0.13, 0.55];
     // Fewer particles on low-end devices and in the compact embed (phones, tablets), where 72² crowd the small map.
     const lowEnd = !!latest.current.viewFrame || (navigator.hardwareConcurrency ?? 8) <= 4 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
-    fl.setParticles({ enabled: particles, color: particleInk as [number, number, number, number], res: lowEnd ? 48 : 72 });
+    fl.setParticles({ enabled: particles, alpha: PARTICLE_ALPHA, res: lowEnd ? 48 : 72 });
   }, [header, layer, particles, themeKey, styleVersion]);
 
   // The storm seal (a DOM marker, above every map layer) and where its label goes.

@@ -152,6 +152,14 @@ void main() {
 
 export const DRAW_VS = /* glsl */ `#version 300 es
 precision highp float;
+${COMMON}
+uniform sampler2D u_texA;
+uniform sampler2D u_texB;
+uniform sampler2D u_ink;  // particle ink by ramp position (Akari map ink with the higher contrast on that field colour)
+uniform vec4 u_geoA;
+uniform vec4 u_geoB;
+uniform vec4 u_dec;
+uniform vec3 u_ramp;
 in float a_index;
 uniform sampler2D u_particles;
 uniform float u_res;
@@ -161,7 +169,22 @@ uniform float u_pointSize;
 uniform vec4 u_window;   // west, south, east, north of the current field window
 uniform float u_lonShift; // world copy the field is drawn in (multiple of 360 degrees)
 out float v_alpha;
-const float PI = 3.141592653589793;
+out vec3 v_ink;
+
+// Ramp position of the field under the particle, as FIELD_FS computes it (0 where there is no field).
+float rampAt(vec2 ll) {
+  float q = 0.0, w = 0.0;
+  vec3 ca = cellPos(u_geoA, ll), cb = cellPos(u_geoB, ll);
+  float wa = ca.z > 0.0 && maxOf4(u_texA, ca.xy) < u_dec.w - 0.5 ? (1.0 - u_mix) : 0.0;
+  float wb = cb.z > 0.0 && maxOf4(u_texB, cb.xy) < u_dec.w - 0.5 ? u_mix : 0.0;
+  if (wa + wb <= 0.001) return 0.0;
+  q = (bilinear(u_texA, ca.xy).r * wa + bilinear(u_texB, cb.xy).r * wb) / (wa + wb);
+  float v = u_dec.x < 0.5 ? u_dec.z + q * u_dec.y : pow(q * u_dec.y, 2.0);
+  float t = clamp((v - u_ramp.x) / (u_ramp.y - u_ramp.x), 0.0, 1.0);
+  if (u_ramp.z > 1.5) t = 1.0 - t; else if (u_ramp.z > 0.5) t = sqrt(t);
+  return t;
+}
+
 void main() {
   vec2 t = vec2((mod(a_index, u_res) + 0.5) / u_res, (floor(a_index / u_res) + 0.5) / u_res);
   vec4 s = texture(u_particles, t);
@@ -170,17 +193,20 @@ void main() {
   vec2 merc = vec2((ll.x + u_lonShift + 180.0) / 360.0, (1.0 - log(tan(PI / 4.0 + radians(ll.y) / 2.0)) / PI) / 2.0);
   float edge = min(min(ll.x - u_window.x, u_window.z - ll.x), min(ll.y - u_window.y, u_window.w - ll.y));
   v_alpha = smoothstep(0.0, 2.5, edge);
+  v_ink = texture(u_ink, vec2((rampAt(ll) * 255.0 + 0.5) / 256.0, 0.5)).rgb;
   gl_PointSize = u_pointSize;
   gl_Position = u_matrix * vec4(merc, 0.0, 1.0);
 }`;
 
 export const DRAW_FS = /* glsl */ `#version 300 es
 precision mediump float;
-uniform vec4 u_color;
+uniform float u_alpha;
 in float v_alpha;
+in vec3 v_ink;
 out vec4 outColor;
 void main() {
-  outColor = u_color * v_alpha;
+  float a = u_alpha * v_alpha;
+  outColor = vec4(v_ink * a, a);
 }`;
 
 export const SCREEN_FS = /* glsl */ `#version 300 es
