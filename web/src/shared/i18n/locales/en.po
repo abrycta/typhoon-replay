@@ -111,6 +111,10 @@ msgstr "{d}s"
 msgid "{days} d {hours} h"
 msgstr "{days} d {hours} h"
 
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{first} and {second}"
+msgstr "{first} and {second}"
+
 #: src/features/compare/StormPicker.tsx
 msgid "{hidden} unnamed hidden"
 msgstr "{hidden} unnamed hidden"
@@ -156,6 +160,10 @@ msgstr "{label} did not wake up within 3 minutes."
 msgid "{label} is awake."
 msgstr "{label} is awake."
 
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{label} is not answering yet. This page keeps trying."
+msgstr "{label} is not answering yet. This page keeps trying."
+
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} is not deployed yet."
 msgstr "{label} is not deployed yet."
@@ -172,11 +180,15 @@ msgstr "{label} is paused until next month to stay within its free hosting hours
 msgid "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
 msgstr "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
 
-#: src/features/under-the-hood/Race.tsx
-msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
-msgstr "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{label} is waking up from sleep: about {s} s on free hosting. This page keeps trying."
+msgstr "{label} is waking up from sleep: about {s} s on free hosting. This page keeps trying."
 
-#: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{label} is waking up from sleep: waking can take a minute or more. This page keeps trying."
+msgstr "{label} is waking up from sleep: waking can take a minute or more. This page keeps trying."
+
+#: src/features/under-the-hood/wake-copy.ts
 msgid "{label} is waking up; opening this page started it."
 msgstr "{label} is waking up; opening this page started it."
 
@@ -276,9 +288,9 @@ msgstr "10 m wind speed"
 msgid "6 hours"
 msgstr "6 hours"
 
-#: src/features/under-the-hood/Race.tsx
-msgid "A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically."
-msgstr "A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically."
+#: src/features/under-the-hood/wake-copy.ts
+msgid "a minute or more for {label}"
+msgstr "a minute or more for {label}"
 
 #: src/app/Shell.tsx
 msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
@@ -292,6 +304,10 @@ msgstr "A storm could not be loaded. Pick another one or try again later."
 #: src/routes/about.tsx
 msgid "About"
 msgstr "About"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "about {s} s for {label}"
+msgstr "about {s} s for {label}"
 
 #: src/routes/about.tsx
 msgid "About Replay"
@@ -505,8 +521,8 @@ msgid "Closest approach of the best-track centre. Wind values are best-track (ag
 msgstr "Closest approach of the best-track centre. Wind values are best-track (agency winds), not the ERA5 field."
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Cloudflare Worker"
-msgstr "Cloudflare Worker"
+msgid "Cloudflare Worker; never sleeps"
+msgstr "Cloudflare Worker; never sleeps"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Cold start on free hosting"
@@ -770,10 +786,6 @@ msgstr "Forward one hour"
 msgid "frames {progress}%"
 msgstr "frames {progress}%"
 
-#: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Free tier: servers sleep when idle and wake on demand"
-msgstr "Free tier: servers sleep when idle and wake on demand"
-
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Free tiers only"
 msgstr "Free tiers only"
@@ -951,6 +963,14 @@ msgstr "Japan {dates}"
 #: src/features/compare/SuggestedPairs.tsx
 msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 msgstr "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
+msgstr "Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "Java and Go sleep after 15 minutes idle. Waking takes {wakeTimes} (the cold-start row below). Opening this page starts waking both, and the race waits for them on its own. Node and Rust never sleep."
+msgstr "Java and Go sleep after 15 minutes idle. Waking takes {wakeTimes} (the cold-start row below). Opening this page starts waking both, and the race waits for them on its own. Node and Rust never sleep."
 
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "JDBC to Neon, pooled connection"
@@ -1802,10 +1822,17 @@ msgstr "Tech"
 msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 msgstr "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 
-#. placeholder {0}: res.retryAfterS ?? 20
-#: src/features/under-the-hood/Explorer.tsx
-msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
-msgstr "The backend is waking up (about a minute on free hosting). Send again in {0} s."
+#: src/features/under-the-hood/wake-copy.ts
+msgid "The backend is not answering yet. Send again in {retryAfterS} s."
+msgstr "The backend is not answering yet. Send again in {retryAfterS} s."
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "The backend is waking up (about {s} s on free hosting). Send again in {retryAfterS} s."
+msgstr "The backend is waking up (about {s} s on free hosting). Send again in {retryAfterS} s."
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "The backend is waking up (waking can take a minute or more). Send again in {retryAfterS} s."
+msgstr "The backend is waking up (waking can take a minute or more). Send again in {retryAfterS} s."
 
 #: src/features/under-the-hood/Race.tsx
 msgid "The backends disagree; showing {firstLabel}'s answer."

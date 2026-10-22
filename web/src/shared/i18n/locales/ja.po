@@ -111,6 +111,10 @@ msgstr "{d}年代"
 msgid "{days} d {hours} h"
 msgstr "{days}日{hours}時間"
 
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{first} and {second}"
+msgstr "{first}、{second}"
+
 #: src/features/compare/StormPicker.tsx
 msgid "{hidden} unnamed hidden"
 msgstr "名称なし{hidden}件を非表示"
@@ -156,6 +160,10 @@ msgstr "{label} は 3 分以内に起動しませんでした。"
 msgid "{label} is awake."
 msgstr "{label} は稼働中です。"
 
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{label} is not answering yet. This page keeps trying."
+msgstr "{label} はまだ応答していません。このページが再試行を続けます。"
+
 #: src/features/under-the-hood/Race.tsx
 msgid "{label} is not deployed yet."
 msgstr "{label} はまだデプロイされていません。"
@@ -172,11 +180,15 @@ msgstr "{label} は無料ホスティングの利用時間内に収めるため�
 msgid "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
 msgstr "{label} はアクセス制限中です（このアドレスからのリクエストが多すぎます）。{waitS} 秒後にもう一度お試しください。"
 
-#: src/features/under-the-hood/Race.tsx
-msgid "{label} is waking up from sleep: about a minute on free hosting. This page keeps trying."
-msgstr "{label} はスリープから起動中です（無料ホスティングで約 1 分）。このページが再試行を続けます。"
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{label} is waking up from sleep: about {s} s on free hosting. This page keeps trying."
+msgstr "{label} はスリープから起動中です（無料ホスティングで約 {s} 秒）。このページが再試行を続けます。"
 
-#: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/wake-copy.ts
+msgid "{label} is waking up from sleep: waking can take a minute or more. This page keeps trying."
+msgstr "{label} はスリープから起動中です（起動には 1 分以上かかることがあります）。このページが再試行を続けます。"
+
+#: src/features/under-the-hood/wake-copy.ts
 msgid "{label} is waking up; opening this page started it."
 msgstr "{label} は起動中です（このページを開いたときに起動を始めました）。"
 
@@ -276,9 +288,9 @@ msgstr "10 m 風速"
 msgid "6 hours"
 msgstr "6時間"
 
-#: src/features/under-the-hood/Race.tsx
-msgid "A backend that has been idle for 15 minutes is asleep and takes about a minute to wake. That's expected on free hosting; this page waits for it automatically."
-msgstr "15 分間アクセスのないバックエンドはスリープし、起動に約 1 分かかります。無料ホスティングでは想定どおりの動作で、このページは自動で待ちます。"
+#: src/features/under-the-hood/wake-copy.ts
+msgid "a minute or more for {label}"
+msgstr "{label} で 1 分以上"
 
 #: src/app/Shell.tsx
 msgid "A project by <0>{AUTHOR} · {PORTFOLIO_HOST}</0>"
@@ -292,6 +304,10 @@ msgstr "台風を読み込めませんでした。別の台風を選ぶか、時
 #: src/routes/about.tsx
 msgid "About"
 msgstr "概要"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "about {s} s for {label}"
+msgstr "{label} で約 {s} 秒"
 
 #: src/routes/about.tsx
 msgid "About Replay"
@@ -505,8 +521,8 @@ msgid "Closest approach of the best-track centre. Wind values are best-track (ag
 msgstr "ベストトラック中心の最接近です。風速は各機関のベストトラック値で、ERA5 の場ではありません。"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Cloudflare Worker"
-msgstr "Cloudflare Worker"
+msgid "Cloudflare Worker; never sleeps"
+msgstr "Cloudflare Worker、スリープしない"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "Cold start on free hosting"
@@ -770,10 +786,6 @@ msgstr "1時間進む"
 msgid "frames {progress}%"
 msgstr "フレーム {progress}%"
 
-#: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Free tier: servers sleep when idle and wake on demand"
-msgstr "無料枠: サーバーはアイドル時にスリープし、要求があると起動します"
-
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Free tiers only"
 msgstr "無料枠のみ"
@@ -951,6 +963,14 @@ msgstr "日本 {dates}"
 #: src/features/compare/SuggestedPairs.tsx
 msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 msgstr "{since}年以降に日本に上陸した最強の2つ: {ktA} ktと{ktB} kt"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
+msgstr "Java と Go は Render 無料プランで動き、15 分使われないとスリープします。Node と Rust は Cloudflare Workers で動き、スリープしません"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "Java and Go sleep after 15 minutes idle. Waking takes {wakeTimes} (the cold-start row below). Opening this page starts waking both, and the race waits for them on its own. Node and Rust never sleep."
+msgstr "Java と Go は 15 分使われないとスリープします。起動には {wakeTimes}かかります（下の表のコールドスタートの行）。このページを開くと両方の起動が始まり、レースは自動で待ちます。Node と Rust はスリープしません。"
 
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "JDBC to Neon, pooled connection"
@@ -1802,10 +1822,17 @@ msgstr "技術"
 msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
 msgstr "API は OpenAPI 3.1 で一度だけ記述し、/v1 で提供しています。CI が契約をチェックし、互換性を壊す変更があれば失敗させます。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
 
-#. placeholder {0}: res.retryAfterS ?? 20
-#: src/features/under-the-hood/Explorer.tsx
-msgid "The backend is waking up (about a minute on free hosting). Send again in {0} s."
-msgstr "バックエンドは起動中です（無料ホスティングで約 1 分）。{0} 秒後にもう一度送信してください。"
+#: src/features/under-the-hood/wake-copy.ts
+msgid "The backend is not answering yet. Send again in {retryAfterS} s."
+msgstr "バックエンドはまだ応答していません。{retryAfterS} 秒後にもう一度送信してください。"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "The backend is waking up (about {s} s on free hosting). Send again in {retryAfterS} s."
+msgstr "バックエンドは起動中です（無料ホスティングで約 {s} 秒）。{retryAfterS} 秒後にもう一度送信してください。"
+
+#: src/features/under-the-hood/wake-copy.ts
+msgid "The backend is waking up (waking can take a minute or more). Send again in {retryAfterS} s."
+msgstr "バックエンドは起動中です（起動には 1 分以上かかることがあります）。{retryAfterS} 秒後にもう一度送信してください。"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "The backends disagree; showing {firstLabel}'s answer."

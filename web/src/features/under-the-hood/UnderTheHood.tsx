@@ -11,17 +11,20 @@ import { Explorer } from "./Explorer";
 import { HowItWorks } from "./HowItWorks";
 import { Race } from "./Race";
 import { useRace } from "./use-race";
+import { SLEEPING_BACKENDS, useWakeCopy } from "./wake-copy";
 
 const DEFAULT_LABELS: Record<BackendId, string> = { java: "Java", node: "Node", rust: "Rust", go: "Go" };
 
 /**
  * "Tech" (route /under-the-hood): the one page that talks to the API. Race the same question on all four backends, explore one
- * endpoint, and read the conformance figures. Opening the page wakes the Java backend with one idle-time ping.
+ * endpoint, and read the conformance figures. Opening the page wakes the backends that sleep (Java and Go) with one
+ * idle-time ping each.
  */
 export function UnderTheHood() {
   const { t } = useLingui();
   const cfg = useAppConfig();
   const labels = useMemo(() => ({ ...DEFAULT_LABELS, ...Object.fromEntries(cfg.backends.map((b) => [b.id, b.label])) }) as Record<BackendId, string>, [cfg.backends]);
+  const wake = useWakeCopy(labels);
   const baseUrlOf = useMemo(() => {
     const m = new Map(cfg.backends.map((b) => [b.id, b.baseUrl]));
     return (id: BackendId) => m.get(id) ?? `/api/${id}`;
@@ -29,21 +32,24 @@ export function UnderTheHood() {
   const race = useRace(RACE_BACKENDS, { baseUrlOf });
   const { hint } = race;
 
-  // Wake-on-entry, this page only: one GET /healthz to the Java backend at idle priority, so a sleeping
-  // instance is already starting by the time the visitor presses "Run". Its answer decorates the idle lane.
+  // Wake-on-entry, this page only: one GET /healthz to each backend that sleeps (Java and Go on Render) at idle
+  // priority, so a sleeping instance is already starting by the time the visitor presses "Run". Each answer
+  // decorates that idle lane. Node and Rust run on Workers and never sleep, so they get no ping.
   useEffect(() => {
     const c = new AbortController();
-    void wakePing(baseUrlOf("java"), c.signal).then((r) => {
-      if (!r || c.signal.aborted || r.kind === "error") return;
-      hint("java", r.kind);
-    });
+    for (const id of SLEEPING_BACKENDS) {
+      void wakePing(baseUrlOf(id), c.signal).then((r) => {
+        if (!r || c.signal.aborted || r.kind === "error") return;
+        hint(id, r.kind);
+      });
+    }
     return () => c.abort();
   }, [baseUrlOf, hint]);
 
   const facts = [
     { k: t`Contract`, v: t`OpenAPI 3.1, one spec, checked for breaking changes in CI` },
     { k: t`Proof`, v: t`One conformance suite runs against every backend` },
-    { k: t`Hosting`, v: t`Free tier: servers sleep when idle and wake on demand` },
+    { k: t`Hosting`, v: wake.hostingFact },
     { k: t`Edge`, v: t`Answers are cached at Cloudflare, so repeat queries are instant` },
   ];
 

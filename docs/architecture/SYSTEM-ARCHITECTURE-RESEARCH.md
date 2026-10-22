@@ -278,7 +278,7 @@ Exactly **one** shared ingestion job writes live-storm data, and the backends on
 
 Alternative raised by the Go agent: GitHub Actions cron calls an authenticated `POST /v1/_jobs/{ingest|mail}` (bearer secret) on one backend, rotating by day, so each language also implements ingestion.
 - Pros: more showcase.
-- Cons: each run wakes a Render service (about 1 min cold start + work, so about 50–100 h/month of the 750), and ingestion parity must then be conformance-tested too.
+- Cons: each run wakes a Render service (a cold start, measured at about 100 s for Java, plus work, so about 50–100 h/month of the 750), and ingestion parity must then be conformance-tested too.
 - Kept as an option for the user (OPEN-QUESTIONS); not the default. If chosen, the endpoints and the lease table above are already contract-ready.
 
 Cloudflare Worker cron was rejected for ingestion: 10 ms CPU per run on Free is too little for parsing feeds and spatial matching.
@@ -381,14 +381,14 @@ Provider endpoints (authorize/token/userinfo) must be configurable via env so CI
   - **No keep-alive pinging.**
 - **Cold-start UX:**
   - The static replay never waits on the API.
-  - On the first API need, the SPA fires `GET /api/{impl}/healthz`. If there is no answer in 2 s, it shows "Waking the {Java} backend… (free hosting sleeps; about 60 s)" with a progress bar, a "switch to a warm backend" button (warm = any backend that answered `/healthz` in this session), and a link to the compat page.
+  - On the first API need, the SPA fires `GET /api/{impl}/healthz`. If there is no answer in 2 s, it shows "Waking the {Java} backend… (free hosting sleeps; the measured cold start, Java about 100 s)" with a progress bar, a "switch to a warm backend" button (warm = any backend that answered `/healthz` in this session), and a link to the compat page.
   - Town search falls back to a precomputed static index on Pages (the top 5,000 places → their storm lists as JSON shards), so the core feature works with all backends asleep.
 - **Edge caching to hide cold starts** (the Java agent asked for an evaluation):
   - **What works.** The Cache API works in Pages Functions on `*.pages.dev` ([docs](https://developers.cloudflare.com/workers/runtime-apis/cache/)). The proxy can cache public catalogue GETs (keyed by impl + path + sorted query), honour `Cache-Control` and ETags, and serve hits **without waking the backend**.
   - **Limits.**
     - The cache is **per data centre**, not replicated globally, so it only helps repeat visitors near the same PoP (Manila or Tokyo PoPs matter most).
     - `cache.put` bypasses tiered cache.
-    - `waitUntil` background revalidation is capped at 30 s after the response, which is shorter than a 60 s cold start, so stale-while-revalidate can't fully hide one.
+    - `waitUntil` background revalidation is capped at 30 s after the response, which is shorter than a cold start (Java measured at about 100 s), so stale-while-revalidate can't fully hide one.
   - **Recommended behaviour:**
     1. Fresh hit → serve with `X-Edge-Cache: HIT`.
     2. Stale hit, and the backend doesn't answer `/healthz` within 1.5 s → serve stale with `X-Edge-Cache: STALE` and kick the backend awake with a fire-and-forget `/healthz`.
@@ -590,7 +590,7 @@ The design described above:
 | | |
 |---|---|
 | **For** | Zero cost, no card. Switching backend keeps the session, saved places and SSE position, which is the most convincing "universal frontend" demo. The backends are pure request/response + fan-out, so they are comparable like for like. |
-| **Against** | Cold starts of about 60 s. Render's 750 h / 5 GB limits are shared and unforgiving. Email deliverability is weak without a domain. |
+| **Against** | Cold starts (Java measured at about 100 s; Go not measured yet). Render's 750 h / 5 GB limits are shared and unforgiving. Email deliverability is weak without a domain. |
 
 ### Option B: Option A plus a custom domain (about US$10/year)
 

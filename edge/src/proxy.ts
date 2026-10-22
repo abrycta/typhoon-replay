@@ -34,7 +34,7 @@ const HEALTH_TIMEOUT_MS = 2500;
 const UNSAFE_TIMEOUT_MS = 100_000;
 /** Background work is capped at 30 s after the response by the runtime (waitUntil). */
 const BACKGROUND_TIMEOUT_MS = 29_000;
-/** Render cold starts take about a minute; this is the client's hint for when to retry. */
+/** A sleeping Render backend takes a while to wake (Java measured at about 100 s; see the Tech page's cold-start row); this is the client's hint for when to retry. */
 const WAKE_RETRY_AFTER_S = 20;
 const STATIC_RETRY_AFTER_S = 3600;
 const WAKE_DEDUPE_MS = 15_000;
@@ -139,7 +139,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
     if (r.kind === "timeout") {
       if (!safe) return fail("gateway-timeout");
       wake();
-      return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; it takes about a minute to wake" });
+      return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; waking can take a minute or more" });
     }
     if (r.kind === "error") return fail("bad-gateway");
     return done(await passthrough(r.response, isSse, requestId), "BYPASS");
@@ -190,7 +190,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
         })
         .catch(() => undefined),
     );
-    return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; it takes about a minute to wake" });
+    return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; waking can take a minute or more" });
   }
   if (r.kind === "error") return fail("bad-gateway");
   const response = r.response;

@@ -93,6 +93,6 @@ As of 2026-10-21. Each item says who decides or how to verify it. See [SYSTEM-AR
 ## C. Risks to watch
 
 - **Render's 5 GB/month outbound bandwidth** is shared by every service in the workspace, and with a card on file an overage bills (US$0.15/GB). Kept down by gzip and the edge cache (A.9); check `GET /v1/metrics/bandwidth` now and then, and use `STATIC_MODE` by hand in an emergency.
-- **Cold starts of about 60 s,** and longer for the JVM. Mitigations: edge cache, static fallback index, the "waking up" UX.
+- **Cold starts:** Java's is measured at about 100 s on Render free; Go's is not measured yet (figures: `web/src/features/under-the-hood/conformance.json`). Mitigations: edge cache, static fallback index, the "waking up" UX.
 - **Expand/contract migrations:** four independently deployed backends read the same schema, so a careless rename breaks the laggards. CI should run the conformance suite of *every* backend against each new migration.
 - **Generator 3.1 gaps** may push one backend toward code-first. Allowed, but only behind the two-way oasdiff gate.
