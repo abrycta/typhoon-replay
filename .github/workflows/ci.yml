@@ -23,7 +23,7 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -37,37 +37,6 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@abrycta"
 
-      # `playwright install-deps` runs apt-get update. The runner image's packages.microsoft.com source
-      # (not needed here) has been answering 403 or hanging, which failed or timed out CI on main; drop it and
-      # bound apt's network waits so a slow mirror fails fast instead of eating the job's 15 minutes.
-      - name: Keep apt fast and reliable
-        run: |
-          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
-          printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
-            sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
-
-      # Playwright: the browser and the .deb files apt fetched are cached per Playwright version, so a cache hit
-      # downloads neither. Installs are bounded (2.5 min per attempt, one retry on another mirror, step timeout), so a
-      # stalled mirror or download fails in minutes with a clear error instead of using up the job.
-      - name: Playwright version
-        id: pw
-        working-directory: web
-        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright browser
-        id: pw-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.cache/ms-playwright
-            ~/.cache/playwright-debs
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium
-      - name: Install Playwright OS packages (and the browser on a cache miss)
-        timeout-minutes: 6
-        env:
-          PW_VERSION: ${{ steps.pw.outputs.version }}
-          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/playwright-install.sh" "$PW_VERSION" "$CACHE_HIT"
-
       # The Under the hood conformance table shows each backend's latest passing CI run on main: refresh the bundled
       # conformance.json from those runs' artifacts (a backend whose artifact can't be found keeps its committed entry).
       - name: Conformance figures from the backends' CI runs on main
@@ -75,8 +44,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      # End-to-end tests run in the E2E shards below, against this exact build.
       - name: Install, check, build, size guard
-        run: bash scripts/ci.sh --clean
+        run: bash scripts/ci.sh --clean --skip-e2e
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -90,6 +60,94 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
+      # The E2E shards check the Under the hood page against the conformance figures refreshed above.
+      - name: Upload the refreshed conformance figures for E2E
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-conformance
+          path: web/src/features/under-the-hood/conformance.json
+          retention-days: 1
+          if-no-files-found: error
+
+  # Playwright end-to-end tests against Verify's build (the same `web-dist` Deploy publishes), split over parallel
+  # jobs. Every shard must pass for CI to succeed, so Deploy (which needs the whole workflow green) is gated as before.
+  e2e:
+    name: E2E (${{ matrix.shard }}/3)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+          registry-url: https://npm.pkg.github.com
+          scope: "@abrycta"
+
+      # `playwright install-deps` runs apt-get update. The runner image's packages.microsoft.com source
+      # (not needed here) has been answering 403 or hanging, which failed or timed out CI on main; drop it and
+      # bound apt's network waits so a slow mirror fails fast instead of eating the job's 15 minutes.
+      - name: Keep apt fast and reliable
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' |
+            sudo tee /etc/apt/apt.conf.d/99ci-timeouts >/dev/null
+
+      # Playwright: the browser and the .deb files apt fetched are cached per Playwright version and ISO week, so a cache
+      # hit downloads neither. The weekly key keeps the .deb files current with Ubuntu's updates (stale ones made apt
+      # fetch the newer packages from a slow mirror, 2 min); a new week restores last week's files and fetches only the
+      # difference once. Installs are bounded (2.5 min per attempt, one retry on another mirror, step timeout), so a
+      # stalled mirror or download fails in minutes with a clear error instead of using up the job.
+      - name: Playwright version
+        id: pw
+        working-directory: web
+        run: |
+          echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browser
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/playwright-debs
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium-${{ steps.pw.outputs.week }}
+          restore-keys: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}-chromium
+      - name: Install Playwright OS packages (and the browser on a cache miss)
+        timeout-minutes: 6
+        env:
+          PW_VERSION: ${{ steps.pw.outputs.version }}
+          CACHE_HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/playwright-install.sh" "$PW_VERSION" "$CACHE_HIT"
+
+      - name: Install the web app's dependencies
+        working-directory: web
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Verify's build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-dist
+          path: web/dist
+      - name: Download the conformance figures that build used
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: e2e-conformance
+          path: web/src/features/under-the-hood
+
+      - name: End-to-end (shard ${{ matrix.shard }} of 3)
+        working-directory: web
+        run: npx playwright test --shard=${{ matrix.shard }}/3
+
 # The verified build goes up as the `web-dist` artifact; Deploy (deploy.yml) runs when this workflow
-# succeeds and publishes that artifact instead of building again.
+# succeeds (Verify and every E2E shard) and publishes that artifact instead of building again.
 # The data pipeline has its own workflows: pipeline.yml, backfill.yml, refresh.yml.
