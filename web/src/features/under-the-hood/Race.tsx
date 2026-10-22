@@ -7,6 +7,7 @@ import type { BackendId } from "@/shared/config/config";
 
 import { CONFORMANCE, QUESTIONS, type QuestionId } from "./catalogue";
 import { formatMs } from "./format";
+import { useReasonText } from "./reason";
 import { ResultTable } from "./ResultTable";
 import type { LaneState, LaneStatus, useRace } from "./use-race";
 import { typicalWakeMs, useWakeCopy } from "./wake-copy";
@@ -39,6 +40,8 @@ const RATE_LIMIT_FALLBACK_S = 60;
 function Lane({ lane, label, match, now }: { lane: LaneState; label: string; match?: MatchState; now: number }) {
   const { t } = useLingui();
   const wake = useWakeCopy();
+  const reasonText = useReasonText();
+  const reason = reasonText(lane.reason, lane.httpStatus);
   const chip: Record<LaneStatus, string> = {
     idle: t`ready`,
     running: t`asking`,
@@ -82,8 +85,8 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
             ? lane.reason === "did not wake up in time"
               ? t`${label} did not wake up within 3 minutes.`
               : lane.httpStatus
-                ? t`${label} answered HTTP ${lane.httpStatus} (${lane.reason ?? "?"}) in ${formatMs(lane.totalMs ?? 0)}.`
-                : t`${label} did not answer (${lane.reason ?? "?"}).`
+                ? t`${label} answered HTTP ${lane.httpStatus} (${reason}) in ${formatMs(lane.totalMs ?? 0)}.`
+                : t`${label} did not answer (${reason}).`
             : lane.hint === "ok"
               ? t`${label} is awake.`
               : lane.hint === "waking"

@@ -249,6 +249,29 @@ test("race: a 429 is shown as rate limited with Retry-After, not as waking up, a
   expect(calls).toBe(1);
 });
 
+test("race in Japanese: lane notes carry no English reason text", async ({ page }) => {
+  await page.route(/\/api\/(java|node|rust|go)\//, (r) => {
+    const url = r.request().url();
+    if (url.includes("/healthz")) return json(r, { status: "ok" }, "java");
+    if (url.includes("/api/java/")) return r.fulfill({ status: 404, contentType: PROBLEM, headers: { "X-Backend-Impl": "java" }, body: JSON.stringify({ ...problem("not-found", 404), title: "Not found" }) });
+    if (url.includes("/api/node/")) return r.fulfill({ status: 500, contentType: PROBLEM, headers: { "X-Backend-Impl": "node" }, body: JSON.stringify({ ...problem("internal", 500), title: "Something unexpected broke" }) });
+    if (url.includes("/api/go/")) return r.abort("connectionfailed");
+    return problemReply(r, "backend-not-deployed");
+  });
+  await page.goto("/under-the-hood?lang=ja");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await page.getByTestId("race-run").click();
+  for (const id of ["java", "node", "go"]) await expect(page.getByTestId(`lane-${id}-note`)).not.toHaveText("");
+  await expect(page.getByTestId("lane-java-note")).toContainText("見つかりません");
+  await expect(page.getByTestId("lane-node-note")).toContainText("サーバーエラー");
+  await expect(page.getByTestId("lane-go-note")).toContainText("ネットワークエラー");
+  for (const id of ["java", "node", "rust", "go"]) {
+    const note = (await page.getByTestId(`lane-${id}-note`).textContent()) ?? "";
+    // Backend names, protocol names and units may stay Latin; nothing else may.
+    expect(note.replace(/\b(Java|Node(\.js)?|Rust|Go|HTTP|JSON|API|ms|s)\b/g, "").match(/[A-Za-z]{2,}/g), note).toBeNull();
+  }
+});
+
 test("explorer: request line, status, edge headers and JSON", async ({ page }) => {
   await mockLanes(page);
   await page.goto("/under-the-hood");
