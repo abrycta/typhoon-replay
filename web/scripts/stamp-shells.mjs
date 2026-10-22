@@ -85,7 +85,7 @@ function headTags({ title, text, url, image }) {
 function stamp(template, tags, noscript) {
   let html = template.replace(/<title>[\s\S]*?<\/title>/, "").replace(/<meta name="description"[^>]*>\s*/, "");
   html = html.replace("</head>", `  ${tags}\n  </head>`);
-  if (noscript) html = html.replace('<div id="root"></div>', `<div id="root"></div>\n    <noscript><p>${esc(noscript)}</p></noscript>`);
+  if (noscript) html = html.replace(/<div id="root">(?:<div class="glyph-seal"[^>]*>[^<]*<\/div>)?<\/div>/, (m) => `${m}\n    <noscript><p>${esc(noscript)}</p></noscript>`);
   return html;
 }
 

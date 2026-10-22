@@ -58,4 +58,8 @@ Promise.all([loadPack(), activateLocale(locale)])
       </StrictMode>,
     );
   })
-  .catch((e: unknown) => createRoot(root).render(<BootError error={e} />));
+  .catch((e: unknown) => {
+    // Show the error, not the glyph still (the parent keeps its own still: no ready message).
+    document.documentElement.dataset.embedReady = "";
+    createRoot(root).render(<BootError error={e} />);
+  });

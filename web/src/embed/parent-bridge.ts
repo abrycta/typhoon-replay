@@ -10,8 +10,9 @@ const COOKIE_DOMAIN = "krtmtthw.dev";
 
 const framed = () => window.parent !== window;
 
-/** Once the first full frame is painted (map idle, basemap loaded, data drawn). */
+/** Once the first full frame is painted (map idle, basemap loaded, data drawn). Also lifts the page's own glyph still (embed html). */
 export function postReady(app: "replay" | "lights") {
+  document.documentElement.dataset.embedReady = "";
   if (framed()) window.parent.postMessage({ type: "akari:embed-ready", app }, PARENT_ORIGIN);
 }
 
