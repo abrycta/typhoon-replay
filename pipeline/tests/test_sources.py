@@ -173,3 +173,15 @@ def test_remote_read_provenance_marks_fallback() -> None:
     prov = r.record(man)
     assert prov.fallback_used and prov.served_by == "fallback" and prov.bytes == 150
     assert man.to_dict()["fallbacks_used"] == ["era5-an-sfc"]
+
+
+def test_live_feed_row_change_limits():
+    """JMA XML and GDACS TC feeds swing in size as storms start and end; widen the anomaly gate."""
+    from archivekit.profile import Profile, Thresholds, compare
+
+    reg = S.registry()
+    for sid, limit in (("jma-xml-extra", 1.0), ("gdacs-rss-tc", 3.0)):
+        t = Thresholds.from_source(reg.source(sid))
+        assert t.max_row_change == limit
+        assert not compare(Profile(rows=10), Profile(rows=int(10 * (1 + limit))), t)
+        assert compare(Profile(rows=10), Profile(rows=int(10 * (1 + limit)) + 1), t)
