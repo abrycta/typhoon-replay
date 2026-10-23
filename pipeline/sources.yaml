@@ -560,6 +560,7 @@ sources:
     checks:
       bytes: { min: 500, max: 5000000 }
       xml_root: feed
+    anomaly: { max_row_change: 1.0 }   # entry count swings as storms start and end (+-100%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
 
   - id: gdacs-rss-tc
@@ -579,4 +580,5 @@ sources:
     checks:
       bytes: { min: 200, max: 5000000 }
       xml_root: rss
+    anomaly: { max_row_change: 3.0 }   # 7-day TC list swings as storms start and end (+-300%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
