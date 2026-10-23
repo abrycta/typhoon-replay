@@ -103,7 +103,7 @@ test("share shell carries Open Graph tags for crawlers", async ({ request }) => 
   expect(html).toContain(`<meta property="og:url" content="https://replay.krtmtthw.dev/storm/${HAIYAN}"`);
   const home = await (await request.get("/")).text();
   expect(home).toContain("<title>Replay</title>");
-  expect(home).toContain('<meta property="og:image" content="https://replay.krtmtthw.dev/og-card.png"');
+  expect(home).toContain('<meta property="og:image" content="https://replay.krtmtthw.dev/og-card-v2.png"');
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain(`/storm/${HAIYAN}</loc>`);
 });
