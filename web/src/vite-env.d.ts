@@ -4,6 +4,8 @@
 declare const __COMMIT_SHA__: string;
 /** ISO 8601 timestamp of the build. */
 declare const __BUILD_TIME__: string;
+/** Replay's Japanese name (再生), shown by every loading glyph (see vite.config.ts). */
+declare const __NAME_JA__: string;
 
 /** Lingui catalogs, compiled by @lingui/vite-plugin. */
 declare module "*.po" {

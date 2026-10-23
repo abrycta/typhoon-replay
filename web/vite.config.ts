@@ -11,6 +11,10 @@ import { defineConfig } from "vitest/config";
 import { fixtures } from "./scripts/vite-fixtures.ts";
 import { akariThemeInit } from "./scripts/vite-theme-init.ts";
 
+/** Replay's Japanese name, as on krtmtthw.dev: the one source for every loading glyph (embed page, map slots, inline tiles).
+ * The header brand, favicon and share card keep the single-character glyph 再. */
+const NAME_JA = "再生";
+
 // Commit shown in the footer. CI sets BUILD_SHA (the PR head commit for
 // previews); GITHUB_SHA and the local git checkout are fallbacks.
 function commitSha(): string {
@@ -38,10 +42,13 @@ export default defineConfig({
     fixtures(),
     // Akari's pre-paint theme script (shared krtmtthw.dev theme), served from our own origin.
     akariThemeInit(),
+    // The embed page's pre-load glyph: %NAME_JA% in the HTML.
+    { name: "name-ja", transformIndexHtml: (html: string) => html.replaceAll("%NAME_JA%", NAME_JA) },
   ],
   define: {
     __COMMIT_SHA__: JSON.stringify(commitSha()),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __NAME_JA__: JSON.stringify(NAME_JA),
   },
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },

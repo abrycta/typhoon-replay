@@ -11,9 +11,9 @@ export function MapGlyph({ className }: { className?: string }) {
       aria-hidden="true"
       lang="ja"
       data-testid="map-glyph"
-      className={cn("pointer-events-none grid place-items-center bg-muted font-heading text-[clamp(40px,7vw,64px)] leading-none font-bold text-muted-foreground", className)}
+      className={cn("pointer-events-none grid place-items-center bg-muted font-heading text-[clamp(40px,7vw,64px)] leading-none font-bold whitespace-nowrap text-muted-foreground", className)}
     >
-      再
+      {__NAME_JA__}
     </div>
   );
 }

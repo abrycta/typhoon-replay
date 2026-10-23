@@ -11,9 +11,9 @@ export function GlyphLoading({ className }: { className?: string }) {
       aria-hidden="true"
       lang="ja"
       data-testid="glyph-loading"
-      className={cn("inline-grid size-4 shrink-0 place-items-center rounded-xs bg-muted font-heading text-[11px] leading-none font-bold text-muted-foreground", className)}
+      className={cn("inline-grid h-4 min-w-4 shrink-0 place-items-center px-0.5 whitespace-nowrap rounded-xs bg-muted font-heading text-[11px] leading-none font-bold text-muted-foreground", className)}
     >
-      再
+      {__NAME_JA__}
     </span>
   );
 }
