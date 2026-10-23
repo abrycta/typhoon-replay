@@ -737,16 +737,8 @@ msgid "Error"
 msgstr "エラー"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep."
-msgstr "このページ以外のページは、Cloudflare Pages とバージョン管理されたデータセットにある用意済みのファイルを読むので、バックエンドがすべてスリープしていてもサイトは動きます。"
-
-#: src/features/under-the-hood/HowItWorks.tsx
 msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike. It serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
 msgstr "リクエストはすべてこのサイトの /api/ にバックエンド名を付けたパスへ送られます。前段の Cloudflare の関数がそれを振り分け、4 つのバックエンドを同じように扱います。バックエンドが失敗したら保存済みのコピーを返し、訪問者ごとのリクエスト数を制限し、スリープ中のサーバーやデータベースが起動するあいだは「起動中」と答えます。"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. If Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, with cached answers only, until someone switches it back."
-msgstr "すべて無料プランで動いています。8 時間ごとの点検でホスティング時間、通信量、リクエスト数、データベース使用量を読み、どれかが 70 % を超えると issue を作ります。Render の通信量、Neon の計算量、その日の Cloudflare のリクエスト数のどれかが 70 % を超えると、エッジを静的モードに切り替えます。キャッシュ済みの答えだけを返し、手で戻すまでそのままです。"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
@@ -814,10 +806,6 @@ msgstr "1時間進む"
 #: src/features/replay/StormReplay.tsx
 msgid "frames {progress}%"
 msgstr "フレーム {progress}%"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Free tiers only"
-msgstr "無料枠のみ"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "From {firstLabel}. No other backend has answered yet."
@@ -1674,10 +1662,6 @@ msgstr "地域"
 msgid "Render free plan; sleeps after 15 minutes idle"
 msgstr "Render 無料プラン、15 分使われないとスリープ"
 
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. We tried Go on Workers first, but it used more CPU per request than the free plan allows."
-msgstr "Render の無料プランでは、月 750 インスタンス時間をすべてのサービスで分け合います。そのため Render で動かすのは Java と Go だけです。Go も最初は Workers で試しましたが、1 リクエストあたりの CPU 使用量が無料プランの上限を超えました。"
-
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
 msgstr "どの台風も、1時間ごとにリプレイ"
@@ -1851,10 +1835,6 @@ msgstr "速度"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Stack"
 msgstr "スタック"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Static first"
-msgstr "静的ファイルが基本"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Storm"
@@ -2180,10 +2160,6 @@ msgstr "データの出所、データからわかること・わからないこ
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
 msgstr "なぜ場は台風より弱いのか？"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Why two hosts"
-msgstr "ホストが 2 つある理由"
 
 #: src/features/replay/labels.ts
 msgid "Wind"

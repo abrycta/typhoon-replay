@@ -38,17 +38,8 @@ export function HowItWorks({ labels }: { labels: Record<BackendId, string> }) {
 
   const topics = [
     {
-      k: t`Static first`,
-      v: t`Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep.`,
-    },
-    {
       k: t`One contract`,
       v: t`The API is served under /v1, and CI lints the contract. It offers public reads only: health, metadata, storms, places, storms near a place, and a live stream. There are no accounts and no cookies.`,
-    },
-    {
-      // [PERF] The Go-on-Workers CPU figure (DECISIONS.md, 2026-10-22) is left out until the perf audit reports.
-      k: t`Why two hosts`,
-      v: t`Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. We tried Go on Workers first, but it used more CPU per request than the free plan allows.`,
     },
     {
       k: t`One database`,
@@ -65,10 +56,6 @@ export function HowItWorks({ labels }: { labels: Record<BackendId, string> }) {
     {
       k: t`Frozen code`,
       v: t`Once built, each backend is pinned to exact dependency versions, lockfiles and toolchains, and gets only security fixes. So the race always compares the same code.`,
-    },
-    {
-      k: t`Free tiers only`,
-      v: t`Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. If Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, with cached answers only, until someone switches it back.`,
     },
   ];
 

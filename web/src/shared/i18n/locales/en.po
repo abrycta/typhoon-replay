@@ -737,16 +737,8 @@ msgid "Error"
 msgstr "Error"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep."
-msgstr "Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep."
-
-#: src/features/under-the-hood/HowItWorks.tsx
 msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike. It serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
 msgstr "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike. It serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. If Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, with cached answers only, until someone switches it back."
-msgstr "Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. If Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, with cached answers only, until someone switches it back."
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
@@ -814,10 +806,6 @@ msgstr "Forward one hour"
 #: src/features/replay/StormReplay.tsx
 msgid "frames {progress}%"
 msgstr "frames {progress}%"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Free tiers only"
-msgstr "Free tiers only"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "From {firstLabel}. No other backend has answered yet."
@@ -1674,10 +1662,6 @@ msgstr "Region"
 msgid "Render free plan; sleeps after 15 minutes idle"
 msgstr "Render free plan; sleeps after 15 minutes idle"
 
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. We tried Go on Workers first, but it used more CPU per request than the free plan allows."
-msgstr "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. We tried Go on Workers first, but it used more CPU per request than the free plan allows."
-
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
 msgstr "Replay any typhoon, hour by hour"
@@ -1851,10 +1835,6 @@ msgstr "Speed"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "Stack"
 msgstr "Stack"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Static first"
-msgstr "Static first"
 
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Storm"
@@ -2180,10 +2160,6 @@ msgstr "Where the data comes from, what it can and cannot tell you, and the lice
 #: src/features/replay/IntensityPanel.tsx
 msgid "Why is the field weaker than the storm?"
 msgstr "Why is the field weaker than the storm?"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Why two hosts"
-msgstr "Why two hosts"
 
 #: src/features/replay/labels.ts
 msgid "Wind"
