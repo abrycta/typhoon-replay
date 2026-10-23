@@ -62,10 +62,11 @@ class JmaStorm:
     intl_id: str                     # YYNN
     name: str | None
     fixes: list[JmaFix] = field(default_factory=list)
+    revised: int | None = None       # header revision year (cols 65-68); anchors the century
 
     @property
     def year(self) -> int:
-        return _year(int(self.intl_id[:2]))
+        return _year(int(self.intl_id[:2]), self.revised)
 
     @property
     def number(self) -> int:
@@ -76,8 +77,21 @@ class JmaStorm:
         return f"台風第{self.number}号"
 
 
-def _year(yy: int) -> int:
-    return 1900 + yy if yy >= 51 else 2000 + yy
+def _year(yy: int, revised: int | None = None) -> int:
+    """Expand a two-digit JMA year without a fixed pivot.
+
+    The storm year is the latest year ending in ``yy`` that is not after the header's revision year
+    (+1: a late-December storm can carry next year's number). Without a revision date, the current
+    UTC year anchors instead. JMA data start in 1951, so nothing earlier is returned.
+    """
+    limit = (revised if revised is not None else datetime.now(UTC).year) + 1
+    year = limit - (limit - yy) % 100
+    return year if year >= 1951 else year + 100
+
+
+def _near_year(yy: int, anchor: int) -> int:
+    """The year ending in ``yy`` closest to ``anchor`` (fix stamps within a storm)."""
+    return anchor + ((yy - anchor % 100 + 50) % 100 - 50)
 
 
 def _int_or_none(s: str) -> int | None:
@@ -98,13 +112,14 @@ def parse_bst(lines: Iterable[str]) -> list[JmaStorm]:
             if not re.fullmatch(r"\d{4}", intl):
                 raise ValueError(f"bad JMA header (international number): {line!r}")
             name = line[30:50].strip() or None
-            cur = JmaStorm(intl_id=intl, name=name)
+            rev = line[64:72].strip()
+            cur = JmaStorm(intl_id=intl, name=name, revised=int(rev[:4]) if re.fullmatch(r"\d{8}", rev) else None)
             storms.append(cur)
             continue
         if cur is None:
             raise ValueError(f"JMA data line before any header: {line!r}")
         stamp = line[0:8]
-        t = datetime(_year(int(stamp[0:2])), int(stamp[2:4]), int(stamp[4:6]), int(stamp[6:8]), tzinfo=UTC)
+        t = datetime(_near_year(int(stamp[0:2]), cur.year), int(stamp[2:4]), int(stamp[4:6]), int(stamp[6:8]), tzinfo=UTC)
         cur.fixes.append(JmaFix(
             time=t,
             grade=int(line[13]),

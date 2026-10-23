@@ -86,3 +86,14 @@ def test_coverage_and_uniqueness(jn):
     assert len(jn) >= 1900                                    # of ~1,960 JMA storms since 1951
     assert (jn.match_quality.str.startswith("good")).mean() > 0.9
     assert jn.jma_number.between(1, 40).all()
+
+
+def test_year_after_2050():
+    """Two-digit years expand from the header revision date, not a fixed 1951/2051 pivot (audit L4)."""
+    old = parse_bst(["66666 5101  001      5101 1 0                  OLD              19910716",
+                     "51123118 002 2 100 1300 1000      35"])[0]
+    new = parse_bst(["66666 5101  002      5101 1 0                  NEW              20510301",
+                     "50123118 002 2 100 1300 1000      35",
+                     "51010100 002 2 101 1301 1000      35"])[0]
+    assert old.year == 1951 and old.fixes[0].time.year == 1951
+    assert new.year == 2051 and [f.time.year for f in new.fixes] == [2050, 2051]
