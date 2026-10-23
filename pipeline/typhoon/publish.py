@@ -26,8 +26,14 @@ from typing import Any
 
 import httpx
 
-from .config import BUILD, ERA5_HONESTY, HF_REPO, PIPELINE_DIR
-from .dataset import check, file_list
+from .config import BUILD, ERA5_HONESTY, HF_BASE, HF_REPO, PIPELINE_DIR
+from .dataset import (
+    PreviousUnreadable,
+    check,
+    compare_with_published,
+    file_list,
+    http_get,
+)
 
 log = logging.getLogger("typhoon.publish")
 CARD_TEMPLATE = PIPELINE_DIR / "dataset_card.md"
@@ -179,6 +185,9 @@ def flip(version: int, root: Path = BUILD, *, note: str = "") -> dict[str, Any]:
     a = api()
     man = json.loads((root / f"v{version}" / "manifest.json").read_text())
     prev = current()
+    if prev and int(prev["dataVersion"]) > version and not note.startswith("rollback"):
+        raise SystemExit(f"refusing to flip latest.json from v{prev['dataVersion']} back to v{version} "
+                         "(use `publish rollback --to N` to go back on purpose)")
     latest = {
         "schema": "typhoon-replay/latest@1", "version": version, "dataVersion": version, "path": f"v{version}/",
         "index": f"v{version}/index.json", "manifest": f"v{version}/manifest.json",
@@ -198,8 +207,36 @@ def flip(version: int, root: Path = BUILD, *, note: str = "") -> dict[str, Any]:
 
 
 def current() -> dict[str, Any] | None:
-    r = httpx.get(resolve_url("latest.json"), follow_redirects=True, timeout=30)
-    return dict(r.json()) if r.status_code == 200 else None
+    """The published latest.json, or None only when the repo has never been published (404 and no v1/).
+
+    Any other failure raises (R2): treating a 401, a 5xx or a network error as "no previous version" used to
+    make next-version print 1, overwrite v1 and flip latest.json back to it."""
+    r = http_get(resolve_url("latest.json"), timeout=30)
+    if r.status_code == 404:
+        if http_get(resolve_url("v1/manifest.json"), timeout=30).status_code != 404:
+            raise PreviousUnreadable("latest.json is missing but v1/ exists; refusing to start again at v1")
+        return None
+    if r.status_code != 200:
+        raise PreviousUnreadable(f"latest.json: HTTP {r.status_code}")
+    try:
+        d = r.json()
+        int(d["dataVersion"])
+    except (ValueError, KeyError, TypeError) as e:
+        raise PreviousUnreadable(f"latest.json is malformed: {r.text[:200]!r}") from e
+    return dict(d)
+
+
+def published_versions() -> list[int]:
+    """Version numbers with a v<N>/ folder in the dataset repo (raises when the listing fails)."""
+    names = [f.path for f in api().list_repo_tree(HF_REPO, repo_type="dataset", recursive=False)]
+    return sorted(int(m.group(1)) for n in names if (m := re.fullmatch(r"v(\d+)", n)))
+
+
+def next_version(cur: dict[str, Any] | None, existing: list[int]) -> int:
+    """One more than both latest.json and every v<N>/ already in the repo, so a version is never overwritten."""
+    if cur is None and existing:
+        raise PreviousUnreadable(f"latest.json is missing but versions {existing[-3:]} exist")
+    return max([0, *existing] + ([int(cur["dataVersion"])] if cur else [])) + 1
 
 
 def input_changed(source_id: str) -> dict[str, Any]:
@@ -210,9 +247,10 @@ def input_changed(source_id: str) -> dict[str, Any]:
     cur = current()
     used = None
     if cur:
-        r = httpx.get(resolve_url(cur["manifest"]), follow_redirects=True, timeout=120)
-        if r.status_code == 200:
-            used = r.json()["provenance"]["inputs"].get(source_id, {}).get("sha256")
+        r = http_get(resolve_url(cur["manifest"]))
+        if r.status_code != 200:
+            raise PreviousUnreadable(f"{cur['manifest']}: HTTP {r.status_code}")
+        used = r.json()["provenance"]["inputs"].get(source_id, {}).get("sha256")
     return {"source": source_id, "changed": used != local["sha256"], "published": used, "local": local["sha256"]}
 
 
@@ -229,11 +267,12 @@ def prune(keep: int, *, squash: bool = False, dry_run: bool = True) -> dict[str,
     kept = set(versions[-keep:]) | ({int(cur["dataVersion"])} if cur else set())
     referenced: set[str] = set()
     for v in kept:
-        r = httpx.get(resolve_url(f"v{v}/manifest.json"), follow_redirects=True, timeout=120)
-        if r.status_code == 200:
-            vfiles = file_list(r.json(), lambda rel: httpx.get(resolve_url(rel), follow_redirects=True,
-                                                               timeout=120).raise_for_status().json())
-            referenced |= {k for k, f in vfiles.items() if f.get("shared")}
+        r = http_get(resolve_url(f"v{v}/manifest.json"))
+        if r.status_code != 200:   # R2: an unreadable kept version must not let its frames be deleted
+            raise PreviousUnreadable(f"v{v}/manifest.json: HTTP {r.status_code}; nothing pruned")
+        vfiles = file_list(r.json(), lambda rel: httpx.get(resolve_url(rel), follow_redirects=True,
+                                                           timeout=120).raise_for_status().json())
+        referenced |= {k for k, f in vfiles.items() if f.get("shared")}
     drop = [f for f in files if (m := re.match(r"v(\d+)/", f)) and int(m.group(1)) not in kept]
     drop += [f for f in files if f.split("/", 1)[0] in ("frames", "places", "tables") and f not in referenced]
     out = {"versions": versions, "kept": sorted(kept), "delete": len(drop), "dryRun": dry_run}
@@ -276,8 +315,7 @@ def main(argv: list[str] | None = None) -> None:
     elif a.cmd == "changed":
         print(json.dumps(input_changed(a.source)))
     elif a.cmd == "next-version":
-        cur = current()
-        print(int(cur["dataVersion"]) + 1 if cur else 1)
+        print(next_version(current(), published_versions()))
     elif a.cmd == "rollback":
         print(json.dumps(rollback(a.to), indent=1))
     elif a.cmd == "upload":
@@ -286,10 +324,12 @@ def main(argv: list[str] | None = None) -> None:
         print(json.dumps(verify(a.version), indent=1))
     elif a.cmd == "flip":
         check(BUILD / f"v{a.version}")
+        compare_with_published(BUILD / f"v{a.version}", HF_BASE)   # R1: against what is live right now
         print(json.dumps(verify(a.version), indent=1))
         print(json.dumps(flip(a.version), indent=1))
     else:
         print(json.dumps(check(BUILD / f"v{a.version}"), indent=1))
+        compare_with_published(BUILD / f"v{a.version}", HF_BASE)
         upload(a.version)
         print(json.dumps(verify(a.version), indent=1))
         print(json.dumps(flip(a.version), indent=1))

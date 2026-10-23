@@ -25,6 +25,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 from .config import RUN_MANIFEST
 
@@ -38,8 +39,13 @@ def prepare(refresh: bool) -> None:
     for sid in ("geoboundaries-phl-adm3", "hdx-cod-ab-phl-tabular", "psgc-cities-municipalities", "mlit-n03-jpn",
                 "geoboundaries-jpn-adm2", "naturalearth-50m-coastline"):
         sources.ensure(sid, man)
-    sources.ensure("jma-rsmc-besttrack", man, refresh=refresh)
-    jma.build(verbose=False)
+    try:   # R4: JMA numbers are an extra; a dead or changed JMA source must not stop the refresh
+        sources.ensure("jma-rsmc-besttrack", man, refresh=refresh)
+        jma.build(verbose=False)
+    except Exception as e:  # noqa: BLE001
+        jma.OUT.unlink(missing_ok=True)   # never let catalog read numbers from an older, unrelated run
+        print(f"::warning title=JMA numbers unavailable::{type(e).__name__}: {e}. The catalogue is built without "
+              "them; dataset.compare_previous stops the publish if storms lose their JMA designation.")
     crosswalk.build()
     catalog.build()
     exposure.build()
@@ -77,13 +83,28 @@ def carve_canary(batches: dict[str, list[str]], hours: dict[str, int], fraction:
     return out
 
 
+def defer_past_era5(st: Any, last_hour: dict[str, Any], end: Any) -> tuple[Any, list[str]]:
+    """Drop storms whose track runs past the last hour ERA5 can serve (R3): their frames would be partly
+    nodata and fail the run. They have no published frames, so the next refresh picks them up again."""
+    import numpy as np
+
+    late = sorted(sid for sid in st.sid if np.datetime64(last_hour[sid], "h") > end)
+    for sid in late:
+        print(f"::notice title=frames deferred::{sid} runs to {last_hour[sid]}, past the end of ERA5T ({end}); "
+              "its replay is built by a later refresh")
+    return st[~st.sid.isin(late)], late
+
+
 def plan(batches: int, list_file: Path | None, previous: str | None, mode: str = "all",
-         selected: bool = False, canary: float = 0.0, canary_jobs: int = 4) -> dict[str, list[str]]:
+         selected: bool = False, canary: float = 0.0, canary_jobs: int = 4,
+         era5_end: Any = None) -> dict[str, list[str]]:
     """Greedy longest-first split of storms into `batches` with balanced storm-hours.
 
     mode "all": every selected storm; "missing" (backfill): storms whose published frames are absent or
-    stale; "changed" (weekly refresh): storms new since the previous version, plus storms whose published
-    frames are stale because IBTrACS revised the track. Stale = the hourly track hash changed.
+    stale; "changed" (weekly refresh): storms without published frames (new since the previous version, or
+    deferred / failed in an earlier refresh), plus storms whose published frames are stale because IBTrACS
+    revised the track. Stale = the hourly track hash changed. Storms that run past the end of ERA5T are
+    deferred in every mode (`era5_end`, default: read from ARCO-ERA5).
     """
     from . import catalog
     from .dataset import load_previous, track_hash
@@ -97,18 +118,22 @@ def plan(batches: int, list_file: Path | None, previous: str | None, mode: str =
 
         sel = selection.load()
         st = st[st.sid.isin(sel[sel.selected].index)]
+    hr = catalog.load("hourly")
+    hr = hr[hr.sid.isin(st.sid)]
     if mode != "all":
-        prev_index, prev_frames = load_previous(previous)
-        known = set()
-        if prev_index:
-            known = {r["sid"] for r in prev_index["storms"]}
-        hr = catalog.load("hourly")
+        _, prev_frames = load_previous(previous)
         keep = []
-        for sid, h in hr[hr.sid.isin(st.sid)].groupby("sid"):
+        for sid, h in hr.groupby("sid"):
             stale = sid in prev_frames and prev_frames[sid]["trackHash"] != track_hash(h)
-            if mode == "missing" and (sid not in prev_frames or stale) or mode == "changed" and (sid not in known or stale):
+            if sid not in prev_frames or stale:   # "missing" and "changed" agree since every storm gets frames
                 keep.append(sid)
         st = st[st.sid.isin(keep)]
+    if era5_end is None:
+        from .era5 import era5_end as read_end
+
+        era5_end = read_end()
+    last_hour = {str(k): v for k, v in hr.groupby("sid").time.max().dt.tz_convert("UTC").dt.tz_localize(None).items()}
+    st, _ = defer_past_era5(st, last_hour, era5_end)
     loads = [0] * batches
     out: dict[str, list[str]] = {str(i): [] for i in range(batches)}
     for sid, hours in zip(st.sort_values("hours", ascending=False).sid, st.sort_values("hours", ascending=False).hours, strict=True):

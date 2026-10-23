@@ -345,6 +345,43 @@ def arco(var: Var, hours: np.ndarray, row0: np.ndarray, col0: np.ndarray, rr: so
     return out
 
 
+# ----------------------------------------------------------------------------- how far ERA5 reaches (R3)
+
+ERA5_LAG_FALLBACK_DAYS = 12   # ERA5T trails real time by about 5 days; assume more when ARCO cannot say
+
+
+def parse_era5_end(attrs: Any, now: np.datetime64) -> tuple[np.datetime64, str]:
+    """Last hour ERA5 (ERA5T included) can serve, from ARCO-ERA5's root .zattrs, and where that came from.
+
+    `valid_time_stop_era5t` is a date (the whole day is present); `valid_time_stop` (final ERA5, ~3 months
+    behind) is the safe second choice; without either, now minus ERA5_LAG_FALLBACK_DAYS."""
+    for key in ("valid_time_stop_era5t", "valid_time_stop"):
+        v = attrs.get(key) if isinstance(attrs, dict) else None
+        try:
+            day = np.datetime64(str(v)[:10], "D")
+        except (TypeError, ValueError):
+            continue
+        if np.datetime64("1940-01-01", "D") < day <= now.astype("datetime64[D]"):
+            return day.astype("datetime64[h]") + np.timedelta64(23, "h"), key
+    return (now.astype("datetime64[h]") - np.timedelta64(ERA5_LAG_FALLBACK_DAYS * 24, "h"),
+            f"fallback: now - {ERA5_LAG_FALLBACK_DAYS} days")
+
+
+def era5_end(now: np.datetime64 | None = None) -> np.datetime64:
+    """parse_era5_end over the live ARCO metadata; never raises (a dead or changed store gives the fallback)."""
+    now = np.datetime64("now", "h") if now is None else now
+    try:
+        attrs: Any = json.loads(get_all(f"{ARCO}/.zattrs", retries=3))
+    except Exception as e:  # noqa: BLE001  any failure: the conservative fallback
+        log.warning("ARCO .zattrs unreadable (%s); using the fallback ERA5 end", e)
+        attrs = {}
+    end, how = parse_era5_end(attrs, now)
+    if how.startswith("fallback") or how == "valid_time_stop":
+        print(f"::warning title=ERA5 end unknown::ARCO-ERA5 metadata gave no valid_time_stop_era5t; frames stop at {end} ({how})")
+    log.info("ERA5 reaches %s (%s)", end, how)
+    return end
+
+
 # ----------------------------------------------------------------------------- orchestration
 
 @dataclass

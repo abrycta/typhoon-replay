@@ -375,17 +375,57 @@ def track_hash(h: pd.DataFrame) -> str:
     return hashlib.sha256(a.astype("float64").tobytes()).hexdigest()[:16]
 
 
-def _get_json(root: str, rel_path: str) -> Any:
-    if root.startswith("https://"):
-        import httpx
+class PreviousUnreadable(RuntimeError):
+    """The published dataset could not be read. Never treated as "no previous version": that would rebuild or
+    drop every reused storm, and could overwrite v1 or roll latest.json back (resilience fix R2)."""
 
-        r = httpx.get(f"{root.rstrip('/')}/{rel_path}", follow_redirects=True, timeout=120)
-        if r.status_code in (401, 404):
+
+def http_get(url: str, *, timeout: float = 120, tries: int = 4) -> Any:
+    """GET with retries on network errors, 429 and 5xx (honouring Retry-After). Returns the final response;
+    the caller decides what each status means."""
+    import httpx
+
+    last: Exception | None = None
+    for k in range(tries):
+        try:
+            r = httpx.get(url, follow_redirects=True, timeout=timeout)
+        except httpx.HTTPError as e:
+            last = e
+        else:
+            if r.status_code != 429 and r.status_code < 500:
+                return r
+            last = RuntimeError(f"HTTP {r.status_code}")
+            ra = r.headers.get("retry-after", "")
+            if ra.isdigit():
+                time.sleep(min(int(ra), 120))
+                continue
+        if k < tries - 1:
+            time.sleep(5 * (k + 1))
+    raise PreviousUnreadable(f"{url}: {last}")
+
+
+def _get_json(root: str, rel_path: str) -> Any:
+    """A JSON file of the published dataset, or None only when it is definitely absent (HTTP 404 / no file).
+    Any other failure (401/403, 5xx after retries, a network error, a body that is not JSON) raises
+    PreviousUnreadable."""
+    if root.startswith("https://"):
+        url = f"{root.rstrip('/')}/{rel_path}"
+        r = http_get(url)
+        if r.status_code == 404:
             return None
-        r.raise_for_status()
-        return r.json()
+        if r.status_code != 200:
+            raise PreviousUnreadable(f"{url}: HTTP {r.status_code}")
+        try:
+            return r.json()
+        except ValueError as e:
+            raise PreviousUnreadable(f"{url}: not JSON ({e})") from e
     p = Path(root) / rel_path
-    return json.loads(p.read_text()) if p.exists() else None
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text())
+    except ValueError as e:
+        raise PreviousUnreadable(f"{p}: not JSON ({e})") from e
 
 
 def frames_index_path(base_v: str, season: int) -> str:
@@ -394,22 +434,45 @@ def frames_index_path(base_v: str, season: int) -> str:
     return f"{base_v}frames-index/{season}.json"
 
 
-def load_previous(root: str | None) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-    """(index.json, frames index) of the version `latest.json` points at under `root` (URL or dir). Reads the
-    per-season shards (`framesIndexShards`), or the single frames-index.json of v1."""
+def _latest_and_index(root: str | None) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """(latest.json, its index.json) under `root`; (None, None) only if nothing was ever published there."""
     if not root:
-        return None, {}
+        return None, None
     latest = _get_json(root, "latest.json")
     if not latest:
-        return None, {}
+        if _get_json(root, "v1/manifest.json") is not None:
+            raise PreviousUnreadable(f"{root}: latest.json is missing but v1/ exists")
+        log.warning("no published version under %s", root)
+        return None, None
+    if not isinstance(latest, dict) or not isinstance(latest.get("index"), str):
+        raise PreviousUnreadable(f"{root}: latest.json has no index path: {str(latest)[:200]}")
     prev = _get_json(root, latest["index"])
-    if not prev:
+    if not isinstance(prev, dict) or not isinstance(prev.get("storms"), list):
+        raise PreviousUnreadable(f"{root}: {latest['index']} is missing or has no storms list")
+    return latest, prev
+
+
+def load_previous(root: str | None) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """(index.json, frames index) of the version `latest.json` points at under `root` (URL or dir). Reads the
+    per-season shards (`framesIndexShards`), or the single frames-index.json of v1.
+
+    Returns (None, {}) only for a dataset that has never been published (no latest.json and no v1/). A
+    published dataset that cannot be read completely raises PreviousUnreadable (R2)."""
+    latest, prev = _latest_and_index(root)
+    if latest is None or prev is None:
         return None, {}
     if "framesIndexShards" not in prev:
-        return prev, _get_json(root, prev.get("framesIndex") or latest["path"] + "frames-index.json") or {}
+        fi = _get_json(root, prev.get("framesIndex") or latest["path"] + "frames-index.json")
+        if fi is None:
+            raise PreviousUnreadable(f"{root}: the frames index of {latest['index']} is missing")
+        return prev, fi
     frames: dict[str, Any] = {}
     for season in sorted({int(r["season"]) for r in prev["storms"] if r.get("replayAvailable")}):
-        frames |= _get_json(root, prev["framesIndexShards"].replace("{season}", str(season))) or {}
+        rel_path = prev["framesIndexShards"].replace("{season}", str(season))
+        shard = _get_json(root, rel_path)
+        if shard is None:
+            raise PreviousUnreadable(f"{root}: frames-index shard {rel_path} is missing")
+        frames |= shard
     return prev, frames
 
 
@@ -864,6 +927,87 @@ def check(vdir: Path) -> dict[str, Any]:
     return result
 
 
+# ----------------------------------------------------------------------------- comparison with the published version (R1)
+
+# IBTrACS merges, splits and renumbers a few provisional storms every season, and revised tracks can move a
+# storm out of the catalogue rules (spur, outside PAR). Anything beyond these limits stops the publish.
+VANISH_MAX, VANISH_SHARE = 5, 0.01          # storms leaving the catalogue in one version
+REPLAY_LOSS_MAX, REPLAY_LOSS_SHARE = 3, 0.01   # storms losing their replay frames
+NAME_LOSS_MAX, NAME_LOSS_SHARE = 5, 0.01      # storms losing their PAGASA or JMA (台風第N号) name
+ANNOTATE_MAX = 20                           # CI annotations per kind; the rest go to the JSON report
+
+
+def previous_index(root: str | None) -> dict[str, Any] | None:
+    """index.json of the version latest.json points at under `root` (None only if nothing was ever published)."""
+    return _latest_and_index(root)[1]
+
+
+def _vanish_reason(sid: str, ib_sids: set[str] | None) -> str:
+    if ib_sids is None:
+        return "not in the new catalogue (IBTrACS storms table unavailable to say why)"
+    if sid not in ib_sids:
+        return "no longer in IBTrACS WP (merged, split or renumbered upstream)"
+    return "still in IBTrACS but outside the catalogue rules after a track revision (spur, season or PAR/landfall)"
+
+
+def compare_previous(index: dict[str, Any], prev: dict[str, Any] | None, *, allow_shrink: bool = False,
+                     ib_sids: set[str] | None = None) -> dict[str, Any]:
+    """Compare a new index.json with the published one: every storm that disappears, loses its replay or loses
+    a local name is listed with a reason (CI ::warning), and losses beyond the limits above raise CheckFailed
+    unless `allow_shrink` (a reviewed, intended shrink). Additions are only counted."""
+    if prev is None:
+        return {"previous": None, "problems": []}
+    old = {r["sid"]: r for r in prev["storms"]}
+    new = {r["sid"]: r for r in index["storms"]}
+    gone = {sid: _vanish_reason(sid, ib_sids) for sid in sorted(set(old) - set(new))}
+    lost_replay = {}
+    for sid, r in old.items():
+        if r.get("replayAvailable") and sid in new and not new[sid].get("replayAvailable"):
+            lost_replay[sid] = ("track revised upstream and the frames were not rebuilt"
+                                if r.get("trackHash") != new[sid].get("trackHash") else
+                                "frames of an unchanged track were not reused")
+    lost_names = {}
+    for sid, r in old.items():
+        if sid in new:
+            missing = sorted(set(r.get("localNames") or {}) - set(new[sid].get("localNames") or {}))
+            if missing:
+                lost_names[sid] = "lost " + "/".join(missing) + " name (crosswalk or JMA match changed)"
+    n_old = len(old)
+    n_replay = sum(1 for r in old.values() if r.get("replayAvailable"))
+    limits = {"vanished": max(VANISH_MAX, int(VANISH_SHARE * n_old)),
+              "lostReplay": max(REPLAY_LOSS_MAX, int(REPLAY_LOSS_SHARE * n_replay)),
+              "lostNames": max(NAME_LOSS_MAX, int(NAME_LOSS_SHARE * n_old))}
+    found = {"vanished": gone, "lostReplay": lost_replay, "lostNames": lost_names}
+    problems = []
+    for kind, items in found.items():
+        for k, (sid, why) in enumerate(items.items()):
+            if k < ANNOTATE_MAX:
+                print(f"::warning title=storm {kind}::{sid} {old[sid].get('name')} ({old[sid].get('season')}): {why}")
+        if len(items) > limits[kind]:
+            problems.append(f"{len(items)} storms {kind} (limit {limits[kind]})")
+    out = {"previous": prev.get("dataVersion"), "storms": [n_old, len(new)],
+           "added": len(set(new) - set(old)), "limits": limits, "allowShrink": allow_shrink,
+           **found, "problems": problems}
+    if problems and not allow_shrink:
+        raise CheckFailed("compared with the published version: " + "; ".join(problems) + "\n"
+                          + json.dumps({k: v for k, v in out.items() if k in ("previous", "storms", "limits")}))
+    for p_ in problems:
+        print(f"::warning title=shrink allowed::{p_} (ALLOW_SHRINK)")
+    return out
+
+
+def compare_with_published(vdir: Path, root: str | None) -> dict[str, Any]:
+    """compare_previous for a built version directory against the dataset at `root`; writes
+    <build>/compare-v<N>.json (local only, not uploaded)."""
+    index = json.loads((vdir / "index.json").read_text())
+    ib = PROCESSED / "ibtracs/storms.parquet"
+    ib_sids = set(pd.read_parquet(ib, columns=["sid"]).sid) if ib.exists() else None
+    out = compare_previous(index, previous_index(root), ib_sids=ib_sids,
+                           allow_shrink=os.environ.get("ALLOW_SHRINK", "").lower() in ("1", "true"))
+    (vdir.parent / f"compare-{vdir.name}.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     ap = argparse.ArgumentParser()
@@ -878,6 +1022,8 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "build":
         vdir = build(a.version, a.previous, frames_uploaded=a.frames_uploaded)
         print(json.dumps(check(vdir), indent=1))
+        cmp = compare_with_published(vdir, a.previous)
+        print(json.dumps({k: (len(v) if isinstance(v, dict) else v) for k, v in cmp.items()}))
     else:
         print(json.dumps(check(BUILD / f"v{a.version}"), indent=1))
 
