@@ -59,13 +59,13 @@ export function UnderTheHood() {
         <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{t`Tech`}</p>
         <h1 className="font-heading text-ak-title font-semibold text-balance">{t`One API, four languages`}</h1>
         <p className="max-w-[66ch] text-muted-foreground">
-          {t`Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception.`}
+          {t`Replay's storm tracks, wind maps and town lists are files prepared ahead of time, so the site loads without waiting for a server. This page is the exception.`}
         </p>
         <p className="max-w-[66ch] text-muted-foreground">
-          {t`Behind it sits a small API: a service that answers questions such as "Which storms passed near Tacloban?" We wrote down exactly how its answers must look in one shared rulebook, the contract, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules.`}
+          {t`It talks to a small API that answers questions such as "Which storms passed near Tacloban?" One shared rulebook, the contract, sets exactly how its answers must look, and the API is built four times against it, in Java, Node, Rust and Go.`}
         </p>
         <p className="max-w-[66ch] text-muted-foreground">
-          {t`Press "Run on all four" to send the same question to every version and compare the answers. They should match. Some versions run on free hosting that sleeps when nobody is using it, so the first answer can be slow while a server wakes up. The page waits for it on its own.`}
+          {t`Press "Run on all four" to send the same question to every build and compare the answers. They should match.`}
         </p>
         <dl className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
           {facts.map((f) => (
