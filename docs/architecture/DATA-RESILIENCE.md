@@ -118,7 +118,7 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
   and OG image are unchanged keeps pointing at the earlier version's folder (`index.json` `path`), and
   frames are rebuilt only when IBTrACS changed the storm's hourly track (`trackHash`). A weekly refresh
   therefore uploads a few storms' files plus the version's small documents. Uploads go in commits of at
-  most 99 files.
+  most 500 files, paced, and every Hub commit retries a 429 after the wait the server asks for (R7).
 - **Size.** Frames are lossy WebP for drawing (about 1.3 kB per storm-hour) plus lossless 3-hourly 0.5 deg
   grids for exact readouts (about 1.2 kB); frames go to the ~1,000 storms chosen by `typhoon.selection`.
 - **Gates first.** `dataset.check` verifies every file's checksum against the manifest, the 25 MiB per-file

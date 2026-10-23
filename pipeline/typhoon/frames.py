@@ -33,7 +33,6 @@ import io
 import json
 import logging
 import math
-import random
 import shutil
 import time
 from dataclasses import dataclass
@@ -541,24 +540,14 @@ def upload_storms(dirs: list[Path]) -> None:
     rate limits). They are invisible to the app until a summary.json of a published version references them."""
     if not dirs:
         return
-    from huggingface_hub import CommitOperationAdd, HfApi
+    from huggingface_hub import CommitOperationAdd
 
-    from .config import HF_REPO
-    from .publish import token
+    from .publish import api, hf_commit
 
     ops = [CommitOperationAdd(path_in_repo=f"frames/{d.name}/{f.name}", path_or_fileobj=str(f))
            for d in dirs for f in sorted(d.iterdir()) if f.suffix in (".tyf", ".webp")]
-    for k in range(6):
-        try:
-            HfApi(token=token()).create_commit(
-                repo_id=HF_REPO, repo_type="dataset", operations=ops,
-                commit_message=f"frames for {len(dirs)} storms ({dirs[0].name} .. {dirs[-1].name})")
-            log.info("uploaded frames for %d storms (%d files)", len(dirs), len(ops))
-            return
-        except Exception as e:  # noqa: BLE001  concurrent batch commits can conflict: retry
-            log.warning("upload of %d storms failed (%s), retry %d", len(dirs), e, k + 1)
-            time.sleep(30 * (k + 1) + random.uniform(0, 30))
-    raise RuntimeError(f"could not upload frames for {[d.name for d in dirs]}")
+    hf_commit(api(), ops, f"frames for {len(dirs)} storms ({dirs[0].name} .. {dirs[-1].name})")
+    log.info("uploaded frames for %d storms (%d files)", len(dirs), len(ops))
 
 
 def read_list(path: Path) -> list[str]:

@@ -734,7 +734,7 @@ def write_manifest(vdir: Path, version: int, index: dict[str, Any], tinfo: dict[
         d.pop("data_as_of", None)
         if "wikipedia-season-pages" in d["source_id"]:
             continue
-        run.add(sources.Provenance(**d))
+        run.add(sources.provenance_from_dict(d))
     era5: dict[str, dict[str, Any]] = {}
     for sid, r in replay.items():
         pf = r["dir"] / "provenance.json"

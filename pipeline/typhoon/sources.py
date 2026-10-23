@@ -49,8 +49,37 @@ REGISTRY_PATH = PIPELINE_DIR / "sources.yaml"
 
 log = logging.getLogger("typhoon.sources")
 
-__all__ = ["REGISTRY_PATH", "AllLinksFailed", "Provenance", "RemoteRead", "RunManifest", "check_ibtracs", "check_jma",
-           "data_version_metadata", "fetch", "fetch_template", "local_path", "registry", "remote_links", "source"]
+
+def provenance_from_dict(d: dict[str, Any]) -> Provenance:
+    """Rebuild a Provenance from a sidecar or manifest dict, tolerating keys this kit version doesn't know.
+
+    `Provenance(**d)` raises on a sidecar written by a newer kit (new fields), which would break a rollback
+    of the kit pin. Kit 1.3+ has `Provenance.from_dict` for this; older kits get the same by filtering on
+    the dataclass fields.
+    """
+    from_dict = getattr(Provenance, "from_dict", None)
+    if from_dict is not None:
+        return from_dict(d)
+    known = {f.name for f in dataclasses.fields(Provenance)}
+    return Provenance(**{k: v for k, v in d.items() if k in known})
+
+__all__ = [
+    "REGISTRY_PATH",
+    "AllLinksFailed",
+    "Provenance",
+    "RemoteRead",
+    "RunManifest",
+    "check_ibtracs",
+    "check_jma",
+    "data_version_metadata",
+    "fetch",
+    "fetch_template",
+    "local_path",
+    "provenance_from_dict",
+    "registry",
+    "remote_links",
+    "source",
+]
 
 
 @lru_cache(maxsize=1)
@@ -82,7 +111,7 @@ def ensure(source_id: str, manifest: RunManifest | None = None, *, refresh: bool
     if path.exists() and prov_file.exists() and not refresh:
         d = json.loads(prov_file.read_text())
         d.pop("data_as_of", None)
-        prov = Provenance(**d)
+        prov = provenance_from_dict(d)
         if manifest is not None:
             manifest.add(prov)
         return path

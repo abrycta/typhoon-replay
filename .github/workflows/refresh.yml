@@ -39,6 +39,9 @@ jobs:
   refresh:
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    permissions:
+      contents: read
+      issues: write # open, update and close the "Refresh failed" issue
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: setup
@@ -106,3 +109,41 @@ jobs:
           uv run python -m typhoon publish upload --version "$VERSION"
           uv run python -m typhoon publish flip --version "$VERSION"
           echo "Published data version $VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+      # R10: a red refresh opens (or comments on) one issue, and the next green run closes it. Internal only.
+      - name: Open or update the failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Refresh failed"
+          body="The data refresh ($GITHUB_EVENT_NAME) failed on $(date -u +%Y-%m-%dT%H:%MZ): $RUN_URL"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "[.[] | select(.title == \"$title\")][0].number // empty")
+          if [ -n "$number" ]; then gh issue comment "$number" --body "$body"; else gh issue create --title "$title" --body "$body"; fi
+      - name: Close the failure issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Refresh failed"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "[.[] | select(.title == \"$title\")][0].number // empty")
+          if [ -n "$number" ]; then gh issue close "$number" --comment "Recovered: $RUN_URL"; fi
+
+  # R10: GitHub disables scheduled workflows in a public repo after 60 days without activity. Re-enabling them
+  # every week resets that clock and brings back one that was already disabled. Never fails the run.
+  keepalive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/keepalive.sh

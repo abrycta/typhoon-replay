@@ -18,6 +18,7 @@ import datetime as dt
 import json
 import logging
 import os
+import random
 import re
 import subprocess
 import time
@@ -60,7 +61,14 @@ def resolve_url(path: str, revision: str = "main") -> str:
     return f"https://huggingface.co/datasets/{HF_REPO}/resolve/{revision}/{path}"
 
 
-COMMIT_FILES = 99   # Hugging Face recommends commits of under 100 files
+# R7: a version is about 10k small files. At 99 files per commit that was 100+ commits, which ran into the
+# Hub's (undocumented) commit rate limit with HTTP 429. Small files go inline in the commit payload, so a few
+# hundred per commit stays well under the payload limit while needing about 20 commits per version.
+COMMIT_FILES = 500
+COMMIT_TRIES = 8
+COMMIT_BACKOFF_S, COMMIT_BACKOFF_MAX_S = 15, 900   # 15 s, 30 s, ... capped at 15 min (about 30 min in all)
+COMMIT_PAUSE_S = 3        # between consecutive commits of one upload, to stay under the commit rate
+PERMANENT = {400, 401, 403, 404, 413, 422}   # retrying cannot help
 
 
 def remote_paths(prefix: str) -> dict[str, int]:
@@ -72,25 +80,59 @@ def remote_paths(prefix: str) -> dict[str, int]:
         return {}
 
 
-def push(root: Path, rels: list[str], message: str) -> int:
-    """Upload files (paths relative to `root` = repo paths) in commits of at most COMMIT_FILES files."""
+def _retry_after(e: BaseException) -> tuple[int | None, float | None]:
+    """HTTP status and the server's wait hint in seconds: Retry-After, else the `t=` of the Hub's RateLimit
+    header (IETF draft: `"api";r=0;t=123`)."""
+    resp = getattr(e, "response", None)
+    status = getattr(resp, "status_code", None)
+    headers = getattr(resp, "headers", None) or {}
+    try:
+        ra = headers.get("retry-after") or headers.get("Retry-After")
+        if ra is not None:
+            return status, float(ra)
+    except (TypeError, ValueError):   # an HTTP date: fall through
+        pass
+    m = re.search(r"\bt=(\d+)", str(headers.get("ratelimit") or headers.get("RateLimit") or ""))
+    return status, float(m.group(1)) if m else None
+
+
+def hf_commit(a: Any, operations: list[Any], message: str, *, tries: int = COMMIT_TRIES,
+              sleep: Any = time.sleep) -> Any:
+    """create_commit with retries (R7): waits as long as a 429 asks (Retry-After or RateLimit t=), backs off
+    exponentially with jitter on conflicts, 5xx and network errors, and gives up at once on errors that
+    retrying cannot fix. Each wait is capped at COMMIT_BACKOFF_MAX_S."""
+    for k in range(tries):
+        try:
+            return a.create_commit(HF_REPO, repo_type="dataset", operations=operations, commit_message=message)
+        except Exception as e:
+            status, hint = _retry_after(e)
+            if status in PERMANENT or k == tries - 1:
+                raise
+            backoff = min(COMMIT_BACKOFF_MAX_S, COMMIT_BACKOFF_S * 2 ** k) * random.uniform(0.75, 1.25)
+            wait = min(COMMIT_BACKOFF_MAX_S, max(hint + 1, COMMIT_BACKOFF_S) if hint is not None else backoff)
+            if status == 429:
+                print(f"::warning title=Hugging Face rate limit::commit '{message}' got 429; waiting {wait:.0f} s",
+                      flush=True)
+            log.warning("commit '%s' failed (%s %s); retry %d/%d in %.0f s", message, status, e, k + 1, tries - 1,
+                        wait)
+            sleep(wait)
+    raise AssertionError("unreachable")
+
+
+def push(root: Path, rels: list[str], message: str, *, sleep: Any = time.sleep) -> int:
+    """Upload files (paths relative to `root` = repo paths) in commits of at most COMMIT_FILES files,
+    paced and retried by hf_commit."""
     from huggingface_hub import CommitOperationAdd
 
     a = api()
     n = 0
+    total = -(-len(rels) // COMMIT_FILES)
     for i in range(0, len(rels), COMMIT_FILES):
         chunk = rels[i:i + COMMIT_FILES]
         ops = [CommitOperationAdd(path_in_repo=r, path_or_fileobj=str(root / r)) for r in chunk]
-        for k in range(5):
-            try:
-                a.create_commit(HF_REPO, repo_type="dataset", operations=ops,
-                                commit_message=f"{message} ({i // COMMIT_FILES + 1}/{-(-len(rels) // COMMIT_FILES)})")
-                break
-            except Exception as e:
-                if k == 4:
-                    raise
-                log.warning("commit failed (%s); retrying", e)
-                time.sleep(15 * (k + 1))
+        if i:
+            sleep(COMMIT_PAUSE_S)
+        hf_commit(a, ops, f"{message} ({i // COMMIT_FILES + 1}/{total})", sleep=sleep)
         n += len(chunk)
         log.info("uploaded %d/%d files", n, len(rels))
     return n
@@ -197,8 +239,7 @@ def flip(version: int, root: Path = BUILD, *, note: str = "") -> dict[str, Any]:
     }
     ops = [CommitOperationAdd("latest.json", json.dumps(latest, indent=1).encode()),
            CommitOperationAdd("README.md", card(version, man, root).encode())]
-    a.create_commit(HF_REPO, repo_type="dataset", operations=ops,
-                    commit_message=f"Publish data version {version}" + (f" ({note})" if note else ""))
+    hf_commit(a, ops, f"Publish data version {version}" + (f" ({note})" if note else ""))
     try:
         a.create_tag(HF_REPO, repo_type="dataset", tag=f"data-v{version}", exist_ok=True)
     except TypeError:  # older hub without exist_ok
@@ -278,8 +319,8 @@ def prune(keep: int, *, squash: bool = False, dry_run: bool = True) -> dict[str,
     out = {"versions": versions, "kept": sorted(kept), "delete": len(drop), "dryRun": dry_run}
     if not dry_run and drop:
         for i in range(0, len(drop), 500):
-            a.create_commit(HF_REPO, repo_type="dataset", commit_message=f"prune: keep v{sorted(kept)}",
-                            operations=[CommitOperationDelete(path_in_repo=f) for f in drop[i:i + 500]])
+            hf_commit(a, [CommitOperationDelete(path_in_repo=f) for f in drop[i:i + 500]],
+                      f"prune: keep v{sorted(kept)}")
         if squash:
             a.super_squash_history(HF_REPO, repo_type="dataset", commit_message="Squash history after pruning")
     return out
