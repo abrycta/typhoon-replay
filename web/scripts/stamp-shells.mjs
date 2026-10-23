@@ -64,19 +64,20 @@ function describe(s) {
   };
 }
 
-function headTags({ title, text, url, image }) {
+function headTags({ title, ogTitle = title, text, url, image, imageAlt = ogTitle }) {
   return [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(text)}" />`,
     `<link rel="canonical" href="${esc(url)}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Replay" />`,
-    `<meta property="og:title" content="${esc(title)}" />`,
+    `<meta property="og:title" content="${esc(ogTitle)}" />`,
     `<meta property="og:description" content="${esc(text)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
     `<meta property="og:image" content="${esc(image)}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="${esc(imageAlt)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
   ].join("\n    ");
 }
@@ -94,9 +95,12 @@ const { storms, root, source } = await loadIndex();
 
 const home = {
   title: "Replay",
+  ogTitle: "Replay: any typhoon, hour by hour",
   text: "Replay any typhoon that hit the Philippines or Japan, hour by hour: ERA5 wind, rain and pressure beside the official best track.",
   url: `${site}/`,
-  image: `${site}/og-card.png`,
+  // Versioned name: bump it with each new card so LinkedIn and others fetch the new image.
+  image: `${site}/og-card-v2.png`,
+  imageAlt: "Replay: Typhoon Haiyan (Yolanda) over the central Philippines on 8 November 2013, ERA5 wind and the best track",
 };
 writeFileSync(join(dist, "index.html"), stamp(template, headTags(home), "Replay needs JavaScript for the interactive replay."));
 // The app's other pages get their own shell (Pages serves /about from about.html) so each names its own canonical
