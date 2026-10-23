@@ -1,4 +1,5 @@
-# Shared setup for the data pipeline jobs: skip cleanly without the private-kit token, install uv,
+# Shared setup for the data pipeline jobs: skip cleanly without the private-kit token on pull requests (fork and
+# Dependabot PRs get no secrets) but fail loudly on scheduled and manual runs (R10), install uv,
 # route the private archivekit git dependency through ARCHIVE_READ_TOKEN, sync the locked environment.
 name: Set up the data pipeline
 description: Token gate, uv, archivekit access and `uv sync --locked` in pipeline/.
@@ -27,7 +28,17 @@ runs:
         T: ${{ inputs.archive-read-token }}
         H: ${{ inputs.hf-token }}
         NEED_HF: ${{ inputs.require-hf }}
+        EVENT: ${{ github.event_name }}
       run: |
+        # Scheduled and manual runs must never turn green without doing their work: a missing secret is an error.
+        case "$EVENT" in schedule|workflow_dispatch) strict=true ;; *) strict=false ;; esac
+        missing=""
+        [ -z "$T" ] && missing="ARCHIVE_READ_TOKEN"
+        [ "$NEED_HF" = "true" ] && [ -z "$H" ] && missing="${missing:+$missing and }HF_TOKEN"
+        if [ -n "$missing" ] && [ "$strict" = "true" ]; then
+          echo "::error title=missing secret::$missing is not available to this $EVENT run; add or renew the repository secret."
+          exit 1
+        fi
         if [ -z "$T" ]; then
           echo "::notice title=pipeline skipped::ARCHIVE_READ_TOKEN is not available (fork PR or not created yet); the private archivekit can't be installed."
           echo "ok=false" >> "$GITHUB_OUTPUT"

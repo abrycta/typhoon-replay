@@ -185,3 +185,12 @@ def test_live_feed_row_change_limits():
         assert t.max_row_change == limit
         assert not compare(Profile(rows=10), Profile(rows=int(10 * (1 + limit))), t)
         assert compare(Profile(rows=10), Profile(rows=int(10 * (1 + limit)) + 1), t)
+
+
+def test_provenance_from_dict_ignores_unknown_keys() -> None:
+    """A sidecar written by a newer kit (extra fields) must still load after a kit rollback."""
+    d = {"source_id": "ibtracs-wp", "link_id": "primary", "served_by": "upstream", "url": "https://x/y.csv",
+         "fetched_at": "2026-10-23T00:00:00Z", "sha256": "0" * 64, "bytes": 1, "rows": 1, "fallback_used": False,
+         "a_field_from_kit_9": {"x": 1}}
+    p = S.provenance_from_dict(d)
+    assert p.source_id == "ibtracs-wp" and p.sha256 == "0" * 64
