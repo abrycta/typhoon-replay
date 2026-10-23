@@ -1,5 +1,5 @@
 // The wake-up story, in one place: which backends sleep, how long they take to wake, and every sentence that says so.
-// Wake times come only from the conformance table's "Cold start on free hosting" row (coldStartS in catalogue.ts),
+// Wake times come only from the conformance table's "Cold start" row (coldStartS in catalogue.ts),
 // so the copy, the table and the lanes' waiting bar show the same measured number. A backend without a measured
 // figure gets no number anywhere ("a minute or more" in the copy, "—" in the table); its figure appears here
 // automatically once it is measured and added there (by hand: CI does not measure cold starts).
@@ -44,7 +44,7 @@ export function useWakeCopy(labels: Record<BackendId, string> = DEFAULT_LABELS) 
     const wakeTimes = t`${first} and ${second}`;
     return {
       /** The "Hosting" fact at the top of the page; matches the HowItWorks stack table. */
-      hostingFact: t`Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep`,
+      hostingFact: t`Java and Go run on Render and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep`,
       /** The paragraph under the race heading. */
       raceIntro: t`Java and Go sleep after 15 minutes idle. Waking takes ${wakeTimes} (the cold-start row below). Opening this page starts waking both, and the race waits for them on its own. Node and Rust never sleep.`,
       /** A lane that got a "waking" answer during a run. */
@@ -52,7 +52,7 @@ export function useWakeCopy(labels: Record<BackendId, string> = DEFAULT_LABELS) 
         const s = coldStartS(id);
         if (!sleeps(id)) return t`${label} is not answering yet. This page keeps trying.`;
         return s !== undefined
-          ? t`${label} is waking up from sleep: about ${s} s on free hosting. This page keeps trying.`
+          ? t`${label} is waking up from sleep: about ${s} s. This page keeps trying.`
           : t`${label} is waking up from sleep: waking can take a minute or more. This page keeps trying.`;
       },
       /** An idle lane whose wake-up ping found it asleep. */
@@ -62,7 +62,7 @@ export function useWakeCopy(labels: Record<BackendId, string> = DEFAULT_LABELS) 
         const s = coldStartS(id);
         if (!sleeps(id)) return t`The backend is not answering yet. Send again in ${retryAfterS} s.`;
         return s !== undefined
-          ? t`The backend is waking up (about ${s} s on free hosting). Send again in ${retryAfterS} s.`
+          ? t`The backend is waking up (about ${s} s). Send again in ${retryAfterS} s.`
           : t`The backend is waking up (waking can take a minute or more). Send again in ${retryAfterS} s.`;
       },
     };

@@ -22,7 +22,7 @@ export function FieldLegend({ layer, units, theme }: { layer: FieldLayer; units:
       unit={unit}
       gradient={gradient}
       ticks={ticks}
-      note={t`ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm.`}
+      note={t`ERA5 reanalysis, about 28 km grid. Same scale for every storm.`}
     />
   );
 }

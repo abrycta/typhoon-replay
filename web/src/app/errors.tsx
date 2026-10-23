@@ -12,7 +12,7 @@ export function NotFound() {
   }, [t]);
   useEffect(markNotFound, []);
   return (
-    <Page eyebrow="404" title={t`This page blew away`} lede={t`There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet.`}>
+    <Page eyebrow="404" title={t`This page blew away`} lede={t`There is nothing at this address. The storm id may be wrong, or the storm is not in the archive.`}>
       <div className="flex flex-wrap gap-3">
         <Button asChild>
           <Link to="/" data-testid="error-home">{t`Go to the home page`}</Link>

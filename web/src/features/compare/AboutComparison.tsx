@@ -80,7 +80,7 @@ export function AboutComparison({ storms, alignment }: { storms: { name: string;
           </p>
           {old ? (
             <p className="text-sm leading-relaxed">
-              <b className="font-semibold">{t`Older storms are rougher.`}</b>{" "}
+              <b className="font-semibold">{t`Older storms have fewer observations.`}</b>{" "}
               {t`Before weather satellites (the 1960s), positions and winds come from ships, land stations and aircraft, so tracks are sparser and weak storms may be missing.`}
             </p>
           ) : null}

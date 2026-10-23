@@ -174,16 +174,12 @@ msgid "{label} is not deployed yet. Nothing to wait for."
 msgstr "{label} is not deployed yet. Nothing to wait for."
 
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} is paused until next month to stay within its free hosting hours."
-msgstr "{label} is paused until next month to stay within its free hosting hours."
-
-#: src/features/under-the-hood/Race.tsx
 msgid "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
 msgstr "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
 
 #: src/features/under-the-hood/wake-copy.ts
-msgid "{label} is waking up from sleep: about {s} s on free hosting. This page keeps trying."
-msgstr "{label} is waking up from sleep: about {s} s on free hosting. This page keeps trying."
+msgid "{label} is waking up from sleep: about {s} s. This page keeps trying."
+msgstr "{label} is waking up from sleep: about {s} s. This page keeps trying."
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "{label} is waking up from sleep: waking can take a minute or more. This page keeps trying."
@@ -192,6 +188,10 @@ msgstr "{label} is waking up from sleep: waking can take a minute or more. This 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "{label} is waking up; opening this page started it."
 msgstr "{label} is waking up; opening this page started it."
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} runs again from next month."
+msgstr "{label} runs again from next month."
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #. placeholder {1}: formatMs(lane.lastMs ?? 0)
@@ -390,6 +390,11 @@ msgstr "At this storm's peak the field's strongest wind was {0} m/s against {1} 
 msgid "awake"
 msgstr "awake"
 
+#: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/reason.ts
+msgid "back next month"
+msgstr "back next month"
+
 #: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "Back one hour"
@@ -405,16 +410,16 @@ msgid "Backend"
 msgstr "Backend"
 
 #: src/features/under-the-hood/reason.ts
+msgid "backend back next month"
+msgstr "backend back next month"
+
+#: src/features/under-the-hood/reason.ts
 msgid "backend is waking up"
 msgstr "backend is waking up"
 
 #: src/features/under-the-hood/reason.ts
 msgid "backend not deployed"
 msgstr "backend not deployed"
-
-#: src/features/under-the-hood/reason.ts
-msgid "backend paused this month"
-msgstr "backend paused this month"
 
 #: src/features/under-the-hood/reason.ts
 msgid "backend unavailable"
@@ -546,12 +551,12 @@ msgid "Cloudflare Worker; never sleeps"
 msgstr "Cloudflare Worker; never sleeps"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Cold start is measured by hand, not by CI."
-msgstr "Cold start is measured by hand, not by CI."
+msgid "Cold start"
+msgstr "Cold start"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Cold start on free hosting"
-msgstr "Cold start on free hosting"
+msgid "Cold start is measured by hand, not by CI."
+msgstr "Cold start is measured by hand, not by CI."
 
 #: src/app/Shell.tsx
 #: src/routes/compare.tsx
@@ -705,8 +710,8 @@ msgid "ERA5 reanalysis, a global weather model's hourly rebuild of wind, gust, r
 msgstr "ERA5 reanalysis, a global weather model's hourly rebuild of wind, gust, rain and sea-level pressure on a grid of about 28 km. It can place a storm tens of km off the track and smooths the eye wall, so use it for size and timing, not peak strength. Both maps use the same colour scale."
 
 #: src/features/replay/FieldLegend.tsx
-msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
-msgstr "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
+msgid "ERA5 reanalysis, about 28 km grid. Same scale for every storm."
+msgstr "ERA5 reanalysis, about 28 km grid. Same scale for every storm."
 
 #: src/features/compare/DataCard.tsx
 msgid "ERA5 shows no clear centre at {p}% of hours"
@@ -1001,8 +1006,8 @@ msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 msgstr "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 
 #: src/features/under-the-hood/wake-copy.ts
-msgid "Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
-msgstr "Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
+msgid "Java and Go run on Render and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
+msgstr "Java and Go run on Render and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "Java and Go sleep after 15 minutes idle. Waking takes {wakeTimes} (the cold-start row below). Opening this page starts waking both, and the race waits for them on its own. Node and Rust never sleep."
@@ -1449,8 +1454,8 @@ msgid "Off"
 msgstr "Off"
 
 #: src/features/compare/AboutComparison.tsx
-msgid "Older storms are rougher."
-msgstr "Older storms are rougher."
+msgid "Older storms have fewer observations."
+msgstr "Older storms have fewer observations."
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Oldest first"
@@ -1515,11 +1520,6 @@ msgstr "Pause both"
 #: src/features/replay/PlayerControls.tsx
 msgid "Pause replay"
 msgstr "Pause replay"
-
-#: src/features/under-the-hood/Race.tsx
-#: src/features/under-the-hood/reason.ts
-msgid "paused this month"
-msgstr "paused this month"
 
 #: src/features/under-the-hood/reason.ts
 msgid "payload too large"
@@ -1642,10 +1642,6 @@ msgstr "ready"
 msgid "reanalysis context"
 msgstr "reanalysis context"
 
-#: src/features/replay/CentreOffsetNote.tsx
-msgid "Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it."
-msgstr "Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it."
-
 #: src/routes/about.tsx
 msgid "Reanalysis is context, not the storm's strength"
 msgstr "Reanalysis is context, not the storm's strength"
@@ -1659,8 +1655,8 @@ msgid "Region"
 msgstr "Region"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Render free plan; sleeps after 15 minutes idle"
-msgstr "Render free plan; sleeps after 15 minutes idle"
+msgid "Render; sleeps after 15 minutes idle"
+msgstr "Render; sleeps after 15 minutes idle"
 
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
@@ -1917,8 +1913,8 @@ msgid "The backend is not answering yet. Send again in {retryAfterS} s."
 msgstr "The backend is not answering yet. Send again in {retryAfterS} s."
 
 #: src/features/under-the-hood/wake-copy.ts
-msgid "The backend is waking up (about {s} s on free hosting). Send again in {retryAfterS} s."
-msgstr "The backend is waking up (about {s} s on free hosting). Send again in {retryAfterS} s."
+msgid "The backend is waking up (about {s} s). Send again in {retryAfterS} s."
+msgstr "The backend is waking up (about {s} s). Send again in {retryAfterS} s."
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "The backend is waking up (waking can take a minute or more). Send again in {retryAfterS} s."
@@ -1939,6 +1935,10 @@ msgstr "The colours:"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The edge"
 msgstr "The edge"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "The field is shown where ERA5 places it."
+msgstr "The field is shown where ERA5 places it."
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
@@ -1990,16 +1990,16 @@ msgid "The wind, gust, rain and pressure fields come from ERA5 reanalysis, on a 
 msgstr "The wind, gust, rain and pressure fields come from ERA5 reanalysis, on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons. At Haiyan's peak, the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. So every replay shows the best-track intensity beside the field, names the agency and its averaging period, and marks the hours interpolated between best-track fixes."
 
 #: src/app/errors.tsx
-msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
-msgstr "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
+msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive."
+msgstr "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive."
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "This backend is not deployed yet."
 msgstr "This backend is not deployed yet."
 
 #: src/features/under-the-hood/Explorer.tsx
-msgid "This backend is paused until next month to stay within its free hosting hours."
-msgstr "This backend is paused until next month to stay within its free hosting hours."
+msgid "This backend runs again from next month."
+msgstr "This backend runs again from next month."
 
 #: src/features/replay/MapDescription.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing."

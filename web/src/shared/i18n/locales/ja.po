@@ -174,16 +174,12 @@ msgid "{label} is not deployed yet. Nothing to wait for."
 msgstr "{label} はまだデプロイされていません。待つ必要はありません。"
 
 #: src/features/under-the-hood/Race.tsx
-msgid "{label} is paused until next month to stay within its free hosting hours."
-msgstr "{label} は無料ホスティングの利用時間内に収めるため、来月まで一時停止中です。"
-
-#: src/features/under-the-hood/Race.tsx
 msgid "{label} is rate limited: too many requests from this address. Try again in {waitS} s."
 msgstr "{label} はアクセス制限中です（このアドレスからのリクエストが多すぎます）。{waitS} 秒後にもう一度お試しください。"
 
 #: src/features/under-the-hood/wake-copy.ts
-msgid "{label} is waking up from sleep: about {s} s on free hosting. This page keeps trying."
-msgstr "{label} はスリープから起動中です（無料ホスティングで約 {s} 秒）。このページが再試行を続けます。"
+msgid "{label} is waking up from sleep: about {s} s. This page keeps trying."
+msgstr "{label} はスリープから起動中です（約 {s} 秒）。このページが再試行を続けます。"
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "{label} is waking up from sleep: waking can take a minute or more. This page keeps trying."
@@ -192,6 +188,10 @@ msgstr "{label} はスリープから起動中です（起動には 1 分以上�
 #: src/features/under-the-hood/wake-copy.ts
 msgid "{label} is waking up; opening this page started it."
 msgstr "{label} は起動中です（このページを開いたときに起動を始めました）。"
+
+#: src/features/under-the-hood/Race.tsx
+msgid "{label} runs again from next month."
+msgstr "{label} は来月からまた動きます。"
 
 #. placeholder {0}: formatMs(lane.totalMs ?? 0)
 #. placeholder {1}: formatMs(lane.lastMs ?? 0)
@@ -390,6 +390,11 @@ msgstr "この台風の最盛期、場の最大風速は {0} m/s で、JTWC の 
 msgid "awake"
 msgstr "稼働中"
 
+#: src/features/under-the-hood/Race.tsx
+#: src/features/under-the-hood/reason.ts
+msgid "back next month"
+msgstr "来月から再開"
+
 #: src/features/compare/LineUp.tsx
 #: src/features/replay/PlayerControls.tsx
 msgid "Back one hour"
@@ -405,16 +410,16 @@ msgid "Backend"
 msgstr "バックエンド"
 
 #: src/features/under-the-hood/reason.ts
+msgid "backend back next month"
+msgstr "バックエンドは来月から再開"
+
+#: src/features/under-the-hood/reason.ts
 msgid "backend is waking up"
 msgstr "バックエンドが起動中"
 
 #: src/features/under-the-hood/reason.ts
 msgid "backend not deployed"
 msgstr "バックエンド未デプロイ"
-
-#: src/features/under-the-hood/reason.ts
-msgid "backend paused this month"
-msgstr "バックエンドは今月休止中"
 
 #: src/features/under-the-hood/reason.ts
 msgid "backend unavailable"
@@ -546,12 +551,12 @@ msgid "Cloudflare Worker; never sleeps"
 msgstr "Cloudflare Worker、スリープしない"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Cold start is measured by hand, not by CI."
-msgstr "コールドスタートは CI ではなく手動で計測しています。"
+msgid "Cold start"
+msgstr "コールドスタート"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
-msgid "Cold start on free hosting"
-msgstr "無料ホスティングでのコールドスタート"
+msgid "Cold start is measured by hand, not by CI."
+msgstr "コールドスタートは CI ではなく手動で計測しています。"
 
 #: src/app/Shell.tsx
 #: src/routes/compare.tsx
@@ -705,8 +710,8 @@ msgid "ERA5 reanalysis, a global weather model's hourly rebuild of wind, gust, r
 msgstr "ERA5再解析。全球気象モデルで1時間ごとに再現した風、最大瞬間風速、雨、海面気圧で、格子は約28 km。台風の位置が進路から数十 kmずれることがあり、眼の壁雲はならされるため、ピークの強さではなく大きさとタイミングの目安として見てください。2つの地図は同じ色の目盛りです。"
 
 #: src/features/replay/FieldLegend.tsx
-msgid "ERA5 reanalysis, context only (about 28 km grid). Same scale for every storm."
-msgstr "ERA5 再解析（約28 km 格子）。参考情報です。すべての台風で同じスケール。"
+msgid "ERA5 reanalysis, about 28 km grid. Same scale for every storm."
+msgstr "ERA5 再解析（約28 km 格子）。すべての台風で同じスケール。"
 
 #: src/features/compare/DataCard.tsx
 msgid "ERA5 shows no clear centre at {p}% of hours"
@@ -1001,8 +1006,8 @@ msgid "Japan's strongest since {since}: {ktA} kt and {ktB} kt"
 msgstr "{since}年以降に日本に上陸した最強の2つ: {ktA} ktと{ktB} kt"
 
 #: src/features/under-the-hood/wake-copy.ts
-msgid "Java and Go run on Render's free plan and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
-msgstr "Java と Go は Render 無料プランで動き、15 分使われないとスリープします。Node と Rust は Cloudflare Workers で動き、スリープしません"
+msgid "Java and Go run on Render and sleep after 15 minutes idle; Node and Rust run as Cloudflare Workers and never sleep"
+msgstr "Java と Go は Render で動き、15 分使われないとスリープします。Node と Rust は Cloudflare Workers で動き、スリープしません"
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "Java and Go sleep after 15 minutes idle. Waking takes {wakeTimes} (the cold-start row below). Opening this page starts waking both, and the race waits for them on its own. Node and Rust never sleep."
@@ -1449,8 +1454,8 @@ msgid "Off"
 msgstr "オフ"
 
 #: src/features/compare/AboutComparison.tsx
-msgid "Older storms are rougher."
-msgstr "古い台風ほどデータが粗くなります。"
+msgid "Older storms have fewer observations."
+msgstr "古い台風ほど観測が少なくなります。"
 
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Oldest first"
@@ -1515,11 +1520,6 @@ msgstr "両方を一時停止"
 #: src/features/replay/PlayerControls.tsx
 msgid "Pause replay"
 msgstr "リプレイを一時停止"
-
-#: src/features/under-the-hood/Race.tsx
-#: src/features/under-the-hood/reason.ts
-msgid "paused this month"
-msgstr "今月は一時停止中"
 
 #: src/features/under-the-hood/reason.ts
 msgid "payload too large"
@@ -1642,10 +1642,6 @@ msgstr "待機中"
 msgid "reanalysis context"
 msgstr "再解析・参考"
 
-#: src/features/replay/CentreOffsetNote.tsx
-msgid "Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it."
-msgstr "再解析は粗く、特に気象衛星以前はその傾向が強くなります。場は ERA5 が示す位置のまま表示しています。"
-
 #: src/routes/about.tsx
 msgid "Reanalysis is context, not the storm's strength"
 msgstr "再解析は参考情報であり、台風の強さではありません"
@@ -1659,8 +1655,8 @@ msgid "Region"
 msgstr "地域"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Render free plan; sleeps after 15 minutes idle"
-msgstr "Render 無料プラン、15 分使われないとスリープ"
+msgid "Render; sleeps after 15 minutes idle"
+msgstr "Render、15 分使われないとスリープ"
 
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
@@ -1917,8 +1913,8 @@ msgid "The backend is not answering yet. Send again in {retryAfterS} s."
 msgstr "バックエンドはまだ応答していません。{retryAfterS} 秒後にもう一度送信してください。"
 
 #: src/features/under-the-hood/wake-copy.ts
-msgid "The backend is waking up (about {s} s on free hosting). Send again in {retryAfterS} s."
-msgstr "バックエンドは起動中です（無料ホスティングで約 {s} 秒）。{retryAfterS} 秒後にもう一度送信してください。"
+msgid "The backend is waking up (about {s} s). Send again in {retryAfterS} s."
+msgstr "バックエンドは起動中です（約 {s} 秒）。{retryAfterS} 秒後にもう一度送信してください。"
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "The backend is waking up (waking can take a minute or more). Send again in {retryAfterS} s."
@@ -1939,6 +1935,10 @@ msgstr "色:"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "The edge"
 msgstr "エッジ"
+
+#: src/features/replay/CentreOffsetNote.tsx
+msgid "The field is shown where ERA5 places it."
+msgstr "場は ERA5 が示す位置に表示しています。"
 
 #: src/features/under-the-hood/ConformanceTable.tsx
 msgid "The gating run leaves out the {excluded} check: the contract can't yet rule out some generated requests (a cursor made for another sort, a season combined with from/to), which the backends answer with 400. The every-check run beside it does not gate the build."
@@ -1990,16 +1990,16 @@ msgid "The wind, gust, rain and pressure fields come from ERA5 reanalysis, on a 
 msgstr "風速、瞬間風速、雨、気圧の場は約28 km 格子の ERA5 再解析です。再解析は強い台風の眼の壁雲をならしてしまいます。ハイエンの最盛期、場の 10 m 最大風速は JTWC の1分平均ベストトラック風速の 0.31 倍、気象庁の10分平均の 0.42 倍でした。そのため各リプレイでは場の横にベストトラックの強度を示し、機関と平均時間を明記し、観測値の間を補間した時刻を区別して表示します。"
 
 #: src/app/errors.tsx
-msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive yet."
-msgstr "このアドレスには何もありません。台風 ID が誤っているか、まだ収録されていない可能性があります。"
+msgid "There is nothing at this address. The storm id may be wrong, or the storm is not in the archive."
+msgstr "このアドレスには何もありません。台風 ID が誤っているか、収録されていない可能性があります。"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "This backend is not deployed yet."
 msgstr "このバックエンドはまだデプロイされていません。"
 
 #: src/features/under-the-hood/Explorer.tsx
-msgid "This backend is paused until next month to stay within its free hosting hours."
-msgstr "このバックエンドは無料ホスティングの利用時間内に収めるため、来月まで一時停止中です。"
+msgid "This backend runs again from next month."
+msgstr "このバックエンドは来月からまた動きます。"
 
 #: src/features/replay/MapDescription.tsx
 msgid "This browser cannot draw the WebGL map, so the track is shown as a simple drawing."

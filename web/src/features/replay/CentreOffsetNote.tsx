@@ -27,7 +27,7 @@ export function CentreOffsetNote({ reading, bestTrackKt }: { reading?: OffsetRea
       role="note"
       data-testid="centre-offset-note"
     >
-      {text} <span className="text-muted-foreground">{t`Reanalysis is coarse, especially before satellites; the field is shown where ERA5 has it.`}</span>
+      {text} <span className="text-muted-foreground">{t`The field is shown where ERA5 places it.`}</span>
     </div>
   );
 }

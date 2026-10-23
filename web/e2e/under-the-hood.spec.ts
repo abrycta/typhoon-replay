@@ -141,7 +141,7 @@ test("race: java answers, node wakes then answers the same, rust is not deployed
   await expect.poll(() => count["java /api/java/healthz"]).toBe(1);
   await expect.poll(() => count["go /api/go/healthz"]).toBe(1);
   await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
-  await expect(page.getByTestId("lane-go-state")).toHaveText("paused this month");
+  await expect(page.getByTestId("lane-go-state")).toHaveText("back next month");
   expect(Object.keys(count).sort()).toEqual(["go /api/go/healthz", "java /api/java/healthz"]);
   // One wake story: only measured cold starts get a number (Java's, from the conformance table); Go has none yet.
   await expect(page.getByText(/Waking takes about 100 s for Java and a minute or more for Go/)).toBeVisible();
@@ -156,8 +156,8 @@ test("race: java answers, node wakes then answers the same, rust is not deployed
   await expect(page.getByTestId("lane-node-state")).toHaveText("waking up");
   await expect(page.getByTestId("lane-node-note")).toHaveText("Node is not answering yet. This page keeps trying.");
   await expect(page.getByTestId("lane-rust-state")).toHaveText("not deployed yet");
-  await expect(page.getByTestId("lane-go-state")).toHaveText("paused this month");
-  await expect(page.getByTestId("lane-go-note")).toContainText("paused until next month");
+  await expect(page.getByTestId("lane-go-state")).toHaveText("back next month");
+  await expect(page.getByTestId("lane-go-note")).toContainText("runs again from next month");
   await expect(page.getByTestId("lane-java-state")).toHaveText("awake");
   await expect(page.getByTestId("lane-java-time")).toHaveText(/^\d+ ms$/);
   // The shared result table appears with the first answer.

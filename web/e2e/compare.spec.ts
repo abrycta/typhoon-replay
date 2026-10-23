@@ -144,7 +144,7 @@ test("data cards and About: Gertrude 1948 vs Faye 1949 (no JMA, no pressure); th
   await expect(a.getByTestId("data-era")).toContainText("Before weather satellites: positions from ships, land stations and aircraft");
   await expect(page.getByTestId("data-card-B").getByTestId("data-wind")).toContainText("90 kt JTWC (1-min) · no JMA record (before 1951)");
   const about = page.getByTestId("about-comparison");
-  await expect(about).toContainText("Older storms are rougher.");
+  await expect(about).toContainText("Older storms have fewer observations.");
   // Track only in this fixture (the live v3 storms have ERA5 maps).
   await expect(about.getByTestId("gap-chip")).toHaveText(["Gertrude: no pressure, no JMA data, no ERA5 maps", "Faye: no pressure, no JMA data, no ERA5 maps"]);
 });

@@ -47,7 +47,7 @@ export function ConformanceTable({ labels }: { labels: Record<BackendId, string>
       label: t`Generated API cases, every check (informational)`,
       cell: (b) => (b.ci ? (pass(b.ci.full) ?? <span className="text-muted-foreground">{t`not run`}</span>) : next),
     },
-    { label: t`Cold start on free hosting`, cell: (b) => (b.coldStartS !== undefined ? `≈ ${b.coldStartS} s` : none) },
+    { label: t`Cold start`, cell: (b) => (b.coldStartS !== undefined ? `≈ ${b.coldStartS} s` : none) },
   ];
   const measured = backends.filter(({ b }) => b.ci);
   const excluded = [...new Set(measured.flatMap(({ b }) => b.ci?.generated.excludedChecks ?? []))].join(", ");

@@ -16,7 +16,7 @@ export function HowItWorks({ labels }: { labels: Record<BackendId, string> }) {
   const stacks: Record<BackendId, { stack: string; hosting: string; db: string }> = {
     java: {
       stack: "Spring Boot 4.1 · Java 25",
-      hosting: t`Render free plan; sleeps after 15 minutes idle`,
+      hosting: t`Render; sleeps after 15 minutes idle`,
       db: t`JDBC to Neon, pooled connection`,
     },
     node: {
@@ -31,7 +31,7 @@ export function HowItWorks({ labels }: { labels: Record<BackendId, string> }) {
     },
     go: {
       stack: "net/http · oapi-codegen · Go 1.27",
-      hosting: t`Render free plan; sleeps after 15 minutes idle`,
+      hosting: t`Render; sleeps after 15 minutes idle`,
       db: t`Neon serverless SQL over HTTP`,
     },
   };

@@ -18,11 +18,7 @@ export function DataAsOf() {
         {t`Data v${ds.data.version}`}
         {m.dataAsOf ? ` · ${t`as of ${formatDate(m.dataAsOf, lang)}`}` : ""}
       </span>
-      {ds.data.source === "fallback" || m.fixture ? (
-        <Badge variant="outline" title={ds.data.primaryError}>
-          {t`sample data`}
-        </Badge>
-      ) : null}
+      {m.fixture ? <Badge variant="outline">{t`sample data`}</Badge> : null}
     </span>
   );
 }

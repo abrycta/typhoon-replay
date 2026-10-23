@@ -64,7 +64,7 @@ export function Explorer({ labels, baseUrlOf }: { labels: Record<BackendId, stri
         : res?.kind === "rate-limited"
           ? t`Too many requests from this address. Try again in ${waitS} s.`
         : res?.kind === "paused"
-          ? t`This backend is paused until next month to stay within its free hosting hours.`
+          ? t`This backend runs again from next month.`
         : res?.timedOut
           ? t`No answer within ${timeoutS} seconds; the connection may have stalled.`
           : res?.status === 0
