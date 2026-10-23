@@ -8,6 +8,8 @@
 # a later green run catches up anything skipped. That commit's CI (the workflow's push run, or only its
 # <ci-job-name> job when the deploy is a later job of the same workflow) decides:
 #   success            -> deploy=true, sha=<commit>, run_id=<its CI run>  (GITHUB_OUTPUT)
+#   this very run      -> deploy=true: with <ci-job-name>, the deploy job needs that job, so it passed here;
+#                         from a workflow_run event, the triggering CI run is that commit's and it passed
 #   queued / running   -> deploy=false: that run's own success deploys it (CI on main is never cancelled)
 #   anything else      -> exit 1: main's newest commit is red, so production stays behind; fix main
 # Same file in every deployed repo; canonical copy in the workspace tools/lib/deploy-gate.sh.
@@ -29,6 +31,30 @@ else
 fi
 [ -n "$sha" ] || { echo "::error::could not find the newest main commit"; exit 1; }
 
+short="${sha:0:7}"
+# This run IS that commit's CI: the deploy job `needs` <ci-job-name>, so the job already passed here. Decide
+# without the API, which can still report this run's finished job as queued for a few seconds; asking it made
+# the gate skip its own commit ("its own success deploys it") and nothing ever deployed that commit.
+if [ -n "$job" ] && [ "$sha" = "${GITHUB_SHA:-}" ] && [ -n "${GITHUB_RUN_ID:-}" ] \
+  && [ "${GITHUB_REF:-}" = refs/heads/main ]; then
+  { echo "deploy=true"; echo "sha=$sha"; echo "run_id=$GITHUB_RUN_ID"; } >> "$out"
+  echo "Deploying main's newest covered commit \`$short\` (this run's \`$job\` passed)." >> "$summary"
+  exit 0
+fi
+
+# A deploy workflow triggered by that commit's CI finishing (workflow_run): the event says it passed, so trust it
+# rather than the API, which can lag behind the run that just finished.
+if [ "${GITHUB_EVENT_NAME:-}" = workflow_run ] && [ -f "${GITHUB_EVENT_PATH:-}" ]; then
+  read -r ev_sha ev_id ev_conclusion ev_event ev_branch ev_path <<<"$(jq -r '.workflow_run
+    | "\(.head_sha) \(.id) \(.conclusion) \(.event) \(.head_branch) \(.path)"' "$GITHUB_EVENT_PATH")"
+  if [ "$ev_sha" = "$sha" ] && [ "$ev_conclusion" = success ] && [ "$ev_event" = push ] \
+    && [ "$ev_branch" = main ] && [ "${ev_path%%@*}" = ".github/workflows/$ci" ]; then
+    { echo "deploy=true"; echo "sha=$sha"; echo "run_id=$ev_id"; } >> "$out"
+    echo "Deploying main's newest covered commit \`$short\` (the CI run that triggered this deploy, $ev_id, passed)." >> "$summary"
+    exit 0
+  fi
+fi
+
 # The filtered listing (?head_sha=) can leave out runs that are still in progress, which includes the run this
 # deploy job belongs to, so the gate would report "not started" and skip its own commit. Look in the newest
 # unfiltered runs first; for older commits fall back to the repo-wide ?head_sha= listing (the per-workflow
@@ -46,7 +72,6 @@ if [ -n "$job" ] && [ "$run_id" != "-" ]; then
     --jq "[.jobs[] | select(.name == \"$job\")] | last // {status: \"queued\", conclusion: null} | \"\(.status) \(.conclusion)\"")"
 fi
 
-short="${sha:0:7}"
 if [ "$status" = completed ] && [ "$conclusion" = success ]; then
   { echo "deploy=true"; echo "sha=$sha"; echo "run_id=$run_id"; } >> "$out"
   echo "Deploying main's newest covered commit \`$short\` (CI run $run_id passed)." >> "$summary"
