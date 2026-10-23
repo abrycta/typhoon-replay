@@ -126,6 +126,23 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
   referential integrity of the tables; `pytest -m data` checks the catalogue, places and exposure. Batch jobs
   validate each storm's frames before uploading them. `publish.verify` then checks every uploaded file's
   size and that a frame answers HTTP Range requests (206) with CORS.
+- **Compared with the published version.** `dataset build` and `publish flip` compare the new `index.json`
+  with the one `latest.json` points at. Every storm that vanishes, loses its replay or loses a PAGASA or JMA
+  name is logged with a reason (CI `::warning`, and `data/build/compare-v<N>.json`). More than
+  max(5, 1 %) vanished storms, max(3, 1 %) lost replays or max(5, 1 %) lost names stop the publish; a
+  reviewed, intended shrink runs Refresh with `allow-shrink`.
+- **Read errors are not "nothing published".** Only a 404 on `latest.json` with no `v1/` means a first
+  publish. A 401/403, a 5xx or 429 after retries, a network error or a body that is not JSON stops the run,
+  so it can never rebuild every storm, overwrite `v1/` or flip `latest.json` back. `next-version` is one more
+  than both `latest.json` and every `v<N>/` in the repo, and `flip` refuses a lower version than the live
+  one (only `rollback` goes back).
+- **ERA5T end.** Frames stop where ERA5 does: the plan and the frames stage read ARCO-ERA5's
+  `valid_time_stop_era5t` (fallback: `valid_time_stop`, then 12 days before now, with a CI warning) and defer
+  storms whose track runs past it. A deferred or failed storm has no published frames, so the next refresh
+  builds it. One storm whose frames fail is skipped with a warning; more than max(2, 5 %) fail the job.
+- **JMA numbers.** `check_jma` (registry hook) rejects a best-track file the parser cannot read, so the kit
+  falls back to the archive copy; if JMA is still unusable, `prepare` continues without JMA numbers and the
+  comparison above stops the publish when storms would lose their 台風第N号 designation.
 - **One pointer flip.** Only then does one commit write `README.md` (the dataset card) and `latest.json`:
 
   ```json

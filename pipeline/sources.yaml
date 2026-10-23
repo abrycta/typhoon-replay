@@ -381,6 +381,7 @@ sources:
     licence: JMA website terms of use (Government of Japan Standard Terms of Use, compatible with CC BY 4.0).
     attribution: Source - RSMC Tokyo - Typhoon Center, Japan Meteorological Agency (気象庁), best track data.
     cadence: after each season is finalised, plus occasional revisions
+    hooks: ["typhoon.sources:check_jma"]
     links:
       - id: jma-rsmc
         url: https://www.jma.go.jp/jma/jma-eng/jma-center/rsmc-hp-pub-eg/Besttracks/bst_all.zip

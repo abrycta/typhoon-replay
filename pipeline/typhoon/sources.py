@@ -49,7 +49,7 @@ REGISTRY_PATH = PIPELINE_DIR / "sources.yaml"
 
 log = logging.getLogger("typhoon.sources")
 
-__all__ = ["REGISTRY_PATH", "AllLinksFailed", "Provenance", "RemoteRead", "RunManifest", "check_ibtracs",
+__all__ = ["REGISTRY_PATH", "AllLinksFailed", "Provenance", "RemoteRead", "RunManifest", "check_ibtracs", "check_jma",
            "data_version_metadata", "fetch", "fetch_template", "local_path", "registry", "remote_links", "source"]
 
 
@@ -238,6 +238,33 @@ def check_ibtracs(path: Path, src: dict[str, Any], sample: int = 5000) -> list[s
             lat, lon = float(row[i_lat]), float(row[i_lon])
             if not (-90 <= lat <= 90 and -180 <= lon <= 360):
                 raise SchemaError(f"row {line}: LAT/LON {lat},{lon} out of range")
+    return []
+
+
+JMA_MIN_STORMS = 1800   # bst_all.txt held 1,9xx storms (1951-2025) in 2026; it only grows
+
+
+def check_jma(path: Path, src: dict[str, Any]) -> list[str]:
+    """Project hook (sources.yaml `hooks`): the RSMC Tokyo best track must parse with typhoon.jma's parser
+    (fixed-column format) and hold at least JMA_MIN_STORMS storms with fixes. A changed layout or a truncated
+    file raises SchemaError, so the kit falls back to the next link (the archive) instead of handing
+    typhoon.jma a file it cannot read (resilience fix R4)."""
+    import zipfile
+
+    from .jma import parse_bst
+
+    try:
+        if zipfile.is_zipfile(path):   # the kit validates a temporary file, so do not trust the suffix
+            with zipfile.ZipFile(path) as z:
+                text = z.read(src.get("checks", {}).get("zip_member", "bst_all.txt")).decode("ascii")
+        else:
+            text = Path(path).read_text(encoding="ascii")
+        storms = parse_bst(text.splitlines())
+    except (ValueError, IndexError, KeyError, UnicodeDecodeError, zipfile.BadZipFile) as e:
+        raise SchemaError(f"bst_all does not parse as the RSMC Tokyo best-track format: {e}") from None
+    with_fixes = sum(1 for st in storms if st.fixes)
+    if with_fixes < JMA_MIN_STORMS:
+        raise SchemaError(f"bst_all has {with_fixes} storms with fixes (expected >= {JMA_MIN_STORMS})")
     return []
 
 

@@ -4,7 +4,9 @@
 # and stops with a notice when IBTrACS is byte-identical to what the published version used. Otherwise it
 # builds frames only for storms that are new since the published version or whose track IBTrACS revised
 # (usually the current season's provisional storms; recent months come from ARCO-ERA5T because NCAR lags
-# ~3 months), reuses everything else from earlier versions, runs every gate and flips latest.json.
+# ~3 months; storms still running past the end of ERA5T are deferred to a later week), reuses everything
+# else from earlier versions, runs every gate (including the comparison with the published version: no
+# storm, replay or local name may vanish beyond small limits, each one logged) and flips latest.json.
 # Typical run: 10-30 storms, ~30-60 min; budget 4 h.
 name: Refresh
 
@@ -15,6 +17,10 @@ on:
     inputs:
       force:
         description: Publish even if IBTrACS did not change
+        type: boolean
+        default: false
+      allow-shrink:
+        description: Publish although more storms vanish or lose replays/names than the limits allow (reviewed)
         type: boolean
         default: false
 
@@ -89,11 +95,12 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
           uv run python -m typhoon plan --batches 1 --mode changed --previous "$HF_ROOT" --out ../data/plan.json
           uv run python -m typhoon frames --plan ../data/plan.json --batch 0 --upload
-      - name: Assemble, check, upload, verify, flip
+      - name: Assemble, check, compare with the published version, upload, verify, flip
         if: steps.changed.outputs.go == 'true'
         working-directory: pipeline
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          ALLOW_SHRINK: ${{ inputs.allow-shrink }}
         run: |
           uv run python -m typhoon dataset build --version "$VERSION" --previous "$HF_ROOT" --frames-uploaded
           uv run python -m typhoon publish upload --version "$VERSION"

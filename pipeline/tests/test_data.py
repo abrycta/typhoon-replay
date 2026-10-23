@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import itertools
 import json
+from datetime import date
 
 import pandas as pd
 import pytest
@@ -52,7 +53,7 @@ def test_places(places: pd.DataFrame) -> None:
 
 
 def test_catalogue(storms: pd.DataFrame) -> None:
-    assert 1800 <= len(storms) <= 2600
+    assert 1800 <= len(storms) <= 2600 + 60 * max(0, date.today().year - 2026)   # grows ~30 a year (R12)
     assert (storms.season >= 1940).all() and not storms.track_type.str.contains("spur").any()
     assert (storms.entered_par | storms.landfall_countries.map(len).gt(0)).all()
     assert storms.peak_wind_agency.dropna().isin(["jtwc", "jma", "wmo"]).all()

@@ -34,6 +34,7 @@ import json
 import logging
 import math
 import random
+import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -528,6 +529,10 @@ def validate_storm(d: Path) -> None:
                 raise ValueError(f"{d.name}: exact {f['name']} differs from tyf")
 
 
+# A storm whose frames fail is skipped (it keeps no frames this version and is retried by the next refresh;
+# dataset.compare_previous limits how many published replays may be lost). More failures than this fail the job.
+FAILED_STORMS_MAX, FAILED_STORMS_SHARE = 2, 0.05
+
 UPLOAD_EVERY = 40  # storms per Hugging Face commit; per-storm commits from 16 jobs hit the Hub's commit rate limit
 
 
@@ -589,6 +594,8 @@ def main(argv: list[str] | None = None) -> None:
     st = catalog.load("storms").set_index("sid")
     hr = catalog.load("hourly")
     pending: list[Path] = []
+    end = None if a.repack or not sids else era5.era5_end()
+    failed: list[str] = []
     for n, sid in enumerate(sids, 1):
         if sid not in st.index:
             log.error("%s is not in the catalogue; skipped", sid)
@@ -602,12 +609,23 @@ def main(argv: list[str] | None = None) -> None:
             continue
         if a.skip_existing and (OUT / sid / "frames.json").exists():
             continue
+        h_sid = hr[hr.sid == sid]
+        last = np.datetime64(h_sid.time.max().tz_convert("UTC").tz_localize(None), "h")
+        if end is not None and last > end:   # R3: never read hours ERA5 does not have yet
+            print(f"::notice title=frames deferred::{sid} runs to {last}, past the end of ERA5T ({end}); skipped")
+            continue
         t0 = time.time()
         man = sources.RunManifest()
-        m = build_storm(sid, hr[hr.sid == sid], {"name": st.loc[sid, "name"], "season": int(st.loc[sid, "season"])},
-                        formats=tuple(a.formats.split(",")), manifest=man)
-        man.write(OUT / sid / "provenance.json")
-        validate_storm(OUT / sid)
+        try:
+            m = build_storm(sid, h_sid, {"name": st.loc[sid, "name"], "season": int(st.loc[sid, "season"])},
+                            formats=tuple(a.formats.split(",")), manifest=man)
+            man.write(OUT / sid / "provenance.json")
+            validate_storm(OUT / sid)
+        except Exception as e:  # noqa: BLE001  one bad storm must not sink the batch; see the limit below
+            print(f"::warning title=frames failed::{sid}: {type(e).__name__}: {e}")
+            shutil.rmtree(OUT / sid, ignore_errors=True)   # never leave a half-built storm for dataset.build
+            failed.append(sid)
+            continue
         if a.upload:
             pending.append(OUT / sid)
             if len(pending) >= UPLOAD_EVERY:
@@ -619,6 +637,8 @@ def main(argv: list[str] | None = None) -> None:
                  sum(p.bytes for p in man.items.values()) / 1e6, h["headlineRatio"], h["headlineAgency"],
                  {k: list(v) for k, v in m["servedBy"].items()})
     upload_storms(pending)
+    if len(failed) > max(FAILED_STORMS_MAX, int(FAILED_STORMS_SHARE * len(sids))):
+        raise SystemExit(f"frames failed for {len(failed)} of {len(sids)} storms: {failed[:10]}")
 
 
 if __name__ == "__main__":

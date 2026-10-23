@@ -1,4 +1,5 @@
 """Data-quality tests for the IBTrACS WP Parquet (run `uv run python -m typhoon.ibtracs` first)."""
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -20,9 +21,11 @@ def st():
 
 
 def test_row_counts(fx, st):
-    # WP v04r01 as of 2026-10: ~249k fixes, ~4.25k storms. Archive only grows.
-    assert 240_000 <= len(fx) <= 300_000
-    assert 4_200 <= len(st) <= 4_600
+    # WP v04r01 as of 2026-10: ~249k fixes, ~4.25k storms. The archive only grows (about 3k fixes and 40 storms
+    # a year), so the upper bounds grow with the calendar instead of failing one day (R12).
+    years = max(0, date.today().year - 2026)
+    assert 240_000 <= len(fx) <= 300_000 + 10_000 * years
+    assert 4_200 <= len(st) <= 4_600 + 100 * years
     assert st.sid.nunique() == len(st)
     assert set(fx.sid) == set(st.sid)
     assert (st.season >= 1940).sum() >= 3_000
