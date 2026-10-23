@@ -139,7 +139,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
     if (r.kind === "timeout") {
       if (!safe) return fail("gateway-timeout");
       wake();
-      return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; waking can take a minute or more" });
+      return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "the backend sleeps when idle; waking can take a minute or more" });
     }
     if (r.kind === "error") return fail("bad-gateway");
     return done(await passthrough(r.response, isSse, requestId), "BYPASS");
@@ -190,7 +190,7 @@ export async function handleProxy(request: Request, env: Env, ctx: Ctx): Promise
         })
         .catch(() => undefined),
     );
-    return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "free hosting sleeps when idle; waking can take a minute or more" });
+    return fail("backend-waking", { retryAfter: WAKE_RETRY_AFTER_S, detail: "the backend sleeps when idle; waking can take a minute or more" });
   }
   if (r.kind === "error") return fail("bad-gateway");
   const response = r.response;
@@ -357,7 +357,7 @@ async function passthrough(response: Response, isSse: boolean, requestId: string
   if ([502, 503, 504].includes(response.status) && !ct.includes("json")) {
     const page = response.status === 503 ? (await response.text().catch(() => "")).slice(0, 4096) : (void response.body?.cancel(), "");
     if (SUSPENDED.test(page)) {
-      return problem("backend-paused", { requestId, retryAfter: secondsToNextMonth(), detail: "this backend is paused until next month to stay within its free hosting hours" });
+      return problem("backend-paused", { requestId, retryAfter: secondsToNextMonth(), detail: "this backend runs again from next month" });
     }
     return problem("backend-unavailable", { requestId, retryAfter: Number(response.headers.get("Retry-After") ?? "") || WAKE_RETRY_AFTER_S });
   }
