@@ -51,7 +51,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
     waking: t`waking up`,
     ok: t`awake`,
     "not-deployed": t`not deployed yet`,
-    paused: t`paused this month`,
+    paused: t`back next month`,
     "rate-limited": t`rate limited`,
     error: t`error`,
   };
@@ -81,7 +81,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
         : lane.status === "not-deployed"
           ? t`${label} is not deployed yet. Nothing to wait for.`
           : lane.status === "paused"
-            ? t`${label} is paused until next month to stay within its free hosting hours.`
+            ? t`${label} runs again from next month.`
           : lane.status === "rate-limited"
             ? t`${label} is rate limited: too many requests from this address. Try again in ${waitS} s.`
           : lane.status === "error"
@@ -99,7 +99,7 @@ function Lane({ lane, label, match, now }: { lane: LaneState; label: string; mat
                 : lane.hint === "not-deployed"
                   ? t`${label} is not deployed yet.`
                   : lane.hint === "paused"
-                    ? t`${label} is paused until next month to stay within its free hosting hours.`
+                    ? t`${label} runs again from next month.`
                   : lane.hint === "rate-limited"
                     ? t`${label} is rate limited: too many requests from this address. Try again in ${waitS} s.`
                   : "";

@@ -15,7 +15,7 @@ export function useReasonText(): (reason: string | undefined, httpStatus?: numbe
     // wake.ts
     "did not wake up in time": t`did not wake up in time`,
     "not deployed": t`not deployed`,
-    "paused this month": t`paused this month`,
+    "paused this month": t`back next month`,
     "rate limited": t`rate limited`,
     // request.ts
     "network error": t`network error`,
@@ -36,7 +36,7 @@ export function useReasonText(): (reason: string | undefined, httpStatus?: numbe
     "backend not deployed": t`backend not deployed`,
     "backend is waking up": t`backend is waking up`,
     "backend unavailable": t`backend unavailable`,
-    "backend paused this month": t`backend paused this month`,
+    "backend paused this month": t`backend back next month`,
     "bad gateway": t`bad gateway`,
     "gateway timeout": t`gateway timeout`,
     "api in static mode": t`API in static mode`,
