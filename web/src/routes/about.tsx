@@ -25,16 +25,16 @@ function About() {
           </h2>
           <p>
             <Trans>
-              The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense
-              typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind.
-              Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours
-              that are interpolated between best-track fixes.
+              The wind, gust, rain and pressure fields come from ERA5 reanalysis, on a grid of about 28 km. Reanalysis smooths the eye wall of intense
+              typhoons. At Haiyan's peak, the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind.
+              So every replay shows the best-track intensity beside the field, names the agency and its averaging period, and marks the hours
+              interpolated between best-track fixes.
             </Trans>
           </p>
           <p>
             <Trans>
-              JTWC winds are 1-minute means; JMA and PAGASA winds are 10-minute means, so their numbers are not directly comparable. Colour scales
-              are fixed for every storm so that storms from different decades can be compared.
+              JTWC winds are 1-minute means. JMA and PAGASA winds are 10-minute means, so the two sets of numbers cannot be compared directly. Every
+              storm uses the same fixed colour scales, so storms from different decades can be compared.
             </Trans>
           </p>
         </section>
@@ -44,9 +44,9 @@ function About() {
           </h2>
           <p>
             <Trans>
-              The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn
-              with WebGL. Place search ("hit my town") also runs in your browser, over a static place index. Separately, one API contract is
-              implemented in four languages (Java, Node, Rust, Go); the Tech page races them. No other page depends on them.
+              Replay is a static site. Frames, tracks and the storm index are files on a public dataset host; your browser decodes them in a web
+              worker and draws them with WebGL. Place search ("hit my town") also runs in your browser, over a static place index. Separately, one API
+              contract is built four times, in Java, Node, Rust and Go. The Tech page races the four builds, and no other page depends on them.
             </Trans>
           </p>
         </section>
