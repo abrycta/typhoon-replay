@@ -115,7 +115,7 @@ test("data cards and About: a modern pair with full data", async ({ page }) => {
   await expect(a.getByTestId("data-wind")).toContainText("170 kt JTWC (1-min) · 125 kt JMA (10-min)");
   await expect(a.getByTestId("data-pressure")).toContainText("895 hPa");
   await expect(a.getByTestId("data-maps")).toContainText("ERA5, hourly, about 28 km grid");
-  await expect(a.getByTestId("data-offset")).toContainText("Measurement arrives with the next data update");
+  await expect(a.getByTestId("data-offset")).toContainText("Not measured");
   await expect(a.getByTestId("data-era")).toContainText("Weather satellites");
   await expect(page.getByTestId("map-B").getByTestId("data-wind")).toContainText("170 kt JTWC (1-min) · 120 kt JMA (10-min)");
   await expect(page.getByTestId("map-B").getByTestId("data-pressure")).toContainText("884 hPa");

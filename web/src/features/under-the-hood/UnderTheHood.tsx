@@ -62,7 +62,7 @@ export function UnderTheHood() {
           {t`Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception.`}
         </p>
         <p className="max-w-[66ch] text-muted-foreground">
-          {t`Behind it sits a small API: a service that answers questions such as "Which storms passed near Tacloban?" We wrote down exactly how its answers must look in a single shared rulebook, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules.`}
+          {t`Behind it sits a small API: a service that answers questions such as "Which storms passed near Tacloban?" We wrote down exactly how its answers must look in one shared rulebook, the contract, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules.`}
         </p>
         <p className="max-w-[66ch] text-muted-foreground">
           {t`Press "Run on all four" to send the same question to every version and compare the answers. They should match. Some versions run on free hosting that sleeps when nobody is using it, so the first answer can be slow while a server wakes up. The page waits for it on its own.`}

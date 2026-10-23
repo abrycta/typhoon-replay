@@ -78,11 +78,6 @@ msgstr "{0} 件の台風。"
 msgid "{0}, {1}: ERA5 10 m wind (reanalysis context) and the best track."
 msgstr "{0}（{1}年）: ERA5 の 10 m 風速（再解析・参考）とベストトラック。"
 
-#. placeholder {0}: pending.join(", ")
-#: src/features/under-the-hood/ConformanceTable.tsx
-msgid "{0}: built next, against the same suite."
-msgstr "{0}: 次に同じテストスイートで構築します。"
-
 #. placeholder {0}: ratioJma.toFixed(2)
 #: src/features/replay/IntensityPanel.tsx
 msgid "{0}× JMA"
@@ -345,8 +340,8 @@ msgid "All {0} storms"
 msgstr "全 {0} 件の台風"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "All four backends read the same Neon Postgres database with PostGIS, which also scales to zero when idle."
-msgstr "4 つのバックエンドはすべて、PostGIS を備えた同じ Neon Postgres データベースを読みます。このデータベースも、使われていないときはゼロまで縮小します。"
+msgid "All four backends read the same Neon Postgres database with PostGIS. It scales to zero when idle."
+msgstr "4 つのバックエンドはすべて、PostGIS を備えた同じ Neon Postgres データベースを読みます。このデータベースは、使われていないときはゼロまで縮小します。"
 
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception."
@@ -450,8 +445,8 @@ msgid "Before weather satellites: positions from ships, land stations and aircra
 msgstr "気象衛星以前:位置は船舶、地上観測所、航空機から"
 
 #: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Behind it sits a small API: a service that answers questions such as \"Which storms passed near Tacloban?\" We wrote down exactly how its answers must look in a single shared rulebook, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules."
-msgstr "このページの裏には小さな API があります。「タクロバンの近くを通った台風は？」といった質問に答えるサービスです。答えの形を 1 つの共通のルールブックに正確に書き、そのうえで同じサービスを Java、Node、Rust、Go の 4 回作りました。共通のテスト一式が、4 つすべてが同じルールを守っているかを確かめます。"
+msgid "Behind it sits a small API: a service that answers questions such as \"Which storms passed near Tacloban?\" We wrote down exactly how its answers must look in one shared rulebook, the contract, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules."
+msgstr "このページの裏には小さな API があります。「タクロバンの近くを通った台風は？」といった質問に答えるサービスです。答えの形を 1 つの共通のルールブック（契約）に正確に書き、そのうえで同じサービスを Java、Node、Rust、Go の 4 回作りました。共通のテスト一式が、4 つすべてが同じルールを守っているかを確かめます。"
 
 #: src/features/replay/LayerPanel.tsx
 #: src/features/replay/StormReplay.tsx
@@ -642,10 +637,6 @@ msgstr "各バックエンドは契約を守っているか"
 msgid "Duration"
 msgstr "継続時間"
 
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Each backend is pinned once built (exact dependency versions, lockfiles and toolchains) and receives only security fixes, so the race always compares the same code."
-msgstr "各バックエンドは完成した時点で固定し（依存関係の正確なバージョン、ロックファイル、ツールチェーン）、セキュリティ修正だけを受け入れます。そのため、レースは常に同じコードどうしを比べます。"
-
 #: src/features/compare/AboutComparison.tsx
 msgid "each storm's official best track (IBTrACS), with dots at the observed fixes and the hours between interpolated."
 msgstr "それぞれの公式ベストトラック(IBTrACS)。点は観測点で、その間の時間は補間です。"
@@ -754,12 +745,16 @@ msgid "Error"
 msgstr "エラー"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike: it caches public answers, serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
+msgid "Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep. Only this page calls the API."
+msgstr "このページ以外のページは、Cloudflare Pages とバージョン管理されたデータセットにある用意済みのファイルを読むので、バックエンドがすべてスリープしていてもサイトは動きます。API を呼ぶのはこのページだけです。"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike. It caches public answers, serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
 msgstr "リクエストはすべてこのサイトの /api/ にバックエンド名を付けたパスへ送られます。前段の Cloudflare の関数がそれを振り分け、4 つのバックエンドを同じように扱います。公開の答えをキャッシュし、バックエンドが失敗したら保存済みのコピーを返し、訪問者ごとのリクエスト数を制限し、スリープ中のサーバーやデータベースが起動するあいだは「起動中」と答えます。"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Everything runs on free plans. A daily check reads hosting hours, bandwidth, requests and database usage and opens an issue when a meter passes 70 %."
-msgstr "すべて無料プランで動いています。毎日の点検でホスティング時間、通信量、リクエスト数、データベース使用量を読み、どれかが 70 % を超えると issue を作ります。"
+msgid "Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. When Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, which serves cached answers only. It never switches back by itself."
+msgstr "すべて無料プランで動いています。8 時間ごとの点検でホスティング時間、通信量、リクエスト数、データベース使用量を読み、どれかが 70 % を超えると issue を作ります。Render の通信量、Neon の計算量、その日の Cloudflare のリクエスト数のどれかが 70 % を超えると、エッジを静的モードに切り替え、キャッシュ済みの答えだけを返します。自動では元に戻りません。"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
@@ -1070,7 +1065,7 @@ msgid "JTWC averages over 1 minute; JMA over 10 minutes, which reads lower."
 msgstr "JTWCは1分平均、気象庁は10分平均で、気象庁の値は低めになります。"
 
 #: src/routes/about.tsx
-msgid "JTWC winds are 1-minute means; JMA and PAGASA winds are 10-minute means, so their numbers are not directly comparable. Colour scales are fixed for every storm so that storms from different decades can be compared."
+msgid "JTWC winds are 1-minute means. JMA and PAGASA winds are 10-minute means, so the two sets of numbers cannot be compared directly. Every storm uses the same fixed colour scales, so storms from different decades can be compared."
 msgstr "JTWC の風速は1分平均、気象庁と PAGASA は10分平均のため、数値は直接比較できません。色のスケールはすべての台風で固定しており、年代の異なる台風も比較できます。"
 
 #: src/features/replay/IntensityPanel.tsx
@@ -1231,10 +1226,6 @@ msgstr "地図"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Max wind (kt)"
 msgstr "最大風速 (kt)"
-
-#: src/features/compare/DataCard.tsx
-msgid "Measurement arrives with the next data update"
-msgstr "計測値は次のデータ更新で追加されます"
 
 #: src/features/under-the-hood/reason.ts
 msgid "method not allowed"
@@ -1430,6 +1421,10 @@ msgid "not loaded yet"
 msgstr "未読み込み"
 
 #: src/features/compare/DataCard.tsx
+msgid "Not measured"
+msgstr "計測なし"
+
+#: src/features/compare/DataCard.tsx
 msgid "Not recorded"
 msgstr "記録なし"
 
@@ -1477,6 +1472,10 @@ msgstr "古い台風ほどデータが粗くなります。"
 msgid "Oldest first"
 msgstr "古い順"
 
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "Once built, each backend is pinned: exact dependency versions, lockfiles and toolchains. After that it gets only security fixes, so the race always compares the same code."
+msgstr "各バックエンドは完成した時点で固定し（依存関係の正確なバージョン、ロックファイル、ツールチェーン）、セキュリティ修正だけを受け入れます。そのため、レースは常に同じコードどうしを比べます。"
+
 #: src/features/under-the-hood/UnderTheHood.tsx
 msgid "One API, four languages"
 msgstr "1 つの API、4 つの言語"
@@ -1498,7 +1497,7 @@ msgid "One database"
 msgstr "1 つのデータベース"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "One language-neutral test suite runs against every backend in CI: scenario tests plus cases generated from the contract with Schemathesis. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
+msgid "One language-neutral test suite runs against every backend in CI. It combines scenario tests with cases that Schemathesis generates from the contract. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
 msgstr "言語に依存しない 1 つのテストスイートを、CI ですべてのバックエンドに対して実行します。シナリオテストと、契約から Schemathesis で生成したケースです。レースでは、キーの順序、数値の書式、タイムスタンプ、実装固有のフィールドをそろえてから答えを比べます。"
 
 #: src/features/under-the-hood/Race.tsx
@@ -1684,7 +1683,7 @@ msgid "Render free plan; sleeps after 15 minutes idle"
 msgstr "Render 無料プラン、15 分使われないとスリープ"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. Node and Rust run as Cloudflare Workers. Go was tried on Workers first, but it used more CPU per request than the free plan allows."
+msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. Node and Rust run as Cloudflare Workers. We tried Go on Workers first, but it used more CPU per request than the free plan allows."
 msgstr "Render の無料プランでは、月 750 インスタンス時間をすべてのサービスで分け合います。そのため Render で動かすのは Java と Go だけで、Node と Rust は Cloudflare Workers で動かしています。Go も最初は Workers で試しましたが、1 リクエストあたりの CPU 使用量が無料プランの上限を超えました。"
 
 #: src/routes/index.tsx
@@ -1694,6 +1693,10 @@ msgstr "どの台風も、1時間ごとにリプレイ"
 #: src/features/storm-search/StormBrowser.tsx
 msgid "Replay available"
 msgstr "場のリプレイあり"
+
+#: src/routes/about.tsx
+msgid "Replay is a static site. Frames, tracks and the storm index are files on a public dataset host; your browser decodes them in a web worker and draws them with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is built four times, in Java, Node, Rust and Go. The Tech page races the four builds, and no other page depends on them."
+msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードして WebGL で描画します。地名検索（「わが町」）も静的な地名索引を使ってブラウザ内で動きます。これとは別に、1 つの API 契約を 4 つの言語（Java、Node、Rust、Go）で実装しており、「技術」ページで競わせています。ほかのページはこれらに依存しません。"
 
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
@@ -1930,7 +1933,7 @@ msgid "Test rows: each backend's latest passing CI run on main:"
 msgstr "テストの行：各バックエンドの main ブランチで最後に成功した CI 実行より："
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. It offers public reads only (health, metadata, storms, places, storms near a place, and a live stream), with no accounts and no cookies."
+msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. The API offers public reads only: health, metadata, storms, places, storms near a place, and a live stream. It has no accounts and no cookies."
 msgstr "API は OpenAPI 3.1 で一度だけ記述し、/v1 で提供しています。CI が契約をチェックし、互換性を壊す変更があれば失敗させます。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
 
 #: src/features/under-the-hood/wake-copy.ts
@@ -1990,10 +1993,6 @@ msgstr "地名一覧を読み込めませんでした。"
 msgid "The replay continues with the best track only. ({0})"
 msgstr "ベストトラックのみでリプレイを続けます。（{0}）"
 
-#: src/routes/about.tsx
-msgid "The replay is a static site: frames, tracks and the storm index are files on a public dataset host, decoded in a web worker and drawn with WebGL. Place search (\"hit my town\") also runs in your browser, over a static place index. Separately, one API contract is implemented in four languages (Java, Node, Rust, Go); the Tech page races them. No other page depends on them."
-msgstr "リプレイは静的サイトです。フレーム、経路、台風の索引は公開データセット上のファイルで、Web Worker でデコードして WebGL で描画します。地名検索（「わが町」）も静的な地名索引を使ってブラウザ内で動きます。これとは別に、1 つの API 契約を 4 つの言語（Java、Node、Rust、Go）で実装しており、「技術」ページで競わせています。ほかのページはこれらに依存しません。"
-
 #: src/features/storm-search/StormBrowser.tsx
 msgid "The storm catalogue could not be loaded"
 msgstr "台風カタログを読み込めませんでした"
@@ -2007,7 +2006,7 @@ msgid "The two strongest Philippine landfalls since {since}: {ktA} kt and {ktB} 
 msgstr "{since}年以降にフィリピンに上陸した最強の2つ: {ktA} ktと{ktB} kt"
 
 #: src/routes/about.tsx
-msgid "The wind, gust, rain and pressure fields are ERA5 reanalysis on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons: at Haiyan's peak the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. Every replay therefore shows the best-track intensity beside the field, names the agency and its averaging period, and marks hours that are interpolated between best-track fixes."
+msgid "The wind, gust, rain and pressure fields come from ERA5 reanalysis, on a grid of about 28 km. Reanalysis smooths the eye wall of intense typhoons. At Haiyan's peak, the field's strongest 10 m wind was 0.31× the JTWC 1-minute best-track wind and 0.42× JMA's 10-minute wind. So every replay shows the best-track intensity beside the field, names the agency and its averaging period, and marks the hours interpolated between best-track fixes."
 msgstr "風速、瞬間風速、雨、気圧の場は約28 km 格子の ERA5 再解析です。再解析は強い台風の眼の壁雲をならしてしまいます。ハイエンの最盛期、場の 10 m 最大風速は JTWC の1分平均ベストトラック風速の 0.31 倍、気象庁の10分平均の 0.42 倍でした。そのため各リプレイでは場の横にベストトラックの強度を示し、機関と平均時間を明記し、観測値の間を補間した時刻を区別して表示します。"
 
 #: src/app/errors.tsx
@@ -2153,10 +2152,6 @@ msgstr "非対応のメディア形式"
 #: src/features/under-the-hood/ResultTable.tsx
 msgid "Value"
 msgstr "値"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "Visitor pages read prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep. Only this page calls the API."
-msgstr "訪問者向けのページは、Cloudflare Pages とバージョン管理されたデータセットにある用意済みのファイルを読むので、バックエンドがすべてスリープしていてもサイトは動きます。API を呼ぶのはこのページだけです。"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "waking up"

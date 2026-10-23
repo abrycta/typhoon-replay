@@ -50,7 +50,6 @@ export function ConformanceTable({ labels }: { labels: Record<BackendId, string>
     { label: t`Cold start on free hosting`, cell: (b) => (b.coldStartS !== undefined ? `≈ ${b.coldStartS} s` : none) },
   ];
   const measured = backends.filter(({ b }) => b.ci);
-  const pending = backends.filter(({ b }) => !b.ci).map(({ id }) => labels[id]);
   const excluded = [...new Set(measured.flatMap(({ b }) => b.ci?.generated.excludedChecks ?? []))].join(", ");
   const failing = measured.filter(({ b }) => b.ci?.full?.failures.length);
   return (
@@ -122,7 +121,6 @@ export function ConformanceTable({ labels }: { labels: Record<BackendId, string>
             </ul>
           )}
           <p>{t`Cold start is measured by hand, not by CI.`}</p>
-          {pending.length > 0 && <p>{t`${pending.join(", ")}: built next, against the same suite.`}</p>}
         </div>
       </div>
     </section>

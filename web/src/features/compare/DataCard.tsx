@@ -50,7 +50,7 @@ export function DataCard({ slot, name, detail }: { slot: "A" | "B"; name: string
   if (jma === "before-1951") windParts.push(t`no JMA record (before 1951)`);
   else if (jma === "none") windParts.push(t`no JMA record`);
   const offText = (() => {
-    if (off.kind === "pending") return t`Measurement arrives with the next data update`;
+    if (off.kind === "pending") return t`Not measured`;
     if (off.kind === "mostly-none") {
       const p = off.noCentrePct;
       return t`ERA5 shows no clear centre at ${p}% of hours`;
