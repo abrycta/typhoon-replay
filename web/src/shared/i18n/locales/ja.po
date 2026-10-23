@@ -344,10 +344,6 @@ msgid "All four backends read the same Neon Postgres database with PostGIS. It s
 msgstr "4 つのバックエンドはすべて、PostGIS を備えた同じ Neon Postgres データベースを読みます。このデータベースは、使われていないときはゼロまで縮小します。"
 
 #: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Almost everything on Replay comes from ready-made files. The storm tracks, wind maps and town lists are prepared ahead of time and stored online, so the site loads without waiting for a server. This page is the exception."
-msgstr "Replay のほとんどすべては、あらかじめ用意したファイルから表示されます。台風の進路、風のマップ、町の一覧は前もって作ってオンラインに置いてあるので、サイトはサーバーを待たずに読み込まれます。このページだけは例外です。"
-
-#: src/features/under-the-hood/UnderTheHood.tsx
 msgid "Answers are cached at Cloudflare, so repeat queries are instant"
 msgstr "応答は Cloudflare でキャッシュされ、同じ問い合わせはすぐに返ります"
 
@@ -443,10 +439,6 @@ msgstr "気象衛星以前(1960年代まで)の位置と風速は船舶、地上
 #: src/features/compare/DataCard.tsx
 msgid "Before weather satellites: positions from ships, land stations and aircraft"
 msgstr "気象衛星以前:位置は船舶、地上観測所、航空機から"
-
-#: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Behind it sits a small API: a service that answers questions such as \"Which storms passed near Tacloban?\" We wrote down exactly how its answers must look in one shared rulebook, the contract, then built the service four times, in Java, Node, Rust and Go. A shared set of tests checks that all four keep the same rules."
-msgstr "このページの裏には小さな API があります。「タクロバンの近くを通った台風は？」といった質問に答えるサービスです。答えの形を 1 つの共通のルールブック（契約）に正確に書き、そのうえで同じサービスを Java、Node、Rust、Go の 4 回作りました。共通のテスト一式が、4 つすべてが同じルールを守っているかを確かめます。"
 
 #: src/features/replay/LayerPanel.tsx
 #: src/features/replay/StormReplay.tsx
@@ -745,16 +737,16 @@ msgid "Error"
 msgstr "エラー"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep. Only this page calls the API."
-msgstr "このページ以外のページは、Cloudflare Pages とバージョン管理されたデータセットにある用意済みのファイルを読むので、バックエンドがすべてスリープしていてもサイトは動きます。API を呼ぶのはこのページだけです。"
+msgid "Every other page reads prepared files from Cloudflare Pages and a versioned dataset, so the site works even when every backend is asleep."
+msgstr "このページ以外のページは、Cloudflare Pages とバージョン管理されたデータセットにある用意済みのファイルを読むので、バックエンドがすべてスリープしていてもサイトは動きます。"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike. It caches public answers, serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
-msgstr "リクエストはすべてこのサイトの /api/ にバックエンド名を付けたパスへ送られます。前段の Cloudflare の関数がそれを振り分け、4 つのバックエンドを同じように扱います。公開の答えをキャッシュし、バックエンドが失敗したら保存済みのコピーを返し、訪問者ごとのリクエスト数を制限し、スリープ中のサーバーやデータベースが起動するあいだは「起動中」と答えます。"
+msgid "Every request goes to this site, under /api/ plus the backend's name. A Cloudflare function in front routes it and treats all four backends alike. It serves a stored copy if a backend fails, limits requests per visitor, and answers \"waking up\" while a sleeping server or database starts."
+msgstr "リクエストはすべてこのサイトの /api/ にバックエンド名を付けたパスへ送られます。前段の Cloudflare の関数がそれを振り分け、4 つのバックエンドを同じように扱います。バックエンドが失敗したら保存済みのコピーを返し、訪問者ごとのリクエスト数を制限し、スリープ中のサーバーやデータベースが起動するあいだは「起動中」と答えます。"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. When Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, which serves cached answers only. It never switches back by itself."
-msgstr "すべて無料プランで動いています。8 時間ごとの点検でホスティング時間、通信量、リクエスト数、データベース使用量を読み、どれかが 70 % を超えると issue を作ります。Render の通信量、Neon の計算量、その日の Cloudflare のリクエスト数のどれかが 70 % を超えると、エッジを静的モードに切り替え、キャッシュ済みの答えだけを返します。自動では元に戻りません。"
+msgid "Everything runs on free plans. Every 8 hours, a check reads hosting hours, bandwidth, requests and database usage, and opens an issue when a meter passes 70 %. If Render bandwidth, Neon compute or the day's Cloudflare requests pass 70 %, it also switches the edge to static mode, with cached answers only, until someone switches it back."
+msgstr "すべて無料プランで動いています。8 時間ごとの点検でホスティング時間、通信量、リクエスト数、データベース使用量を読み、どれかが 70 % を超えると issue を作ります。Render の通信量、Neon の計算量、その日の Cloudflare のリクエスト数のどれかが 70 % を超えると、エッジを静的モードに切り替えます。キャッシュ済みの答えだけを返し、手で戻すまでそのままです。"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Explore"
@@ -1001,6 +993,10 @@ msgstr "無効なカーソル"
 #: src/features/under-the-hood/reason.ts
 msgid "invalid JSON"
 msgstr "不正な JSON"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "It talks to a small API that answers questions such as \"Which storms passed near Tacloban?\" One shared rulebook, the contract, sets exactly how its answers must look, and the API is built four times against it, in Java, Node, Rust and Go."
+msgstr "このページは、「タクロバンの近くを通った台風は？」といった質問に答える小さな API を使います。答えの形は 1 つの共通のルールブック（契約）で正確に決めてあり、API はそれに沿って Java、Node、Rust、Go で 4 回作りました。"
 
 #: src/features/compare/labels.ts
 #: src/features/compare/StormPicker.tsx
@@ -1473,7 +1469,7 @@ msgid "Oldest first"
 msgstr "古い順"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Once built, each backend is pinned: exact dependency versions, lockfiles and toolchains. After that it gets only security fixes, so the race always compares the same code."
+msgid "Once built, each backend is pinned to exact dependency versions, lockfiles and toolchains, and gets only security fixes. So the race always compares the same code."
 msgstr "各バックエンドは完成した時点で固定し（依存関係の正確なバージョン、ロックファイル、ツールチェーン）、セキュリティ修正だけを受け入れます。そのため、レースは常に同じコードどうしを比べます。"
 
 #: src/features/under-the-hood/UnderTheHood.tsx
@@ -1495,10 +1491,6 @@ msgstr "1 つの契約、4 つの実装、1 つのエッジ"
 #: src/features/under-the-hood/HowItWorks.tsx
 msgid "One database"
 msgstr "1 つのデータベース"
-
-#: src/features/under-the-hood/HowItWorks.tsx
-msgid "One language-neutral test suite runs against every backend in CI. It combines scenario tests with cases that Schemathesis generates from the contract. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
-msgstr "言語に依存しない 1 つのテストスイートを、CI ですべてのバックエンドに対して実行します。シナリオテストと、契約から Schemathesis で生成したケースです。レースでは、キーの順序、数値の書式、タイムスタンプ、実装固有のフィールドをそろえてから答えを比べます。"
 
 #: src/features/under-the-hood/Race.tsx
 msgid "Only answer so far"
@@ -1616,8 +1608,8 @@ msgid "Playback speed"
 msgstr "再生速度"
 
 #: src/features/under-the-hood/UnderTheHood.tsx
-msgid "Press \"Run on all four\" to send the same question to every version and compare the answers. They should match. Some versions run on free hosting that sleeps when nobody is using it, so the first answer can be slow while a server wakes up. The page waits for it on its own."
-msgstr "「4 つすべてで実行」を押すと、同じ質問をすべてのバージョンに送り、答えを比べられます。答えは一致するはずです。一部のバージョンは、使われていないときにスリープする無料ホスティングで動いているため、サーバーが起動するまで最初の答えに時間がかかることがあります。ページはそのあいだ自動で待ちます。"
+msgid "Press \"Run on all four\" to send the same question to every build and compare the answers. They should match."
+msgstr "「4 つすべてで実行」を押すと、同じ質問をすべての実装に送り、答えを比べられます。答えは一致するはずです。"
 
 #: src/features/under-the-hood/Explorer.tsx
 msgid "Press Send to see the response."
@@ -1683,8 +1675,8 @@ msgid "Render free plan; sleeps after 15 minutes idle"
 msgstr "Render 無料プラン、15 分使われないとスリープ"
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. Node and Rust run as Cloudflare Workers. We tried Go on Workers first, but it used more CPU per request than the free plan allows."
-msgstr "Render の無料プランでは、月 750 インスタンス時間をすべてのサービスで分け合います。そのため Render で動かすのは Java と Go だけで、Node と Rust は Cloudflare Workers で動かしています。Go も最初は Workers で試しましたが、1 リクエストあたりの CPU 使用量が無料プランの上限を超えました。"
+msgid "Render's free plan shares 750 instance hours a month across all services, so only Java and Go run there. We tried Go on Workers first, but it used more CPU per request than the free plan allows."
+msgstr "Render の無料プランでは、月 750 インスタンス時間をすべてのサービスで分け合います。そのため Render で動かすのは Java と Go だけです。Go も最初は Workers で試しましたが、1 リクエストあたりの CPU 使用量が無料プランの上限を超えました。"
 
 #: src/routes/index.tsx
 msgid "Replay any typhoon, hour by hour"
@@ -1701,6 +1693,10 @@ msgstr "リプレイは静的サイトです。フレーム、経路、台風の
 #: src/features/replay/PlayerControls.tsx
 msgid "Replay time"
 msgstr "リプレイの時刻"
+
+#: src/features/under-the-hood/UnderTheHood.tsx
+msgid "Replay's storm tracks, wind maps and town lists are files prepared ahead of time, so the site loads without waiting for a server. This page is the exception."
+msgstr "Replay の台風の進路、風のマップ、町の一覧は、前もって用意したファイルです。そのためサイトはサーバーを待たずに読み込まれます。このページだけは例外です。"
 
 #: src/features/under-the-hood/reason.ts
 msgid "request error"
@@ -1933,8 +1929,8 @@ msgid "Test rows: each backend's latest passing CI run on main:"
 msgstr "テストの行：各バックエンドの main ブランチで最後に成功した CI 実行より："
 
 #: src/features/under-the-hood/HowItWorks.tsx
-msgid "The API is described once in OpenAPI 3.1 and served under /v1. CI lints the contract and fails on any breaking change. The API offers public reads only: health, metadata, storms, places, storms near a place, and a live stream. It has no accounts and no cookies."
-msgstr "API は OpenAPI 3.1 で一度だけ記述し、/v1 で提供しています。CI が契約をチェックし、互換性を壊す変更があれば失敗させます。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
+msgid "The API is served under /v1, and CI lints the contract. It offers public reads only: health, metadata, storms, places, storms near a place, and a live stream. There are no accounts and no cookies."
+msgstr "API は /v1 で提供し、CI が契約をチェックします。提供するのは公開の読み取りだけ（ヘルスチェック、メタデータ、台風、地点、地点の近くを通った台風、ライブストリーム）で、アカウントも Cookie もありません。"
 
 #: src/features/under-the-hood/wake-copy.ts
 msgid "The backend is not answering yet. Send again in {retryAfterS} s."
@@ -2000,6 +1996,10 @@ msgstr "台風カタログを読み込めませんでした"
 #: src/features/town-history/TownHistory.tsx
 msgid "The storm list for this place could not be loaded."
 msgstr "この地点の台風一覧を読み込めませんでした。"
+
+#: src/features/under-the-hood/HowItWorks.tsx
+msgid "The suite is language-neutral and runs in CI. It combines scenario tests with cases that Schemathesis generates from the contract. The race compares answers after normalising key order, number formatting, timestamps and implementation fields."
+msgstr "テストスイートは言語に依存せず、CI で実行します。シナリオテストと、契約から Schemathesis で生成したケースを組み合わせています。レースでは、キーの順序、数値の書式、タイムスタンプ、実装固有のフィールドをそろえてから答えを比べます。"
 
 #: src/features/compare/SuggestedPairs.tsx
 msgid "The two strongest Philippine landfalls since {since}: {ktA} kt and {ktB} kt"
