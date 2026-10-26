@@ -317,6 +317,36 @@ def test_leftover_staging_schema_is_dropped(dsn: str, tmp_path: Path):
     assert q(dsn, "SELECT count(*) FROM pg_namespace WHERE nspname = 'catalog_next'") == [(0,)]
 
 
+TABLES_Q = ("SELECT n.nspname || '.' || c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace"
+            " WHERE c.relkind = 'r' AND n.nspname IN ('catalog', 'catalog_next') ORDER BY 1")
+
+
+def test_failure_mid_load_leaves_no_orphans(dsn: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    write_tables(tmp_path / "a", SIDS_A)
+    v = _load(dsn, tmp_path / "a", "a")
+    before = q(dsn, TABLES_Q)
+    real_stage, calls = dbload._stage, []
+
+    def stage_then_die(cur: Any, table: Any, path: Path) -> int:
+        calls.append(table.name)
+        if len(calls) == 4:  # three tables staged, the fourth half-way: the job dies
+            raise RuntimeError("simulated crash mid-load")
+        return real_stage(cur, table, path)
+
+    monkeypatch.setattr(dbload, "_stage", stage_then_die)
+    write_tables(tmp_path / "b", SIDS_B)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        _load(dsn, tmp_path / "b", "dies")
+    after_failure = q(dsn, TABLES_Q)
+    print(f"\ntables before: {len(before)}, after the failed load: {len(after_failure)}"
+          f" (catalog_next: {sum(t[0].startswith('catalog_next.') for t in after_failure)})")
+    assert after_failure == before and _version(dsn) == v
+    monkeypatch.setattr(dbload, "_stage", real_stage)
+    v2 = _load(dsn, tmp_path / "b", "next run")
+    assert v2 == v + 1 and q(dsn, TABLES_Q) == before  # same six live tables, zero orphans
+    assert not [t for t in q(dsn, TABLES_Q) if t[0].startswith("catalog_next.")]
+
+
 @pytest.mark.skipif(not PREVIEW_ENV, reason="set TR_DBLOAD_PREVIEW=1 (slow: full preview)")
 @pytest.mark.skipif(not PREVIEW.exists(), reason=f"{PREVIEW} not built")
 def test_preview_load(dsn: str):

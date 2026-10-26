@@ -24,7 +24,9 @@ catalog.dataset_version exactly as they were:
 
 Storage (Neon Free caps a project's logical size at 1 GB, neon.max_cluster_size; see
 docs/architecture/NEON-STORAGE.md): until the commit both copies exist, so a load needs the database's size plus a
-second catalogue. Before anything is staged, a leftover catalog_next schema is dropped and the load is refused
+second catalogue. Cleanup: a startup sweep (under the lease) drops a committed leftover catalog_next before
+anything else; a failed load's staging rolls back with its transaction, and a cleanup on a fresh connection checks
+and sweeps again, so a failed run leaves no orphans. Before anything is staged the load is refused
 (SizeGuardError: nothing staged, the API keeps the previous version) if the database plus the projected staged copy
 would exceed 85 % of the cap (TR_DB_CAP_MB overrides the cap, TR_DB_GUARD_PCT the share). After the commit the six
 new tables are VACUUMed (visibility map for index-only scans; dead rows of the small bookkeeping tables reclaimed).
@@ -449,6 +451,61 @@ def _take_lease(cur: psycopg.Cursor[Any]) -> None:
         raise LoadBusyError(f"the {LEASE_JOB} lease is held until a later time")
 
 
+def _sweep(cur: psycopg.Cursor[Any]) -> None:
+    """Drop a committed catalog_next left behind. Call under the lease; a running load's staging schema is
+    uncommitted, so it is invisible here and never touched."""
+    cur.execute("SELECT count(*) FROM pg_namespace WHERE nspname = 'catalog_next'")
+    if (row := cur.fetchone()) and row[0]:
+        log.warning("sweep: dropping a leftover catalog_next schema")
+        cur.execute("DROP SCHEMA catalog_next CASCADE")
+
+
+def _cleanup_after_failure(dsn: str) -> None:
+    """After a failed load: the transaction rolled back, so the staged copy is already gone with it. Check that,
+    on a fresh connection (the failed one may be broken), and drop anything left. Best effort: never masks the
+    original error; the next load's startup sweep runs again anyway."""
+    try:
+        with psycopg.connect(dsn, autocommit=True, prepare_threshold=None, connect_timeout=30) as c, \
+                c.cursor() as cur, c.transaction():
+            cur.execute("SET LOCAL lock_timeout = '10s'")
+            _take_lease(cur)
+            _sweep(cur)
+    except Exception as e:  # noqa: BLE001 - cleanup must not replace the load's own error
+        log.warning("cleanup after the failed load skipped (%s); the next load's sweep will retry", e)
+
+
+def _load_tx(conn: psycopg.Connection[Any], cur: psycopg.Cursor[Any], paths: dict[str, Path],
+             expected: dict[str, int], *, ibtracs_version: str, source_commit: str | None, description: str | None,
+             holder: str, sizes: dict[str, int] | None) -> int:
+    """The one transaction: guard, stage, validate, swap, publish. Any error rolls all of it back."""
+    with conn.transaction():
+        cur.execute("SET LOCAL statement_timeout = 0")
+        cur.execute("SET LOCAL TimeZone = 'UTC'")
+        cur.execute("SET LOCAL search_path = public")  # schema-qualified catalog names in pg_get_indexdef
+        _take_lease(cur)
+        guard = check_size(cur, paths, expected)
+        if sizes is not None:
+            sizes.update(guard)
+        cur.execute("CREATE SCHEMA catalog_next")
+        for t in TABLES:
+            ts = time.monotonic()
+            n = _stage(cur, t, paths[t.name])
+            log.info("staged %-22s %9d rows in %6.1f s", t.name, n, time.monotonic() - ts)
+        log.info("database with the staged copy: %d MB", cluster_bytes(cur) // MB)
+        ts = time.monotonic()
+        _validate(cur, expected)
+        log.info("validated in %.1f s", time.monotonic() - ts)
+        _swap(cur)
+        cur.execute("INSERT INTO catalog.dataset_version (ibtracs_version, source_commit, description)"
+                    " VALUES (%s, %s, %s) RETURNING version", (ibtracs_version, source_commit, description))
+        row = cur.fetchone()
+        assert row is not None
+        version = int(row[0])
+        cur.execute("UPDATE ops.job_lease SET holder = %s, last_ok_at = now() WHERE job = %s",
+                    (holder, LEASE_JOB))
+    return version
+
+
 def load(dsn: str, tables_dir: Path, *, ibtracs_version: str, source_commit: str | None,
          description: str | None, sizes: dict[str, int] | None = None) -> int:
     """Stage, validate and swap in the catalogue from `tables_dir`; returns the new dataset_version.
@@ -465,39 +522,19 @@ def load(dsn: str, tables_dir: Path, *, ibtracs_version: str, source_commit: str
     t0 = time.monotonic()
     # prepare_threshold=None: no server-side prepared statements (transaction-mode pooler)
     with psycopg.connect(dsn, autocommit=True, prepare_threshold=None) as conn, conn.cursor() as cur:
-        # A leftover staging schema (a session killed outside a transaction, or made by hand) is dropped and
-        # committed first: dropped files only stop counting against the cap once the drop commits.
+        # Startup sweep: a leftover staging schema (made by hand, or by an older loader) is dropped and committed
+        # first, under the lease: dropped files only stop counting against the cap once the drop commits.
         with conn.transaction():
             _take_lease(cur)
-            cur.execute("SELECT count(*) FROM pg_namespace WHERE nspname = 'catalog_next'")
-            if (row := cur.fetchone()) and row[0]:
-                log.warning("dropping a leftover catalog_next schema")
-                cur.execute("DROP SCHEMA catalog_next CASCADE")
-        with conn.transaction():
-            cur.execute("SET LOCAL statement_timeout = 0")
-            cur.execute("SET LOCAL TimeZone = 'UTC'")
-            cur.execute("SET LOCAL search_path = public")  # schema-qualified catalog names in pg_get_indexdef
-            _take_lease(cur)
-            guard = check_size(cur, paths, expected)
-            if sizes is not None:
-                sizes.update(guard)
-            cur.execute("CREATE SCHEMA catalog_next")
-            for t in TABLES:
-                ts = time.monotonic()
-                n = _stage(cur, t, paths[t.name])
-                log.info("staged %-22s %9d rows in %6.1f s", t.name, n, time.monotonic() - ts)
-            log.info("database with the staged copy: %d MB", cluster_bytes(cur) // MB)
-            ts = time.monotonic()
-            _validate(cur, expected)
-            log.info("validated in %.1f s", time.monotonic() - ts)
-            _swap(cur)
-            cur.execute("INSERT INTO catalog.dataset_version (ibtracs_version, source_commit, description)"
-                        " VALUES (%s, %s, %s) RETURNING version", (ibtracs_version, source_commit, description))
-            row = cur.fetchone()
-            assert row is not None
-            version = int(row[0])
-            cur.execute("UPDATE ops.job_lease SET holder = %s, last_ok_at = now() WHERE job = %s",
-                        (holder, LEASE_JOB))
+            _sweep(cur)
+        try:
+            version = _load_tx(conn, cur, paths, expected, ibtracs_version=ibtracs_version,
+                               source_commit=source_commit, description=description, holder=holder, sizes=sizes)
+        except LoadBusyError:
+            raise  # another load owns the lease (and any staging): nothing of ours to clean
+        except BaseException:
+            _cleanup_after_failure(dsn)
+            raise
         log.info("published dataset_version %d in %.1f s", version, time.monotonic() - t0)
         # Committed: the old copy is gone. VACUUM (outside any transaction) sets the visibility map of the new
         # tables and reclaims the dead rows of the bookkeeping tables. Best effort: the load already succeeded.

@@ -11,8 +11,10 @@ changes; `tools/ops-watch.sh quota` in portfolio-docs watches the numbers below 
 - Logical size is the sum of every database in the branch (`SELECT sum(pg_database_size(datname)) FROM pg_database`):
   `neondb` plus about 23 MB for `postgres`, `template0` and `template1`. Tables, TOAST, indexes and dead rows all
   count; free space inside a table counts until the table is dropped or truncated.
-- History (the 6-hour instant-restore window on Free, WAL) is billed separately and does not count toward this check.
-  It cannot be raised on Free, and lowering it would not free any of the 1 GB, so it is left alone.
+- History (the 6-hour instant-restore window, `history_retention_seconds = 21600`, the Free maximum) is billed
+  separately and does not count toward this check. Lowering it is free but would not free any of the 1 GB, and it is
+  the only way to undo a bad write within those hours, so it stays at 6 hours.
+- One branch (`production`); the Neon API reports `branch_logical_size_limit = 1024` MB.
 - Replay's project is its own: Plumes uses a separate Neon project (different tenant), so neither can push the other
   over.
 
@@ -43,8 +45,21 @@ part (data v4 to v5 added 1 storm, 43 fixes and 92 exposure rows).
    `database + projected staged copy` exceeds **85 % of the cap** (870 MB). The projection scales each live table's
    size (heap, TOAST, indexes) by the new row count, plus 10 %. A refused load prints an `::error`, the workflow's
    report job opens or comments on the "API load failed" issue, and the API keeps the previous version.
-3. **Cleanup.** A leftover `catalog_next` schema is dropped and committed before the guard runs. The swap drops the
-   old tables, which frees their space at the commit, and the new tables are then `VACUUM (ANALYZE)`d.
+3. **Cleanup, automatic and cheap.**
+   - *Startup sweep:* every load first takes the lease and drops a committed leftover `catalog_next`, in its own
+     short transaction, so the space is free before the guard measures. A running load's staging schema is
+     uncommitted and invisible, so the sweep never touches it.
+   - *On failure:* everything staged lives in the load's one transaction, so a crash, timeout or validation error
+     rolls it back. A cleanup step on a fresh connection then checks and sweeps again (best effort; the next run's
+     sweep repeats it). Tested: a load killed while staging its fourth table leaves the same 7 tables and zero in
+     `catalog_next`, and the next load succeeds with zero orphans.
+   - *On success:* the swap drops the old tables, which frees their space at the commit. Then
+     `VACUUM (ANALYZE)` runs on the six swapped tables and the two bookkeeping tables only: no `VACUUM FULL`, no
+     exclusive locks, seconds.
+4. **Versions kept: only the current catalogue.** The API never reads an older version, and a rollback is a reload
+   of the previous data version from the dataset store (`v<N>/tables/`), which keeps every version. A second copy in
+   the database would cost about 309 MB and push the load peak to about 95 %. `catalog.dataset_version` keeps one
+   small row per load (the ETag history).
 
 | | after the fix (estimate until the first load) |
 |---|---|
