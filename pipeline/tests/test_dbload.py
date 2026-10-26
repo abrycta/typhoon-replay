@@ -288,6 +288,35 @@ def test_concurrent_load_is_refused(dsn: str, tmp_path: Path):
             _load(dsn, tmp_path / "a", "busy")
 
 
+def test_size_guard_refuses_before_staging(dsn: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    write_tables(tmp_path / "a", SIDS_A)
+    v = _load(dsn, tmp_path / "a", "a")
+    before = q(dsn, "SELECT sid FROM catalog.storm ORDER BY sid")
+    monkeypatch.setenv("TR_DB_CAP_MB", "1")  # any real database is over 85 % of 1 MB
+    with pytest.raises(dbload.SizeGuardError, match="refused before staging"):
+        _load(dsn, tmp_path / "a", "too big")
+    assert _version(dsn) == v
+    assert q(dsn, "SELECT sid FROM catalog.storm ORDER BY sid") == before
+    assert q(dsn, "SELECT count(*) FROM pg_namespace WHERE nspname = 'catalog_next'") == [(0,)]
+    monkeypatch.delenv("TR_DB_CAP_MB")
+    sizes: dict[str, int] = {}
+    dbload.load(dsn, tmp_path / "a", ibtracs_version="v04r01", source_commit="test", description="ok", sizes=sizes)
+    assert sizes["cap"] == dbload.DEFAULT_CAP_MB * dbload.MB  # plain PostGIS: no neon.max_cluster_size
+    assert 0 < sizes["staged"] and 0 < sizes["after"] < sizes["limit"]
+
+
+def test_leftover_staging_schema_is_dropped(dsn: str, tmp_path: Path):
+    import psycopg
+
+    with psycopg.connect(dsn) as conn:
+        conn.execute("CREATE SCHEMA catalog_next")
+        conn.execute("CREATE TABLE catalog_next.junk AS SELECT generate_series(1, 1000) i")
+    write_tables(tmp_path / "a", SIDS_A)
+    v = _load(dsn, tmp_path / "a", "after leftover")
+    assert _version(dsn) == v
+    assert q(dsn, "SELECT count(*) FROM pg_namespace WHERE nspname = 'catalog_next'") == [(0,)]
+
+
 @pytest.mark.skipif(not PREVIEW_ENV, reason="set TR_DBLOAD_PREVIEW=1 (slow: full preview)")
 @pytest.mark.skipif(not PREVIEW.exists(), reason=f"{PREVIEW} not built")
 def test_preview_load(dsn: str):
