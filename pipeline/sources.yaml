@@ -513,6 +513,7 @@ sources:
     checks:
       bytes: { min: 200, max: 2000000 }
       xml_root: rss
+    anomaly: { max_row_change: 3.0, auto_approve_after: 2 }   # item count swings as storms start and end (+-300%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
 
   - id: jtwc-abpw
@@ -529,6 +530,7 @@ sources:
     checks:
       bytes: { min: 100, max: 200000 }
       contains: "WESTERN NORTH PACIFIC"
+    anomaly: { max_row_change: 3.0, auto_approve_after: 2 }   # one paragraph per storm or disturbance (+-300%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
 
   - id: jma-bosai-target-tc
@@ -545,6 +547,7 @@ sources:
     checks:
       bytes: { min: 2, max: 100000 }
       json_type: array
+    anomaly: { max_row_change: 4.0, auto_approve_after: 2 }   # 0-5 tracked TCs at a time (1 -> 5 is +400%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
 
   - id: jma-xml-extra
@@ -561,7 +564,7 @@ sources:
     checks:
       bytes: { min: 500, max: 5000000 }
       xml_root: feed
-    anomaly: { max_row_change: 1.0 }   # entry count swings as storms start and end (+-100%)
+    anomaly: { max_row_change: 1.0, auto_approve_after: 2 }   # entry count swings as storms start and end (+-100%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
 
   - id: gdacs-rss-tc
@@ -581,5 +584,5 @@ sources:
     checks:
       bytes: { min: 200, max: 5000000 }
       xml_root: rss
-    anomaly: { max_row_change: 3.0 }   # 7-day TC list swings as storms start and end (+-300%)
+    anomaly: { max_row_change: 3.0, auto_approve_after: 2 }   # 7-day TC list swings as storms start and end (+-300%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
