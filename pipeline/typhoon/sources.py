@@ -297,6 +297,38 @@ def check_jma(path: Path, src: dict[str, Any]) -> list[str]:
     return []
 
 
+_TARGET_TC_ID = re.compile(r"^TC\d{4}$")          # JMA internal id, e.g. TC2637
+_TARGET_TC_NUMBER = re.compile(r"^\d{4}$")        # typhoon number YYNN, e.g. 2631 (absent for a depression)
+_TARGET_TC_ISSUE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$")
+
+
+def check_jma_target_tc(path: Path, src: dict[str, Any]) -> list[str]:
+    """Project hook (sources.yaml `hooks`): JMA bosai `targetTc.json` must be a JSON list (empty when no
+    storm is tracked) of objects with a `TCnnnn` id, a category and an ISO issue time, and a 4-digit
+    typhoon number when one is given. An HTML or error page served with HTTP 200 raises SchemaError, so
+    the link fails and nothing malformed is archived."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:
+        raise SchemaError(f"targetTc.json is not JSON: {e}") from None
+    if not isinstance(data, list):
+        raise SchemaError(f"targetTc.json is a {type(data).__name__}, expected a list of storms")
+    for i, tc in enumerate(data):
+        if not isinstance(tc, dict):
+            raise SchemaError(f"targetTc.json entry {i} is a {type(tc).__name__}, expected an object")
+        tid, cat, issue = tc.get("tropicalCyclone"), tc.get("category"), tc.get("issue")
+        if not (isinstance(tid, str) and _TARGET_TC_ID.match(tid)):
+            raise SchemaError(f"targetTc.json entry {i}: tropicalCyclone {tid!r} is not a TCnnnn id")
+        if not (isinstance(cat, str) and cat):
+            raise SchemaError(f"targetTc.json entry {i} ({tid}): no category")
+        if not (isinstance(issue, str) and _TARGET_TC_ISSUE.match(issue)):
+            raise SchemaError(f"targetTc.json entry {i} ({tid}): issue {issue!r} is not an ISO time")
+        num = tc.get("typhoonNumber")
+        if num not in (None, "") and not (isinstance(num, str) and _TARGET_TC_NUMBER.match(num)):
+            raise SchemaError(f"targetTc.json entry {i} ({tid}): typhoonNumber {num!r} is not 4 digits")
+    return []
+
+
 def main(argv: list[str] | None = None) -> int:
     """`python -m typhoon.sources <archivekit command>` with this project's registry filled in."""
     from archivekit.cli import main as kit_main
