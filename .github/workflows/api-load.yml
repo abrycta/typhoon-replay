@@ -1,9 +1,9 @@
 name: API load
-# Load the published data version into the API database (Neon) after every successful Refresh or Backfill run, and
-# by hand. typhoon.apiload is idempotent (a version that is already loaded is skipped) and typhoon.dbload stages,
-# validates and swaps in ONE transaction, so the four backends serve the old version or the new one, never a mix.
-# Before staging, a size guard refuses a load that would pass 85 % of Neon Free's 1 GB cap (docs/architecture/
-# NEON-STORAGE.md); nothing is staged and the API keeps the previous version.
+# Migrate, then load the published data version into the API database (Neon) after every successful Refresh or
+# Backfill run, and by hand. typhoon.apiload is idempotent (a version that is already loaded is skipped) and
+# typhoon.dbload stages, validates and swaps in ONE transaction, so the four backends serve the old version or the
+# new one, never a mix. Before staging, a size guard refuses a load that would pass 85 % of Neon Free's 1 GB cap
+# (docs/architecture/NEON-STORAGE.md); nothing is staged and the API keeps the previous version.
 # Failures surface only internally: an ::error annotation and a GitHub issue (one open issue, commented on repeats).
 on:
   workflow_run:
@@ -31,6 +31,7 @@ concurrency:
 env:
   HF_ROOT: https://huggingface.co/datasets/permission-alluring/typhoon-replay/resolve/main/
   API: https://replay.krtmtthw.dev/api
+  DBMATE_IMAGE: ghcr.io/amacneil/dbmate:2.37
 
 jobs:
   load:
@@ -62,6 +63,19 @@ jobs:
         run: |
           echo "::error title=API load failed::ARCHIVE_READ_TOKEN is not set, so the pipeline environment can't be installed"
           exit 1
+      - name: Migrate the API database (dbmate up, before loading)
+        # contracts/db/migrations is the only schema source; every pending migration is applied here, over the
+        # direct endpoint (not the pooler), each in its own transaction, so a failed migration leaves the schema as
+        # it was and the load below does not run (the report job opens the issue). Migrations must stay compatible
+        # with the backends already deployed (expand first, contract later; CONTRACT-GUIDE). The api-load
+        # concurrency group keeps one migrate-and-load at a time. Usually a no-op ("Applied: 0").
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          direct="${NEON_DATABASE_URL/-pooler./.}"
+          echo "::add-mask::$direct"
+          DATABASE_URL="$direct" docker run --rm -e DATABASE_URL -e DBMATE_MIGRATIONS_DIR=/db/migrations \
+            -e DBMATE_NO_DUMP_SCHEMA=true -v "$PWD/contracts/db:/db:ro" "$DBMATE_IMAGE" --wait up
       - name: Load the published version (one transaction)
         id: load
         working-directory: pipeline
