@@ -63,4 +63,4 @@ testpaths = ["tests"]
 markers = ["data: data-quality gates over data/processed (skipped when absent)"]
 
 [tool.uv.sources]
-archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.2.1" }
+archivekit = { git = "https://github.com/abrycta/data-archive-kit", rev = "v1.4.0" }
