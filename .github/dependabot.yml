@@ -1,7 +1,8 @@
 # Dependency updates (Dependabot). Version updates: weekly, one grouped PR per ecosystem, at most 2 open.
 # Security updates are separate and immediate (repo setting: Dependabot security updates).
 # Majors of react, react-dom, astro, vite and maplibre-gl, and @abrycta/* (Akari, portfolio rule 23),
-# are upgraded by hand.
+# are upgraded by hand. TypeScript majors too: TypeScript 7 (the native compiler) is outside the peer range of
+# typescript-eslint (<6.1) and openapi-typescript (^5), so npm ci fails until those support it.
 version: 2
 registries:
   # @abrycta/akari comes from GitHub Packages. Dependabot secret DEPENDABOT_PACKAGES_TOKEN (set 2026-10-22): a
@@ -33,6 +34,8 @@ updates:
       - dependency-name: vite
         update-types: ["version-update:semver-major"]
       - dependency-name: maplibre-gl
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
         update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directories: ["/", "/.github/actions/*"]
