@@ -18,15 +18,15 @@
   },
   "devDependencies": {
     "@apiture/openapi-down-convert": "0.14.2",
-    "@redocly/cli": "2.66.0",
+    "@redocly/cli": "2.71.0",
     "@stoplight/prism-cli": "5.16.0",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "eventsource-parser": "4.1.2",
     "openapi-typescript": "7.13.0",
-    "typescript": "5.9.3",
-    "vitest": "4.1.12"
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
   },
   "allowScripts": {
     "@scarf/scarf": false
