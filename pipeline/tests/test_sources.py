@@ -176,11 +176,16 @@ def test_remote_read_provenance_marks_fallback() -> None:
 
 
 def test_live_feed_row_change_limits():
-    """JMA XML and GDACS TC feeds swing in size as storms start and end; widen the anomaly gate."""
+    """Live storm feeds swing in size as storms start and end; widen the anomaly gate for every one,
+    and let a draft fetched identically on 2 runs in a row approve itself."""
     from archivekit.profile import Profile, Thresholds, compare
 
     reg = S.registry()
-    for sid, limit in (("jma-xml-extra", 1.0), ("gdacs-rss-tc", 3.0)):
+    limits = {"jtwc-rss": 3.0, "jtwc-abpw": 3.0, "jma-bosai-target-tc": 4.0, "jma-xml-extra": 1.0, "gdacs-rss-tc": 3.0}
+    live = {s["id"] for s in reg.raw["sources"] if s.get("kind") == "live-feed"}
+    assert live == set(limits), "every live feed needs a row-change limit sized to its natural range"
+    for sid, limit in limits.items():
+        assert reg.source(sid)["anomaly"]["auto_approve_after"] == 2
         t = Thresholds.from_source(reg.source(sid))
         assert t.max_row_change == limit
         assert not compare(Profile(rows=10), Profile(rows=int(10 * (1 + limit))), t)
