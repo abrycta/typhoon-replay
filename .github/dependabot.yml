@@ -10,6 +10,8 @@ registries:
   github-packages:
     type: npm-registry
     url: https://npm.pkg.github.com
+    # Dependabot needs the scope (or a committed .npmrc); without it every npm job fails with private_registry_config_not_found.
+    scope: "@abrycta"
     token: ${{secrets.DEPENDABOT_PACKAGES_TOKEN}}
 updates:
   - package-ecosystem: npm
