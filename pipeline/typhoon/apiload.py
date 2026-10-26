@@ -12,10 +12,11 @@ Used by .github/workflows/api-load.yml after every successful Refresh or Backfil
    SHA-256, which is checked), join the per-season exposure files into one table, and check every row count
    against the manifest.
 4. Hand the directory to typhoon.dbload, which stages, validates and swaps in ONE transaction: a failure at any
-   step leaves the API serving the previous version, never a half-loaded or empty catalogue.
+   step leaves the API serving the previous version, never a half-loaded or empty catalogue. Before staging, its
+   size guard refuses a load that would take the database past 85 % of Neon Free's 1 GB cap (::error, exit 1).
 
-Prints one JSON line: {"dataVersion": N, "datasetVersion": M, "loaded": true|false}. The connection string is
-never logged.
+Prints one JSON line: {"dataVersion": N, "datasetVersion": M, "loaded": true|false} (after a load also
+"databaseMB", "peakMB" and "capMB"). The connection string is never logged.
 """
 from __future__ import annotations
 
@@ -114,9 +115,12 @@ def run(dsn: str, root: str, version: int | None, force: bool) -> dict[str, Any]
         table_paths = _json(c, f"{root}v{version}/tables.json")["tables"]
         with tempfile.TemporaryDirectory(prefix="apiload-") as tmp:
             fetch_tables(c, root, table_paths, manifest["counts"]["tables"], Path(tmp))
+            sizes: dict[str, int] = {}
             new = dbload.load(dsn, Path(tmp), ibtracs_version=ibtracs_version(manifest), source_commit=commit,
-                              description=marker(version))
-    return {"dataVersion": version, "datasetVersion": new, "loaded": True}
+                              description=marker(version), sizes=sizes)
+    return {"dataVersion": version, "datasetVersion": new, "loaded": True,
+            "databaseMB": sizes["after"] // dbload.MB, "capMB": sizes["cap"] // dbload.MB,
+            "peakMB": (sizes["database"] + sizes["staged"]) // dbload.MB}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -132,6 +136,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     try:
         result = run(a.dsn, a.root, a.version, a.force)
+    except dbload.SizeGuardError as e:
+        # Internal only: the workflow's report job opens (or comments on) the "API load failed" issue.
+        print(f"::error title=API load refused (database size guard)::{e}", file=sys.stderr)
+        return 1
     except (dbload.ValidationError, dbload.LoadBusyError) as e:
         print(e, file=sys.stderr)
         return 1

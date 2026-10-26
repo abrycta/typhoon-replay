@@ -173,7 +173,7 @@ class ApiContractTest {
     @Test
     void readinessReportsTheSchemaVersion() throws Exception {
         mvc.perform(get("/readyz")).andExpect(status().isOk()).andExpect(contract())
-                .andExpect(jsonPath("$.schemaVersion").value("20261021000600"));
+                .andExpect(jsonPath("$.schemaVersion").value("20261026000100"));
         mvc.perform(get("/healthz")).andExpect(status().isOk()).andExpect(contract());
     }
 }

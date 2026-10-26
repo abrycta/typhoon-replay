@@ -176,11 +176,16 @@ def test_remote_read_provenance_marks_fallback() -> None:
 
 
 def test_live_feed_row_change_limits():
-    """JMA XML and GDACS TC feeds swing in size as storms start and end; widen the anomaly gate."""
+    """Live storm feeds swing in size as storms start and end; widen the anomaly gate for every one,
+    and let a draft fetched identically on 2 runs in a row approve itself."""
     from archivekit.profile import Profile, Thresholds, compare
 
     reg = S.registry()
-    for sid, limit in (("jma-xml-extra", 1.0), ("gdacs-rss-tc", 3.0)):
+    limits = {"jtwc-rss": 3.0, "jtwc-abpw": 3.0, "jma-bosai-target-tc": 4.0, "jma-xml-extra": 1.0, "gdacs-rss-tc": 3.0}
+    live = {s["id"] for s in reg.raw["sources"] if s.get("kind") == "live-feed"}
+    assert live == set(limits), "every live feed needs a row-change limit sized to its natural range"
+    for sid, limit in limits.items():
+        assert reg.source(sid)["anomaly"]["auto_approve_after"] == 2
         t = Thresholds.from_source(reg.source(sid))
         assert t.max_row_change == limit
         assert not compare(Profile(rows=10), Profile(rows=int(10 * (1 + limit))), t)
@@ -194,3 +199,45 @@ def test_provenance_from_dict_ignores_unknown_keys() -> None:
          "a_field_from_kit_9": {"x": 1}}
     p = S.provenance_from_dict(d)
     assert p.source_id == "ibtracs-wp" and p.sha256 == "0" * 64
+
+
+TARGET_TC_OK = (
+    '[{"tropicalCyclone":"TC2637","typhoonNumber":"2631","category":"TY","issue":"2026-10-26T18:45:00+09:00"},'
+    '{"tropicalCyclone":"TC2638","category":"TD","issue":"2026-10-26T21:45:00+09:00"}]'
+)
+TARGET_TC_ERROR_PAGE = "<!DOCTYPE html><html><head><title>503 Service Unavailable</title></head><body>[]</body></html>"
+
+
+@pytest.mark.parametrize("body", [TARGET_TC_OK, "[]"])
+def test_target_tc_hook_accepts_real_lists(tmp_path: Path, body: str) -> None:
+    """Real targetTc.json shapes (with and without a typhoon number, or no storm at all) pass the kit's checks."""
+    from archivekit.formats import validate_file
+
+    p = tmp_path / "targetTc.json"
+    p.write_text(body)
+    validate_file(p, S.registry().source("jma-bosai-target-tc"))
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        TARGET_TC_ERROR_PAGE,
+        '{"error": "rate limit exceeded"}',
+        '[{"message": "not found"}]',
+        '[{"tropicalCyclone":"TC2637","typhoonNumber":"31","category":"TY","issue":"2026-10-26T18:45:00+09:00"}]',
+        '[{"tropicalCyclone":"TC2637","category":"TY","issue":"yesterday"}]',
+    ],
+)
+def test_target_tc_hook_rejects_error_bodies(tmp_path: Path, body: str) -> None:
+    """An HTML or error page served with HTTP 200, or a list of something else, fails the link."""
+    from archivekit import SchemaError
+    from archivekit.fetch import LinkError
+    from archivekit.formats import validate_file
+
+    p = tmp_path / "targetTc.json"
+    p.write_text(body)
+    with pytest.raises((SchemaError, LinkError)):
+        validate_file(p, S.registry().source("jma-bosai-target-tc"))
+    if body.startswith("["):
+        with pytest.raises(SchemaError):
+            S.check_jma_target_tc(p, {})
