@@ -547,6 +547,7 @@ sources:
     checks:
       bytes: { min: 2, max: 100000 }
       json_type: array
+    hooks: ["typhoon.sources:check_jma_target_tc"]   # list of {tropicalCyclone: TCnnnn, category, issue}
     anomaly: { max_row_change: 4.0, auto_approve_after: 2 }   # 0-5 tracked TCs at a time (1 -> 5 is +400%)
     archived: { enabled: true, retention: { keep_last: 26 }, sample_only: true }
 
@@ -578,8 +579,8 @@ sources:
     links:
       - id: gdacs-rss
         url: https://www.gdacs.org/xml/rss_tc_7d.xml
-      - id: gdacs-api
-        url: https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC
+      - id: gdacs-api   # documented at https://www.gdacs.org/gdacsapi/swagger (Events/geteventlist/search)
+        url: https://www.gdacs.org/gdacsapi/api/Events/geteventlist/search?eventlist=TC
         automatic: false   # JSON, not RSS
     checks:
       bytes: { min: 200, max: 5000000 }
