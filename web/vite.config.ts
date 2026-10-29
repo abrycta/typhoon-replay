@@ -63,7 +63,7 @@ export default defineConfig({
     outDir: "dist",
     // Hashed file names under /assets/ get the immutable cache rule in _headers.
     assetsDir: "assets",
-    sourcemap: true,
+    sourcemap: false, // no public .map files (security audit L5)
     target: "es2023",
     chunkSizeWarningLimit: 1100, // maplibre-gl is one ~1 MB chunk, loaded only with a map
     // The frozen embed krtmtthw.dev frames is a second page of the same build, so it shares the app's hashed
