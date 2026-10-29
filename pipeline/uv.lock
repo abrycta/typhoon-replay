@@ -108,8 +108,8 @@ wheels = [
 
 [[package]]
 name = "archivekit"
-version = "1.4.0"
-source = { git = "https://github.com/abrycta/data-archive-kit?rev=v1.4.0#a6cbd9514d6aca7c4b091e58fe3c979b75c9db88" }
+version = "1.4.2"
+source = { git = "https://github.com/abrycta/data-archive-kit?rev=v1.4.2#e5a7ea813975484b936da8e57cc19c24262c43ee" }
 dependencies = [
     { name = "httpx" },
     { name = "jsonschema" },
@@ -1618,7 +1618,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "archivekit", git = "https://github.com/abrycta/data-archive-kit?rev=v1.4.0" },
+    { name = "archivekit", git = "https://github.com/abrycta/data-archive-kit?rev=v1.4.2" },
     { name = "duckdb", specifier = ">=1.5.6" },
     { name = "gcsfs", specifier = ">=2026.10.1" },
     { name = "h5netcdf", specifier = ">=1.8.1" },
