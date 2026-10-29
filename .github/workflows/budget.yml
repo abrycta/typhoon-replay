@@ -7,8 +7,10 @@
 # issue.
 # Static-mode trip: when Render bandwidth or Neon compute passes 70 % of the monthly free allowance, or today's
 # Workers + Pages Functions requests pass 70 % of the daily one, it writes static_mode=true to the EDGE_FLAGS KV (the
-# edge follows within a minute) and opens an issue saying what tripped and how to switch back. Never switched back
-# automatically. workflow_dispatch with dry_run plans the guard's and the trip's actions without changing anything.
+# edge follows within a minute) and opens an issue saying what tripped. Recovery (hysteresis): once that issue has been
+# open for 24 h and all three meters are under 50 % (normally after the monthly reset), it writes static_mode=false and
+# closes the issue; a flag set by hand (no open trip issue) is left alone. workflow_dispatch with dry_run plans the
+# guard's, the trip's and the recovery's actions without changing anything.
 name: Budget
 
 on:
@@ -17,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Plan the guard's and the static-mode trip's actions without suspending, resuming or writing KV or issues"
+        description: "Plan the guard's and the static-mode trip's and recovery's actions without suspending, resuming or writing KV or issues"
         type: boolean
         default: true
 
@@ -40,7 +42,7 @@ jobs:
       - name: Guard logic tests (mocked APIs)
         run: node --test scripts/budget-check.test.mjs
 
-      - name: Read usage, apply the Render hours guard and the static-mode trip
+      - name: Read usage, apply the Render hours guard and the static-mode trip and recovery
         id: usage
         env:
           GITHUB_TOKEN: ${{ github.token }}

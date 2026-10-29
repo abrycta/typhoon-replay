@@ -14,11 +14,17 @@
 // 3. Static-mode trip. When Render outbound bandwidth or Neon compute passes STATIC_AT (70 %) of the monthly free
 //    allowance, or today's Workers + Pages Functions requests pass 70 % of the daily one, it writes static_mode=true to
 //    the EDGE_FLAGS KV namespace (wrangler.jsonc kv_namespaces; the edge reads it within a minute, no redeploy) and
-//    opens an issue that says what tripped and how to switch back. It never switches back by itself.
+//    opens an issue that says what tripped (the record that the trip, not a person, switched it on).
+// 4. Static-mode recovery, with hysteresis. While that issue is open, the flag is on, and at least RECOVER_HOLD_H
+//    (24) hours have passed since the issue was opened, the check switches static mode back off (static_mode=false)
+//    and closes the issue once all three meters were read and every one is under RECOVER_AT (50 %), which in practice
+//    means after the monthly reset (or the next UTC day for the daily requests). Between 50 % and 70 % nothing changes,
+//    so it cannot flap. A flag switched on by hand (no open trip issue) or STATIC_MODE=true in wrangler.jsonc is never
+//    switched off. An open trip issue whose flag was already switched off by hand is closed.
 //
 // Env: RENDER_API_KEY, CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID, NEON_API_KEY + NEON_PROJECT_ID, GITHUB_TOKEN +
 // GITHUB_REPOSITORY (all optional), RENDER_GUARD_SERVICES (default "typhoon-replay-go"), WARN_AT, GUARD_AT, STATIC_AT,
-// EDGE_FLAGS_NAMESPACE_ID (default: the EDGE_FLAGS binding in wrangler.jsonc).
+// RECOVER_AT, RECOVER_HOLD_H, EDGE_FLAGS_NAMESPACE_ID (default: the EDGE_FLAGS binding in wrangler.jsonc).
 // Flag: --dry-run plans the guard's and the trip's actions without suspending, resuming, writing KV or issues.
 
 import { readFileSync } from "node:fs";
@@ -45,13 +51,27 @@ const tripsStatic = (m) =>
   (m.provider === "Neon" && m.meter === "compute") ||
   (m.provider === "Cloudflare" && m.unit === "req");
 
+/** How many trip meters there are (Render bandwidth, Neon compute, Cloudflare requests): all must be read to recover. */
+const TRIP_METERS = 3;
+
 /**
- * The static-mode trip's decision (pure). `meters` as in the report; `flagOn` whether static_mode is already true.
- * Returns the meters at or past `staticAt` of their free allowance and whether to switch static mode on now.
+ * The static-mode decision (pure). `meters` as in the report; `flagOn` whether static_mode is already true;
+ * `tripIssue` the open issue the trip opened ({number, createdAt}) or undefined. Returns the meters at or past
+ * `staticAt`, whether to switch static mode on, whether to switch it back off (`switchOff`), whether to close a stale
+ * trip issue (`closeIssue`), and `waiting`, why a trip that is on is not switched off yet.
  */
-export function decideStatic({ meters, staticAt = 0.7, flagOn }) {
-  const tripped = meters.filter((m) => tripsStatic(m) && m.used / m.limit >= staticAt);
-  return { tripped, switchOn: tripped.length > 0 && !flagOn };
+export function decideStatic({ meters, staticAt = 0.7, recoverAt = 0.5, holdHours = 24, flagOn, tripIssue, now = new Date() }) {
+  const trip = meters.filter(tripsStatic);
+  const tripped = trip.filter((m) => m.used / m.limit >= staticAt);
+  const result = { tripped, switchOn: tripped.length > 0 && !flagOn, switchOff: false, closeIssue: false, waiting: undefined };
+  if (!tripIssue) return result;
+  if (!flagOn) return { ...result, closeIssue: true }; // switched back by hand; a new trip opens a new issue
+  const high = trip.filter((m) => m.used / m.limit >= recoverAt);
+  if (trip.length < TRIP_METERS) result.waiting = "not every meter could be read";
+  else if (high.length) result.waiting = `${high.map((m) => `${m.provider} ${m.meter}`).join(", ")} still at or over ${recoverAt * 100} %`;
+  else if (now - new Date(tripIssue.createdAt) < holdHours * 3_600_000) result.waiting = `on for less than ${holdHours} h`;
+  else result.switchOff = true;
+  return result;
 }
 
 /** The month's frame: start, end and the fraction elapsed. */
@@ -91,6 +111,8 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
   const WARN_AT = Number(env.WARN_AT ?? 0.7);
   const GUARD_AT = Number(env.GUARD_AT ?? 0.85);
   const STATIC_AT = Number(env.STATIC_AT ?? 0.7);
+  const RECOVER_AT = Number(env.RECOVER_AT ?? 0.5);
+  const RECOVER_HOLD_H = Number(env.RECOVER_HOLD_H ?? 24);
   const guardList = (env.RENDER_GUARD_SERVICES ?? "typhoon-replay-go").split(",").map((s) => s.trim()).filter(Boolean);
   const { start, day, fraction } = frame(now);
   const meters = [];
@@ -175,12 +197,14 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
     ? { headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: "application/vnd.github+json" }, repo: `${GITHUB}/repos/${env.GITHUB_REPOSITORY}` }
     : undefined;
   const write = (url, init) => (dryRun ? Promise.resolve({}) : call(url, init));
+  let openIssues;
+  const listOpenIssues = async () => (openIssues ??= await call(`${gh.repo}/issues?state=open&per_page=100`, { headers: gh.headers }));
 
   // --- Render hours guard ---
   if (renderState) {
     const pausedIssues = [];
     if (gh) {
-      const open = await call(`${gh.repo}/issues?state=open&per_page=100`, { headers: gh.headers });
+      const open = await listOpenIssues();
       for (const i of open) {
         const m = i.title.startsWith(GUARD_TITLE) && MARKER.exec(i.body ?? "");
         if (m) pausedIssues.push({ number: i.number, month: m[1], services: m[2].split(",") });
@@ -239,9 +263,31 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
     } catch (e) {
       notes.push(`Static-mode trip: not checked (${e.message}).`);
     }
+    let tripIssue;
+    if (flagOn !== undefined && gh) {
+      try {
+        const i = (await listOpenIssues()).find((x) => !x.pull_request && x.title.startsWith(STATIC_TITLE));
+        if (i) tripIssue = { number: i.number, createdAt: i.created_at };
+      } catch (e) {
+        notes.push(`Static-mode recovery: not checked (${e.message}).`);
+      }
+    }
     if (flagOn !== undefined) {
-      const d = decideStatic({ meters, staticAt: STATIC_AT, flagOn });
-      if (flagOn) notes.push("Static mode is ON (EDGE_FLAGS static_mode=true). It stays on until switched back by hand (see its issue).");
+      const d = decideStatic({ meters, staticAt: STATIC_AT, recoverAt: RECOVER_AT, holdHours: RECOVER_HOLD_H, flagOn, tripIssue, now });
+      if (flagOn && !tripIssue) notes.push("Static mode is ON (EDGE_FLAGS static_mode=true) with no open trip issue, so it was switched on by hand: it stays on until switched back by hand.");
+      else if (flagOn && d.waiting) notes.push(`Static mode is ON (issue #${tripIssue.number}). It switches back on its own once every meter is under ${RECOVER_AT * 100} % and it has been on for ${RECOVER_HOLD_H} h; waiting: ${d.waiting}.`);
+      if (d.switchOff) {
+        actions.push(`static mode off: every trip meter is under ${RECOVER_AT * 100} % (issue #${tripIssue.number})`);
+        await write(kv, { method: "PUT", headers: { ...auth, "Content-Type": "text/plain" }, body: "false" });
+      }
+      if ((d.switchOff || d.closeIssue) && gh) {
+        if (d.closeIssue) actions.push(`close issue #${tripIssue.number}: static mode is already off`);
+        const body = d.switchOff
+          ? `Usage is back under ${RECOVER_AT * 100} % on every trip meter, so the budget check switched static mode **off** (EDGE_FLAGS static_mode=false). The edge follows within a minute.`
+          : "Static mode is already off (EDGE_FLAGS static_mode is not true), so this issue is closed.";
+        await write(`${gh.repo}/issues/${tripIssue.number}/comments`, { method: "POST", headers: gh.headers, body: JSON.stringify({ body }) });
+        await write(`${gh.repo}/issues/${tripIssue.number}`, { method: "PATCH", headers: gh.headers, body: JSON.stringify({ state: "closed" }) });
+      }
       if (d.switchOn) {
         const why = d.tripped.map((m) => `${m.provider} ${m.meter}: ${m.used.toFixed(m.unit === "req" ? 0 : 2)} ${m.unit} of ${m.limit} ${m.unit} (${((m.used / m.limit) * 100).toFixed(1)} %)`);
         actions.push(`static mode on: ${why.join("; ")}`);
@@ -254,15 +300,19 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
             ...why.map((w) => `- ${w}`),
             "",
             "Static mode serves cached answers of any age and sends nothing to the backends (other requests get 503",
-            "`static-mode`). The edge picks the flag up within about a minute. **It never switches back by itself.**",
+            "`static-mode`). The edge picks the flag up within about a minute.",
             "",
-            "To switch back once the cause is handled, set the KV key `static_mode` to `false` (the edge follows within a minute):",
+            `**It switches back by itself** once every trip meter (Render bandwidth, Neon compute, today's Workers requests) is`,
+            `under ${RECOVER_AT * 100} % and it has been on for at least ${RECOVER_HOLD_H} h, normally after the monthly reset; the budget check then`,
+            "closes this issue. Closing this issue by hand keeps static mode on until it is switched back by hand.",
+            "",
+            "To switch back earlier, set the KV key `static_mode` to `false` (the edge follows within a minute; the next check",
+            "closes this issue):",
             "```sh",
             "CLOUDFLARE_API_TOKEN=\"$(security find-generic-password -s cloudflare-api-token -w)\" \\",
             `  npx wrangler kv key put static_mode false --namespace-id ${namespace} --remote`,
             "```",
             "or in the Cloudflare dashboard: Storage & Databases → Workers KV → typhoon-replay-edge-flags → `static_mode` → `false`.",
-            "Then close this issue.",
           ].join("\n");
           await write(`${gh.repo}/issues`, { method: "POST", headers: gh.headers, body: JSON.stringify({ title: `${STATIC_TITLE} (${now.toISOString().slice(0, 10)})`, body }) });
         }
@@ -288,7 +338,7 @@ export async function run({ env = process.env, now = new Date(), fetchImpl = fet
   }
   if (actions.length) lines.push("", `Actions${dryRun ? " (dry run, nothing changed)" : ""}:`, ...actions.map((a) => `- ${a}`));
   if (notes.length) lines.push("", ...notes.map((s) => `- ${s}`));
-  lines.push("", `Warning threshold: ${WARN_AT * 100} % of a limit, or a month-end projection over 100 %. Guard: ${GUARD_AT * 100} % of Render hours pauses, in order: ${guardList.join(", ") || "(none)"}. Static mode: ${STATIC_AT * 100} % of Render bandwidth, Neon compute or the daily Workers requests.`);
+  lines.push("", `Warning threshold: ${WARN_AT * 100} % of a limit, or a month-end projection over 100 %. Guard: ${GUARD_AT * 100} % of Render hours pauses, in order: ${guardList.join(", ") || "(none)"}. Static mode: on at ${STATIC_AT * 100} % of Render bandwidth, Neon compute or the daily Workers requests; back off when all are under ${RECOVER_AT * 100} % after ${RECOVER_HOLD_H} h.`);
   log(lines.join("\n"));
   return { over, actions };
 }
