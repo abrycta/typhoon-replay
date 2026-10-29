@@ -12,3 +12,9 @@ dist/
 web/.npmrc
 *.tsbuildinfo
 .claude/
+
+# Local secrets (never commit): dotenv files and wrangler's .dev.vars; examples stay tracked
+.env
+.env.*
+!.env*.example
+.dev.vars*

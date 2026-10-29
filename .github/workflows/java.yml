@@ -205,6 +205,7 @@ jobs:
     name: Deploy to Render
     needs: [build, conformance]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production # main-only job; Cloudflare/Render secrets can move into this environment
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:

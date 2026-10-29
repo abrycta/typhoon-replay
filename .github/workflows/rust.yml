@@ -253,6 +253,7 @@ jobs:
     name: Deploy (Cloudflare Workers)
     needs: conformance
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    environment: production # main-only job; Cloudflare/Render secrets can move into this environment
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
