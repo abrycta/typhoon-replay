@@ -183,20 +183,30 @@ millisecond of CPU to set up and nothing per frame. It can stay open as long as 
 - If a `RATE_LIMITER` binding ever becomes available (for example through a service binding to a small Worker), it
   takes over automatically.
 
-## Static mode (manual emergency switch)
+## Static mode (automatic budget switch, and manual emergency switch)
 
-`STATIC_MODE=true` stops all origin traffic:
+Static mode stops all origin traffic:
 - cached entries of any age are served (`X-Edge-Stale: static-mode` when past `max-age`);
 - everything else, including health, SSE and writes, gets a 503 `static-mode` with `Retry-After: 3600`.
 
-**Decision (2026-10-21, OPEN-QUESTIONS A.9):** the backends stay live, and Render bandwidth is kept down by compression
-and the edge cache (dataset pin) instead. There is no scheduled bandwidth job, and nothing flips this switch
-automatically. It stays as a manual emergency switch, for example if a scraper gets past the rate limit. To use it:
-1. **Env var (no new resource).** Set `"STATIC_MODE": "true"` in `wrangler.jsonc` and push to `main`; `deploy.yml`
-   redeploys Pages. Set it back the same way. The var must be committed, because every deploy from `main` resets the
-   Pages vars to `wrangler.jsonc`.
-2. **KV flag (not set up).** The proxy also reads the key `static_mode` from an optional KV binding `EDGE_FLAGS`, at
-   most once a minute per isolate (`cacheTtl` 60). Binding one would create a Cloudflare resource, so it is not used.
+The edge is in static mode when either of these is true (`edge/src/env.ts` `isStaticMode`):
+1. **KV flag `static_mode` in `EDGE_FLAGS` (what runs).** The binding is set up in `wrangler.jsonc`
+   (`kv_namespaces`, namespace `typhoon-replay-edge-flags`) and is read at most once a minute per isolate
+   (`cacheTtl` 60), so a change needs no redeploy. The budget check (`.github/workflows/budget.yml`,
+   `scripts/budget-check.mjs`, every 8 hours) owns it:
+   - **On** at 70 % of the month's Render outbound bandwidth (the whole workspace) or Neon compute, or of today's
+     Workers + Pages Functions requests. It writes `true` and opens a "Static mode switched on" issue.
+   - **Back off** on its own, with hysteresis: only while that issue is open, once it has been open for 24 h and all
+     three meters were read and are under 50 % (in practice after the monthly reset, or the next UTC day for the
+     requests). It writes `false` and closes the issue. Between 50 % and 70 % nothing changes, so it cannot flap.
+   - A flag set to `true` by hand (no open trip issue, or the issue closed by hand) is never switched off.
+   - By hand: `npx wrangler kv key put static_mode true|false --namespace-id <id from wrangler.jsonc> --remote`.
+2. **Env var `STATIC_MODE` (manual override).** `"STATIC_MODE": "true"` in `wrangler.jsonc`, pushed to `main`
+   (`deploy.yml` redeploys Pages, which resets the Pages vars to `wrangler.jsonc`), forces static mode whatever the KV
+   flag says, and the budget check never changes it. Set it back to `"false"` the same way.
+
+The backends otherwise stay live, and Render bandwidth is kept down by compression and the edge cache (dataset pin;
+OPEN-QUESTIONS A.9).
 
 ## Configuration
 
@@ -205,13 +215,13 @@ Defaults are committed in `wrangler.jsonc` under `vars`:
 | Var | Default | Meaning |
 |---|---|---|
 | `BACKEND_ORIGINS` | `{"java":"https://typhoon-replay-java.onrender.com"}` | impl → origin (add node/rust/go as they deploy) |
-| `STATIC_MODE` | `false` | manual emergency switch: cached answers only |
+| `STATIC_MODE` | `false` | manual override: `true` forces cached answers only (the KV flag is the automatic switch) |
 | `ORIGIN_TIMEOUT_MS` | `8000` | wait before 503 `backend-waking` on a miss |
 | `STALE_TIMEOUT_MS` | `1500` | wait before serving a stale-if-error copy |
 | `STALE_IF_ERROR_S` | `604800` | edge stale-if-error window when the origin sends none |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_BURST` | `120` / `60` | per-IP token bucket |
 
-Optional bindings: `EDGE_FLAGS` (KV, static-mode flag) and `RATE_LIMITER`. Optional secret: `EDGE_SECRET`
+Bindings: `EDGE_FLAGS` (KV, static-mode flag; bound in `wrangler.jsonc`) and the optional `RATE_LIMITER`. Optional secret: `EDGE_SECRET`
 (`wrangler pages secret put EDGE_SECRET --project-name typhoon-replay`), the same value as each backend's `TR_EDGE_SECRET`.
 
 ## Tests

@@ -14,7 +14,8 @@
   // BACKEND_ORIGINS maps impl -> origin; add node/rust/go here as they deploy. Unlisted impls answer 503
   // backend-not-deployed. STATIC_MODE "true" serves cached responses only: a manual emergency switch
   // (edge/README.md "Static mode"). The budget check (budget.yml) can also switch static mode on, through the
-  // static_mode key of the EDGE_FLAGS KV binding below (read within a minute, no redeploy); it never switches it off.
+  // static_mode key of the EDGE_FLAGS KV binding below (read within a minute, no redeploy), and back off once usage
+  // falls under 50 % (after its trip issue has been open 24 h). STATIC_MODE "true" here always wins over the KV flag.
   "vars": {
     "BACKEND_ORIGINS": "{\"java\":\"https://typhoon-replay-java.onrender.com\",\"go\":\"https://typhoon-replay-go.onrender.com\",\"node\":\"https://replay-api-node.krtmtthw.workers.dev\",\"rust\":\"https://replay-api-rust.krtmtthw.workers.dev\"}",
     "STATIC_MODE": "false",
