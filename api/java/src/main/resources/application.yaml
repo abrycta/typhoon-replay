@@ -8,7 +8,7 @@ tr:
   # Contract 2.0.0 reads only catalog/live/ops, which 000500 already has, so this build also runs before or after
   # 20261021000600_drop_accounts is applied (deploy first, then migrate).
   min-schema-version: "20261021000500"
-  commit: ${TR_COMMIT:${RENDER_GIT_COMMIT:unknown}}
+  commit: ${TR_COMMIT:${RENDER_GIT_COMMIT:${TR_IMAGE_COMMIT:unknown}}}
   rate-limit-per-minute: ${TR_RATE_LIMIT_PER_MINUTE:600}
   max-streams: ${TR_MAX_STREAMS:200}
   # Live streams one client address may hold at once (429 rate-limited above it); 0 disables the cap.

@@ -41,8 +41,10 @@ ENV JAVA_TOOL_OPTIONS="-XX:+UseSerialGC -XX:MaxRAMPercentage=60 -XX:+UseCompactO
 # spaces") and starts without it.
 RUN java -XX:MaxRAM=512m -XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh -Dlogging.level.root=warn -jar app.jar \
  && test -s app.aot
+# The build's commit, a fallback only: an explicit TR_COMMIT, then Render's RENDER_GIT_COMMIT, come first
+# (application.yaml tr.commit). Setting TR_COMMIT here would hide RENDER_GIT_COMMIT on Render.
 ARG COMMIT_SHA=unknown
-ENV TR_COMMIT=${COMMIT_SHA} \
+ENV TR_IMAGE_COMMIT=${COMMIT_SHA} \
     PORT=8080
 EXPOSE 8080
 ENTRYPOINT ["java", "-XX:AOTCache=app.aot", "-jar", "app.jar"]

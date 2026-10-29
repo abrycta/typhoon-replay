@@ -11,7 +11,8 @@ The same-origin proxy from `docs/architecture/DECISIONS.md` (System A): a Cloudf
 | `edge/src/http.ts` | Header hygiene, request ids, RFC 9457 problems. |
 | `edge/src/ratelimit.ts` | Per-IP token bucket (or a rate limiting binding, if one is ever bound). |
 | `edge/src/env.ts` | Settings from the environment. |
-| `web/public/_routes.json` | `include: ["/api/*"]`: static assets never invoke a Function. Vite copies it into `web/dist`. |
+| `web/public/_routes.json` | `include: ["/api/*", "/assets/*.map"]`: other static assets never invoke a Function. Vite copies it into `web/dist`. |
+| `functions/assets/[[path]].ts` | Answers `/assets/*.map` with 404 (`edge/src/sourcemaps.ts`), so cached maps from older builds are never served. |
 
 **Placement.** `wrangler pages deploy web/dist` and `wrangler pages dev web/dist` compile the `functions/`
 directory of the directory they run in, which is the repo root (scripts and `deploy.yml` run wrangler there).
