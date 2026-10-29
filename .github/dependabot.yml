@@ -16,7 +16,7 @@ registries:
     token: ${{secrets.DEPENDABOT_PACKAGES_TOKEN}}
 updates:
   - package-ecosystem: npm
-    directories: ["/", "/web", "/api/node", "/api/rust", "/contracts"]
+    directories: ["/", "/web", "/api/node", "/api/rust"]
     registries: [github-packages]
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
     open-pull-requests-limit: 2
@@ -40,6 +40,39 @@ updates:
       # CI and the deploys run Node 24: keep @types/node on 24.x so the types match the runtime.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+  # /contracts has its own entry (same settings) only so the ignores below apply there and nowhere else.
+  - package-ecosystem: npm
+    directories: ["/contracts"]
+    registries: [github-packages]
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 2
+    groups:
+      npm-contracts:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "@abrycta/*"
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: astro
+        update-types: ["version-update:semver-major"]
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
+      - dependency-name: maplibre-gl
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # CI and the deploys run Node 24: keep @types/node on 24.x so the types match the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # Dev-only (the Prism mock server): @stoplight/prism-cli 5.16.0, the latest, pulls postman-collection 4.5.0,
+      # which pins @faker-js/faker 5.5.3, uuid 8.3.2 and lodash 4.17.21. No safe upgrade exists (faker 5 -> 10 and
+      # uuid 8 -> 14 are breaking), so every security update job for them failed with security_update_not_possible.
+      # Remove these when prism-cli ships with a newer postman-collection.
+      - dependency-name: "@faker-js/faker"
+      - dependency-name: uuid
+      - dependency-name: lodash
   - package-ecosystem: github-actions
     directories: ["/", "/.github/actions/*"]
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
