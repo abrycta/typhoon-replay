@@ -1,6 +1,6 @@
 # Replay API: Java backend
 
-Stack A from [`docs/ARCHITECTURE-RESEARCH.md`](docs/ARCHITECTURE-RESEARCH.md) §12: Spring Boot 4.1.1, Java 25,
+Stack A from [`docs/ARCHITECTURE-RESEARCH.md`](docs/ARCHITECTURE-RESEARCH.md) §12: Spring Boot 4.1.2, Java 25,
 Spring MVC on virtual threads, Spring Modulith 2.1.1, `JdbcClient` with hand-written PostGIS SQL, and controllers that
 implement interfaces generated from the contract. It implements contract `2.0.0`
 ([`contracts/docs/CONTRACT-GUIDE.md`](../../contracts/docs/CONTRACT-GUIDE.md)); see [`impl.json`](impl.json).

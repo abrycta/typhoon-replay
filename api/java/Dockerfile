@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -q bootJar -Pc
  && mv /app/typhoon-replay-api-*.jar /app/app.jar
 
 # --- 3. Runtime image with an AOT cache trained on this exact JRE and class path ------------------------------
-FROM eclipse-temurin:25-jre@sha256:dbb43d81099eec91e0800226ed2296d03146ee7857165b95112372ad0d67e87f AS runtime
+FROM eclipse-temurin:25-jre@sha256:78f1f183913482ef390c2722f46c3f0ce76ada341d69590e7c482ec943ee72d5 AS runtime
 RUN groupadd --system app && useradd --system --gid app --home /app app && install -d -o app -g app /app
 WORKDIR /app
 COPY --from=build --chown=app:app /app ./

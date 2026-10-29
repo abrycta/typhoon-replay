@@ -37,6 +37,7 @@ val contractFile: RegularFile = layout.projectDirectory.file(
 dependencies {
     implementation(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
     implementation(platform(libs.spring.modulith.bom))
+    implementation(platform(libs.jackson.bom))
 
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")

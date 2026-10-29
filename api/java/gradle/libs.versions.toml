@@ -1,6 +1,8 @@
 [versions]
-spring-boot = "4.1.1"
+spring-boot = "4.1.2"
 spring-modulith = "2.1.1"
+# Above the Boot BOM's 3.1.x: json-schema-validator needs 3.2, and 3.2.2+ fixes the 3.2.1 DoS advisories.
+jackson = "3.2.4"
 openapi-generator = "7.26.0"
 bucket4j = "8.21.0"
 json-schema-validator = "3.0.8"
@@ -8,6 +10,7 @@ testcontainers = "2.0.5"
 archunit = "1.5.1"
 
 [libraries]
+jackson-bom = { module = "tools.jackson:jackson-bom", version.ref = "jackson" }
 spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "spring-modulith" }
 bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "json-schema-validator" }
