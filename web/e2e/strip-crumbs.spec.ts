@@ -65,7 +65,13 @@ for (const vp of [
       await waitForReplay(page);
       await page.evaluate(() => window.scrollTo(0, 900));
       await expect(header(page)).toHaveAttribute("data-crumbs", "pinned");
-      await page.getByRole("navigation", { name: "You are here" }).getByRole("link", { name: "Storms" }).click();
+      // Wait for the 150 ms swap-in (opacity and translate) to finish, then click like a mouse does. A locator click
+      // first scrolls the link "into view"; with the Header's scroll-padding that scrolls the page back up to the
+      // breadcrumb, which unpins the strip and hides the link for good (flaky on CI, twice on 2026-10-29).
+      await expect(page.locator('[data-slot="app-header-crumbs"]')).toHaveCSS("opacity", "1");
+      const box = await page.getByRole("navigation", { name: "You are here" }).getByRole("link", { name: "Storms" }).boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
       await expect(page).toHaveURL(/\/storms$/);
       await expect(header(page)).not.toHaveAttribute("data-crumbs");
     });
