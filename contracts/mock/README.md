@@ -13,7 +13,7 @@ against the spec, and sets `X-Backend-Impl: mock`.
 Prism does not stream SSE (`GET /v1/live/stream` returns the example frames in one response), and it does not
 implement behaviour (paging, ETags). That is what the conformance suite checks against real backends.
 
-## MSW in web/ (note for the web agent; no web code lives here)
+## MSW in web/ (notes for the frontend; no web code lives here)
 
 `web/` runs in mock mode with MSW handlers generated from the same bundle, so the frontend and backends can't drift:
 
