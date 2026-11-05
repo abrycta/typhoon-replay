@@ -11,7 +11,7 @@
     "lint-dist": "redocly lint dist/openapi.json dist/openapi.3.0.json --extends minimal",
     "bundle": "node scripts/bundle.mjs",
     "check-examples": "node scripts/check-examples.mjs",
-    "mock": "prism mock dist/openapi.json --host 0.0.0.0 --port 4010",
+    "mock": "docker compose -f ../compose.yaml --profile mock up prism",
     "typecheck": "tsc -p conformance/tsconfig.json",
     "conformance": "vitest run --config conformance/vitest.config.ts",
     "compat-table": "node conformance/scripts/results-to-markdown.mjs"
@@ -19,7 +19,6 @@
   "devDependencies": {
     "@apiture/openapi-down-convert": "0.14.2",
     "@redocly/cli": "2.71.0",
-    "@stoplight/prism-cli": "5.16.0",
     "@types/node": "26.6.5",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
@@ -27,8 +26,5 @@
     "openapi-typescript": "7.13.0",
     "typescript": "5.9.3",
     "vitest": "5.0.5"
-  },
-  "allowScripts": {
-    "@scarf/scarf": false
   }
 }
