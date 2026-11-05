@@ -1,9 +1,17 @@
-# Dependency updates (Dependabot). Version updates: weekly, one grouped PR per ecosystem, at most 2 open.
-# Security updates are separate and immediate (repo setting: Dependabot security updates).
-# Majors of react, react-dom, astro, vite and maplibre-gl, and @abrycta/* (Akari, portfolio rule 23),
-# are upgraded by hand. TypeScript majors too: TypeScript 7 (the native compiler) is outside the peer range of
-# typescript-eslint (<6.1) and openapi-typescript (^5), so npm ci fails until those support it.
+# Dependency updates (Dependabot, portfolio MAINTAINING.md rule 24). Every ecosystem and directory in the repo has an
+# entry. Version updates: weekly, minor and patch grouped per entry, few open PRs. Security updates come as their own
+# grouped PR per entry (repo setting: Dependabot security updates).
+#
+# The backends under api/** are a frozen showcase (docs/architecture/DECISIONS.md, "Frozen showcase policy"): no
+# routine updates, only vulnerability fixes and base-image refreshes. Their entries set open-pull-requests-limit: 0,
+# which turns version updates off and leaves security updates on (those have their own limit).
+#
+# Majors of react, react-dom, astro, vite and maplibre-gl are upgraded by hand. @abrycta/* (Akari) is left to
+# MAINTAINING.md rule 16 (one upgrade PR per release, with a geometry check). TypeScript majors too: TypeScript 7 (the
+# native compiler) is outside the peer range of typescript-eslint (<6.1) and openapi-typescript (^5), so npm ci fails
+# until those support it.
 version: 2
+
 registries:
   # @abrycta/akari comes from GitHub Packages. Dependabot secret DEPENDABOT_PACKAGES_TOKEN (set 2026-10-22): a
   # classic personal access token with read:packages only. Without it every npm update job fails with
@@ -14,15 +22,14 @@ registries:
     # Dependabot needs the scope (or a committed .npmrc); without it every npm job fails with private_registry_config_not_found.
     scope: "@abrycta"
     token: ${{secrets.DEPENDABOT_PACKAGES_TOKEN}}
+
 updates:
+  # --- front end, edge proxy and deploy tooling ------------------------------------------------------------------
   - package-ecosystem: npm
-    directories: ["/", "/web", "/api/node", "/api/rust"]
+    directories: ["/", "/web"]
     registries: [github-packages]
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
     open-pull-requests-limit: 2
-    groups:
-      npm:
-        patterns: ["*"]
     ignore:
       - dependency-name: "@abrycta/*"
       - dependency-name: react
@@ -40,43 +47,110 @@ updates:
       # CI and the deploys run Node 24: keep @types/node on 24.x so the types match the runtime.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-  # /contracts has its own entry (same settings) only so the ignores below apply there and nowhere else.
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # --- contract, conformance suite ------------------------------------------------------------------------------
   - package-ecosystem: npm
-    directories: ["/contracts"]
-    registries: [github-packages]
+    directory: /contracts
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
     open-pull-requests-limit: 2
-    groups:
-      npm-contracts:
-        patterns: ["*"]
     ignore:
-      - dependency-name: "@abrycta/*"
-      - dependency-name: react
-        update-types: ["version-update:semver-major"]
-      - dependency-name: react-dom
-        update-types: ["version-update:semver-major"]
-      - dependency-name: astro
-        update-types: ["version-update:semver-major"]
-      - dependency-name: vite
-        update-types: ["version-update:semver-major"]
-      - dependency-name: maplibre-gl
-        update-types: ["version-update:semver-major"]
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
-      # CI and the deploys run Node 24: keep @types/node on 24.x so the types match the runtime.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-      # Dev-only (the Prism mock server): @stoplight/prism-cli 5.16.0, the latest, pulls postman-collection 4.5.0,
-      # which pins @faker-js/faker 5.5.3, uuid 8.3.2 and lodash 4.17.21. No safe upgrade exists (faker 5 -> 10 and
-      # uuid 8 -> 14 are breaking), so every security update job for them failed with security_update_not_possible.
-      # Remove these when prism-cli ships with a newer postman-collection.
-      - dependency-name: "@faker-js/faker"
-      - dependency-name: uuid
-      - dependency-name: lodash
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # --- data pipeline (uv) ---------------------------------------------------------------------------------------
+  - package-ecosystem: uv
+    directory: /pipeline
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 2
+    ignore:
+      # Private git dependency (abrycta/data-archive-kit), pinned to a release tag and upgraded by hand.
+      - dependency-name: archivekit
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # --- backends (frozen showcase: security updates only) --------------------------------------------------------
+  - package-ecosystem: npm
+    directories: ["/api/node", "/api/rust"]
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: /api/java
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /api/go
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /api/rust
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # Base images (pinned by digest): patch tags and digest refreshes only, which carry the OS and runtime CVE fixes.
+  - package-ecosystem: docker
+    directories: ["/api/go", "/api/java"]
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      base-images:
+        applies-to: version-updates
+        patterns: ["*"]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # --- GitHub Actions --------------------------------------------------------------------------------------------
   - package-ecosystem: github-actions
     directories: ["/", "/.github/actions/*"]
     schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Manila }
     open-pull-requests-limit: 2
     groups:
-      github-actions:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
         patterns: ["*"]

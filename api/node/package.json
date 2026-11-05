@@ -22,7 +22,7 @@
     "ajv": "8.20.0",
     "openapi-typescript": "7.13.0",
     "typescript": "5.9.3",
-    "wrangler": "4.152.0"
+    "wrangler": "4.153.0"
   },
   "allowScripts": {
     "workerd": true,
