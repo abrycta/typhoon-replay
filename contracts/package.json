@@ -18,11 +18,11 @@
   },
   "devDependencies": {
     "@apiture/openapi-down-convert": "0.14.2",
-    "@redocly/cli": "2.71.0",
-    "@types/node": "26.6.5",
+    "@redocly/cli": "2.72.1",
+    "@types/node": "26.6.6",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
-    "eventsource-parser": "4.1.2",
+    "eventsource-parser": "4.1.3",
     "openapi-typescript": "7.13.0",
     "typescript": "5.9.3",
     "vitest": "5.0.5"
