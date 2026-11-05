@@ -389,9 +389,9 @@ Applies once this backend is built (`docs/architecture/DECISIONS.md`, "Frozen sh
 README shows it in practice). After its first conformant release the backend only receives security fixes.
 
 - **Pinned:** `go.mod` with exact module versions and the `go` / `toolchain` directives, plus the committed `go.sum` (`-mod=readonly` in CI); base images by digest; CI actions by commit SHA.
-- **Security fixes:** Renovate (`renovate.json`) opens no routine updates under `api/go/`. Vulnerability fixes
-  (GitHub advisories / OSV) and base-image digest refreshes arrive as one grouped PR ("go backend security
-  fixes", branch `renovate/go/security-fixes`) and auto-merge only when this backend's CI is green: its own
-  tests **and** the shared conformance suite against its image.
+- **Security fixes:** Dependabot (`.github/dependabot.yml`) opens no routine updates under `api/go/`: its
+  Go modules entries set `open-pull-requests-limit: 0`, which leaves only security updates (GitHub advisories),
+  grouped into one PR per entry; its Docker entry refreshes the base images' digests and patch tags. Merge one only when this backend's CI is green: its own tests **and** the
+  shared conformance suite against its image.
 - **Unfreezing** for a deliberate upgrade: change the pins (`go get <module>@<version>` + `go mod tidy`, or the `toolchain` directive), regenerate the lockfile, re-measure
   startup/RSS, and open a PR labelled `unfreeze`; the same tests and conformance gate it.

@@ -101,10 +101,11 @@ security fixes, so the "Under the hood" race always compares the same code.
   BOM), resolved only from the committed lockfiles (`gradle.lockfile`, `buildscript-gradle.lockfile`,
   `settings-gradle.lockfile`, `LockMode.STRICT`); the Gradle distribution by SHA-256; the JDK 25 / JRE 25 and Node 24
   base images by digest in the `Dockerfile`; the CI actions by commit SHA.
-- **How security fixes arrive.** Renovate (`renovate.json` at the repo root) opens no routine updates for `api/**`.
-  It opens vulnerability PRs only (GitHub advisories / OSV), grouped as "java backend security", plus base-image
-  digest bumps for CVE patches, and auto-merges them when `java.yml` is green: Gradle tests (Modulith, ArchUnit,
-  Testcontainers) **and** the conformance suite against the built image. Nothing merges without conformance.
+- **How security fixes arrive.** Dependabot (`.github/dependabot.yml`) opens no routine updates for `api/**`. Its
+  Gradle entry for `api/java` opens security updates only (GitHub advisories), grouped into one PR, and its Docker
+  entry refreshes the base images' digests and patch tags for CVE patches. They merge only when `java.yml` is green:
+  Gradle tests (Modulith, ArchUnit, Testcontainers) **and** the conformance suite against the built image. Nothing
+  merges without conformance.
 - **Unfreezing for a deliberate upgrade.** Edit `libs.versions.toml` (or the Boot version), run
   `./gradlew resolveAndLockAll --write-locks`, refresh the image digests, re-measure startup/RSS above, and open a PR
   labelled `unfreeze`; the same CI (tests + conformance) gates it.

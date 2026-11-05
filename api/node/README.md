@@ -83,4 +83,5 @@ Free-plan budget: 100k requests/day shared with Pages Functions and the other Wo
 
 Pinned per `docs/architecture/DECISIONS.md` ("Frozen showcase policy"): exact versions in `package.json` with
 `package-lock.json` (`.npmrc` `save-exact`, `engine-strict`), Node 24 from `.nvmrc`, the Workers runtime by
-`compatibility_date` and the wrangler version. Renovate opens only security fixes for `api/**`.
+`compatibility_date` and the wrangler version. Dependabot (`.github/dependabot.yml`) opens only security fixes for
+`api/**`.
