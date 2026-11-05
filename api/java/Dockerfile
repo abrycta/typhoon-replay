@@ -2,8 +2,8 @@
 # Replay Java backend. Build context: the repository root (the contract lives in contracts/):
 #   docker build -f api/java/Dockerfile -t typhoon-replay-java .
 # Stages: bundle the contract -> Gradle bootJar -> extract -> AOT cache training run (JEP 514/515) -> JRE 25 runtime.
-# Frozen showcase (docs/architecture/DECISIONS.md): base images are pinned by digest; Renovate only bumps a digest
-# for a security fix (the tag stays), and the dependency lockfiles keep the jar's contents fixed.
+# Frozen showcase (docs/architecture/DECISIONS.md): base images are pinned by digest; Dependabot only refreshes a
+# digest or a patch tag (never a minor or major), and the dependency lockfiles keep the jar's contents fixed.
 
 # --- 1. The contract bundle (contracts/dist/openapi.json), generated from the split YAML -----------------------
 FROM node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS contract

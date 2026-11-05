@@ -72,4 +72,5 @@ hours guard (`budget.yml`) may suspend this service late in a month; it resumes 
 ## Frozen showcase
 
 Pinned per `docs/architecture/DECISIONS.md` ("Frozen showcase policy"): the `go` directive and `go.sum`, oapi-codegen
-as a `go.mod` tool, base images by digest. Renovate opens only security fixes for `api/go/**`.
+as a `go.mod` tool, base images by digest. Dependabot (`.github/dependabot.yml`) opens only security fixes for
+`api/go/**`, plus base-image digest and patch-tag refreshes.
