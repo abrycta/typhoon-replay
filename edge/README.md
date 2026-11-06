@@ -5,7 +5,7 @@ The same-origin proxy from `docs/architecture/DECISIONS.md` (System A): a Cloudf
 
 | File | Role |
 |---|---|
-| `functions/api/[[path]].ts` | The Pages Function (catch-all for `/api/*`). Thin: calls `handleProxy`. |
+| `functions/api/[[path]].ts` | The Pages Function (catch-all for `/api/*`); it only calls `handleProxy`. |
 | `edge/src/proxy.ts` | Routing, rewrite, cold-start handling, SSE, static mode, body cap. |
 | `edge/src/cache.ts` | Edge cache on `caches.default` (freshness, SWR, stale-if-error, 304s). |
 | `edge/src/http.ts` | Header hygiene, request ids, RFC 9457 problems. |
@@ -45,8 +45,8 @@ before adding its binding.
   - the proxy sets `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-For` (from `CF-Connecting-IP`) and
     `X-Forwarded-Prefix: /api/{impl}` (the contract uses this for `Link` headers and OAuth `redirect_uri`);
   - with the `EDGE_SECRET` Pages secret set, the proxy adds `X-Edge-Secret`. A backend with the same `TR_EDGE_SECRET`
-    then trusts `X-Forwarded-For` for its own per-IP limit; without it, the backend keys on the connecting address,
-    because on the proxy's subrequest Cloudflare (in front of Render) sets `CF-Connecting-IP` to the Worker, not the
+    then trusts `X-Forwarded-For` for its own per-IP limit. Without it, the backend keys on the connecting address:
+    on the proxy's subrequest, Cloudflare (in front of Render) sets `CF-Connecting-IP` to the Worker rather than the
     visitor, and anyone can send `X-Forwarded-For` straight to the Render URL. A client's own `X-Edge-Secret` is dropped.
 - Response headers:
   - `Set-Cookie` passes through unchanged (same origin, so `__Host-` cookies work);
@@ -59,7 +59,7 @@ before adding its binding.
 Problems generated at the edge use the contract's shape and `type` base. Where a contract code fits, they reuse
 it (`not-found`, `method-not-allowed`, `payload-too-large`, `rate-limited`). The proxy-only codes are
 `unknown-backend`, `backend-not-deployed`, `backend-waking`, `backend-unavailable`, `backend-paused`, `static-mode`, `bad-gateway`
-and `gateway-timeout`. They are kebab-case, like the contract's codes. Clients read them as a tolerant reader.
+and `gateway-timeout`. They are kebab-case, like the contract's codes, and clients read them as a tolerant reader.
 
 ## Edge cache
 
@@ -83,9 +83,8 @@ catalogue 404s. The live snapshot (`no-cache`), `/me`, auth, errors and health n
 **Key.** The key is the full URL with its query parameters sorted, plus a hash of the normalised `Accept`
 (lower case, no whitespace, absent read as `*/*`; the one request header a `Vary` may name) and `KEY_VERSION`
 (`edge/src/cache.ts`, now `4`). `Accept-Language` is not part of the key: no backend varies on it, and keying on it
-split the cache per browser language. Query parameters with
-different values never share an entry. Bumping `KEY_VERSION` orphans every stored entry on the next deploy: that is
-the purge.
+split the cache per browser language. Bumping `KEY_VERSION` purges the cache: every stored entry is orphaned on
+the next deploy.
 
 **Compression.** Render bills the bytes it sends, so the proxy asks for them compressed:
 - every upstream request carries `Accept-Encoding: br, gzip` (the Java backend gzips JSON over 1 KB, and Render's own
@@ -107,8 +106,8 @@ cached storm list, search and storm page fresh, instead of one revalidation per 
 answer with `d{n+1}` unpins every older entry, which then follows the normal rules below; the bound on staleness
 is unchanged. `/v1/meta`, 404/410s and health are never pinned.
 
-**Dataset changes.** Catalogue ETags carry the dataset version (`W/"d{n}-…"`), so a revalidation after a publish gets
-a full 200. Two cases need more:
+**Dataset changes.** Because catalogue ETags carry the dataset version, a revalidation after a publish gets a full 200.
+Two cases need more:
 - 404 and 410 are kept at most 60 s (`NEGATIVE_MAX_AGE_S`) and never served stale, so a storm that a new dataset
   adds shows up within a minute even while the backend sleeps.
 - Before contract 2.0.1, `/v1/meta`'s ETag (`W/"c{contract}-{impl}-{implVersion}"`) ignored `datasetVersion`, so a
@@ -133,12 +132,12 @@ a full 200. Two cases need more:
   - looks entries up with a header-less key request.
 - Entries can be evicted early; correctness never depends on them.
 - `waitUntil` work (revalidation, wake-ups) is cut 30 s after the response. That is shorter than a Render cold
-  start, but the request reaches Render, and that is what wakes the service.
+  start, but the request still reaches Render and wakes the service.
 
 ## Cold starts
 
 Render's free services (Java and Go) sleep after 15 minutes idle. Java's measured cold start is about 100 s; Go's is not
-measured yet. The measured figures live in `web/src/features/under-the-hood/conformance.json` (`coldStartS`), which
+measured yet. Measured figures are in `web/src/features/under-the-hood/conformance.json` (`coldStartS`), which
 the Tech page shows. Node and Rust run as Cloudflare Workers and never sleep.
 - A `GET` that misses the cache and gets no response headers within `ORIGIN_TIMEOUT_MS` (8 s) returns a 503
   `backend-waking` with `Retry-After: 20`. The request keeps running under `waitUntil`, which wakes the backend and
@@ -230,8 +229,8 @@ Bindings: `EDGE_FLAGS` (KV, static-mode flag; bound in `wrangler.jsonc`) and the
 npm run test:edge   # tsc -p edge + Vitest inside workerd (@cloudflare/vitest-plugin), ≤ 2 workers
 ```
 
-The tests run in the real Workers runtime (Miniflare), with `caches.default`. The backend is a fake origin
-installed over `fetch`. They cover:
+The tests run in the real Workers runtime (Miniflare) with `caches.default`, against a fake origin installed
+over `fetch`. They cover:
 - routing and rewrite, the origin map, header hygiene;
 - cache HIT, MISS and STALE in both modes, 304s, cookies and private responses never cached, Vary keys, the dataset
   pin, and the upstream `Accept-Encoding`;

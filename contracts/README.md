@@ -11,7 +11,7 @@ The shared contract every backend (Java, Node, Rust, Go) and the web app build o
 | `db/migrations/` | dbmate migrations (plain SQL, up/down). Applied by CI and `just`, never by a backend |
 | `db/seed/` | Deterministic fixture (9 storms incl. Haiyan/Yolanda, 10 places incl. Tacloban and Naha, 1 live storm) |
 | `conformance/` | Language-neutral conformance suite: Schemathesis configs, Vitest scenarios, compat-table script |
-| `mock/` | Mocking the API for `web/` (Prism + MSW) |
+| `mock/` | API mock for `web/` (Prism + MSW) |
 | `CHANGELOG.md` | Contract versions |
 
 Everything runs through the root `justfile`:
@@ -28,4 +28,4 @@ just conformance java # scenarios + Schemathesis against a backend (or IMPL=java
 
 Generators read `dist/`, never the split YAML: oapi-codegen (strict server) and openapi-typescript take `openapi.json`;
 openapi-generator `spring` takes either; typify takes `components.schemas` as JSON Schema `$defs`. Run openapi-typescript
-from outside `contracts/`, because it otherwise picks up `redocly.yaml` as its own config.
+from outside `contracts/`, or it picks up `redocly.yaml` as its own config.

@@ -1,16 +1,16 @@
 # Replay API: Node backend
 
 The contract (`contracts/`, 2.0.2) in TypeScript, run as the Cloudflare Worker `replay-api-node` on the free plan.
-Deployed at `https://replay-api-node.krtmtthw.workers.dev` (with `TR_EDGE_SECRET` set, `/v1/*` there answers only
-requests carrying the edge's `X-Edge-Secret`; the probes stay open), and behind the site at `https://replay.krtmtthw.dev/api/node/`
-(the edge proxy reaches it through the `API_NODE` service binding). See [`impl.json`](impl.json).
+Deployed at `https://replay-api-node.krtmtthw.workers.dev` and behind the site at `https://replay.krtmtthw.dev/api/node/`,
+which the edge proxy reaches through the `API_NODE` service binding. With `TR_EDGE_SECRET` set, `/v1/*` on workers.dev
+answers only requests carrying the edge's `X-Edge-Secret`; the probes stay open. See [`impl.json`](impl.json).
 
 ## Stack, and why it is not the researched one
 
 [`docs/ARCHITECTURE-RESEARCH.md`](docs/ARCHITECTURE-RESEARCH.md) picked Fastify 5 on Render. Hosting moved to Workers
 (DECISIONS.md, "Update 2026-10-22"), and Fastify cannot boot there: Ajv and fast-json-stringify compile validators and
-serialisers with `new Function`, and Workers refuse it (`EvalError: Code generation from strings disallowed`). So this
-backend keeps the research's contract-first idea and moves the code generation to build time.
+serialisers with `new Function`, and Workers refuse it (`EvalError: Code generation from strings disallowed`). This
+backend keeps the research's contract-first design and moves code generation to build time.
 
 | | |
 |---|---|
@@ -21,8 +21,8 @@ backend keeps the research's contract-first idea and moves the code generation t
 | Database | Neon serverless SQL over HTTP (`src/platform/neon.ts`): each request is one `POST https://{host}/sql` batch, read-only, `SET LOCAL statement_timeout = 5000` first and the dataset-version query in the same batch, so a catalogue read is one round trip |
 | Rate limit | the Workers rate limiting binding `RATE_LIMITER` (namespace 1002, 600 per 60 s, per client IP) |
 
-**Trade-offs.** No Fastify plugins (SSE, ETag, rate limit, compression): each is a few lines on the Fetch API instead.
-Validation messages are Ajv's, but the error pointers (`#/query/limit`) follow the contract. A Worker has no
+Trade-offs: Fastify plugins (SSE, ETag, rate limit, compression) are replaced by a few lines each on the Fetch API.
+Validation messages are Ajv's; the error pointers (`#/query/limit`) follow the contract. A Worker has no
 long-lived state, so the dataset version is read with every query rather than cached, and a 304 still costs the
 database round trip. The live stream ends after 90 s (below).
 
@@ -41,12 +41,12 @@ scripts/serve-local.sh  wrangler dev against a local database through the Neon H
 ```
 
 How it differs from the Java reference:
-- **Live stream.** A Worker invocation may make 50 subrequests on the free plan, and each poll is one. A stream polls
+- Live stream: a Worker invocation may make 50 subrequests on the free plan, and each poll is one. A stream polls
   every 2 s (inside the 5 s delivery rule), sends a heartbeat every 15 s, and ends after 90 s; `EventSource` reconnects
   with `Last-Event-ID` and resumes without a snapshot (CONTRACT-GUIDE §7). Each stream is its own invocation, so there
   is no shared stream cap.
-- **Compression.** Bodies over 1 KB get `Content-Encoding: gzip` and the Workers runtime encodes them.
-- **Bandwidth guards** are the contract's: catalogue reads are `public, max-age=300, stale-while-revalidate=86400` with
+- Compression: bodies over 1 KB get `Content-Encoding: gzip` and the Workers runtime encodes them.
+- Bandwidth guards are the contract's: catalogue reads are `public, max-age=300, stale-while-revalidate=86400` with
   dataset ETags (the edge proxy caches them; the contract fixes the header, so there is no separate `s-maxage`), page
   sizes are capped by the validators (100, search 50), tracks are best-track only, and a response over the 64 KB
   budget is logged as a warning.

@@ -1,6 +1,6 @@
 # Replay API: contract guide
 
-> **Status: contract `2.0.0`, accepted 2026-10-21** (`1.0.0` the same day). `contracts/openapi/` is the single source of truth; this guide only explains the rules the spec can't express. Refinements made while writing the v1 spec are listed in §13; what v2 removed, and the rules it changed, in §14.
+> **Status: contract `2.0.0`, accepted 2026-10-21** (`1.0.0` the same day). `contracts/openapi/` is the single source of truth; this guide covers only the rules the spec can't express. §13 lists refinements made while writing the v1 spec; §14 lists what v2 removed and the rules it changed.
 > Background and the reasons for each rule: [`docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md`](../../docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md).
 
 The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
@@ -35,8 +35,8 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 - `info.version` is the contract semver. Each backend declares the contract range it implements in `api/<lang>/impl.json` and reports it at runtime (§4).
 - `/v1` is the **URL major version**, a promise to callers: an operation served under `/v1` keeps its meaning. Since v2 it is distinct from the contract major:
   - A breaking change to an operation that stays (a removed or renamed field, a new required parameter, a changed status code, cursor or ETag rule) bumps the contract major **and** creates `/v2`, served alongside `/v1` until every backend has moved.
-  - **Removing whole operations** (and the components, codes and rules only they used) bumps the contract major but **keeps the URL prefix**: every surviving operation answers exactly as before, so a `/v2` copy would only break the callers of those operations and the edge proxy for nothing. A removed operation returns 404 `not-found`.
-  - Either way the major bump is the explicit acknowledgement that the change is intended: `scripts/oasdiff-check.sh` fails on breaking changes unless `info.version`'s major was bumped **and** `CHANGELOG.md` has a `## X.0.0` entry; it then prints the breaking changes for the record.
+  - **Removing whole operations** (and the components, codes and rules only they used) bumps the contract major but **keeps the URL prefix**: surviving operations answer exactly as before, and a `/v2` copy would break their callers and the edge proxy for no gain. A removed operation returns 404 `not-found`.
+  - Either way, the major bump marks the change as intended: `scripts/oasdiff-check.sh` fails on breaking changes unless `info.version`'s major was bumped **and** `CHANGELOG.md` has a `## X.0.0` entry; it then prints the breaking changes for the record.
 - Contract `2.0.0` (§14) is the second kind, so it is served under `/v1`.
 
 ## 3. Data conventions
@@ -92,7 +92,7 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 - `datasetVersion` is the integer in the newest `catalog.dataset_version` row. `resourceKey` is the first 16 lowercase hex digits of SHA-256 over the canonical request string: the path as served under `/v1` (e.g. `/v1/storms`), then, if any recognised query parameters were sent, `?` and `name=value` pairs sorted by name then value, each percent-encoded as UTF-8 per RFC 3986 (unreserved characters literal, uppercase hex), joined by `&`. Defaults are not filled in, and unknown parameters are dropped. Example: `/v1/storms?limit=5&season=2013`. **ETags are derived from data, never from response bytes**, so all four backends emit the same ETag for the same resource.
 - `If-None-Match` matching a weak ETag (weak comparison) MUST return `304` with the same `ETag` and `Cache-Control` and no body.
-- **Everything is public and cacheable except the live stream.** No response varies by user, so shared caches (the edge proxy, CDNs, browsers) may store every `/v1` response in the table; the live snapshot is storable but always revalidated (`no-cache` + ETag). Only `GET /v1/live/stream` (§7), the probes and errors are never stored. Reads MUST be fast and give the same status, headers, ETag and JSON on every backend: they are what the site's "Under the hood" page races.
+- **Everything is public and cacheable except the live stream.** No response varies by user, so shared caches (edge proxy, CDNs, browsers) may store every `/v1` response in the table; the live snapshot is storable but always revalidated (`no-cache` + ETag). `GET /v1/live/stream` (§7), the probes and errors are never stored. Reads MUST be fast and return the same status, headers, ETag and JSON on every backend, because the site's "Under the hood" page races them.
 
 ## 7. Live stream (SSE)
 
@@ -155,7 +155,7 @@ v1's sign-in, sessions, saved places and alert preferences were removed in contr
 
 - **No auth.** No security schemes, no OAuth, no sessions. Every operation is anonymous.
 - **No cookies.** Backends MUST NOT set cookies and MUST ignore `Cookie` request headers; responses never vary by `Cookie`.
-- **No CSRF.** No public operation uses an unsafe method, so there is nothing to protect. Backends MUST NOT require `Origin` or `X-Requested-With`. A `POST`/`PUT`/`PATCH`/`DELETE` to a public path returns 405 `method-not-allowed` with `Allow`.
+- **No CSRF.** No public operation uses an unsafe method. Backends MUST NOT require `Origin` or `X-Requested-With`. A `POST`/`PUT`/`PATCH`/`DELETE` to a public path returns 405 `method-not-allowed` with `Allow`.
 - `npm run lint` enforces this (`portable/public-read-only`): no `securitySchemes`, root `security: []`, no cookie parameters, no `Set-Cookie`, and unsafe methods only on `x-internal` test hooks.
 
 ## 10. Endpoints (contract 2.0.0)
@@ -193,7 +193,7 @@ All anonymous `GET`s, under `/v1` except the probes.
 - Logs: one JSON object per line with `ts, level, msg, requestId, impl, method, path, status, durMs`. Never log `Cookie` or `Authorization` headers.
 - Readiness: answer `/healthz` within 1 s of the port opening. Fail `/readyz` (503 `not-ready`) until the DB is reachable and the schema version is ≥ the minimum.
 - DB use: through the Neon pooler (transaction mode). No session-level state (`SET`, `LISTEN`, session advisory locks, SQL `PREPARE`). Statement timeout 5 s. Pool max ≤ 5 per backend. Any coordination uses lease rows (`ops.job_lease`) or `SELECT … FOR UPDATE SKIP LOCKED` inside one transaction.
-- No background work: no in-process schedulers, ingestion or mail sending. These belong to the shared pipeline job (live ingestion). Optional `POST /v1/_jobs/{name}` endpoints exist only if the user picks the rotating-backend job option.
+- No background work: no in-process schedulers, ingestion or mail sending; these belong to the shared pipeline job (live ingestion). Optional `POST /v1/_jobs/{name}` endpoints exist only if the rotating-backend job option is chosen.
 - Rate limits: the proxy enforces per-IP limits. Backends MAY add their own, and MUST use 429 `rate-limited` + `Retry-After` if they do.
 - Request body limit 64 KB → 413 `payload-too-large`.
 - Response size budget (Render free egress is 5 GB/month for all four backends): JSON responses MUST stay ≤ 64 KB uncompressed at the maximum `limit`. Tracks are served at observed (3/6-hourly) resolution only. Hourly data, frames and polygons beyond the simplified geometry come from the static stores (Pages / Hugging Face), never from the API.
@@ -208,11 +208,11 @@ A backend is "conformant at contract X.Y" when, against the fixture database (`c
 4. **Test hooks** absent (404) when disabled.
 5. **Differential check:** canonicalised responses equal across all four backends for the read-only scenario set.
 
-Results are published per backend and contract version on the compatibility table (`/compat`). Tests tagged with a contract version newer than the backend's claim are reported as "not claimed", not as failed.
+Results are published per backend and contract version on the compatibility table (`/compat`). Tests tagged with a contract version newer than the backend's claim are reported as "not claimed" rather than failed.
 
 ## 13. Changes made while writing the v1 spec (2026-10-21)
 
-The spec needed these refinements to the draft; none changes a decision in `DECISIONS.md`.
+Refinements to the draft; none changes a decision in `DECISIONS.md`.
 
 | Area | Draft | v1 |
 |---|---|---|
@@ -232,7 +232,7 @@ The spec needed these refinements to the draft; none changes a decision in `DECI
 
 ## 14. v2: accounts removed (2026-10-21)
 
-Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): **no account features**. Visitor features are served from static files; the API is a read-only showcase, raced across the backends on the site's "Under the hood" page, so reads must stay fast and identical everywhere.
+Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): **no account features**. Visitor features come from static files. The API is read-only and is raced across the backends on the site's "Under the hood" page, so reads must stay fast and identical everywhere.
 
 **Removed** in contract `2.0.0` (breaking; still served under `/v1`, see §2):
 
@@ -254,7 +254,7 @@ Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): 
 4. URL major and contract major are now told apart (§2): removing operations is a contract major under the same `/v1`.
 5. The Redocly rule `portable/public-read-only` enforces 1–3 on the spec.
 
-**Unchanged:** every remaining operation, with its parameters, responses, headers, ETags, cursors and SSE events, is the same as in 1.0.0, so callers of those operations need no change.
+**Unchanged:** every remaining operation (parameters, responses, headers, ETags, cursors, SSE events) is as in 1.0.0; its callers need no change.
 
 ## 15. 2.0.1: corrections (2026-10-21)
 
@@ -262,7 +262,7 @@ Decision of 2026-10-21 (`docs/architecture/DECISIONS.md`, "Update 2026-10-21"): 
    body carries `datasetVersion`, so the old ETag let a revalidation answer 304 and keep a stale body after a
    publish. `/v1/openapi.json` keeps `W/"c{contractVersion}-{impl}-{implVersion}"`.
 2. **Canonical host.** Problem `type` URIs are `https://typhoon.krtmtthw.dev/problems/{code}` (§8), and the
-   production server and examples use `https://typhoon.krtmtthw.dev`, the site's custom domain. (Replaced by
+   production server and examples use the site's custom domain, `https://typhoon.krtmtthw.dev`. (Replaced by
    `https://replay.krtmtthw.dev` in 2.0.2, §16.)
 3. **Examples work as requests.** Each paginated operation has its own `cursor` example, made for its default sort
    (a shared `season-desc` cursor was rejected as `invalid-cursor` elsewhere). `npm run check-examples` validates

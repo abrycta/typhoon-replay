@@ -7,7 +7,7 @@ Status: research only (no code yet). Verified on 2026-10-21 unless a line says o
 > a frozen showcase (`docs/architecture/DECISIONS.md`).
 Scope: the Java implementation of the shared OpenAPI 3.1 contract, deployed at `/api/java/*` behind the same-origin edge proxy.
 
-**TL;DR.** Use **Spring Boot 4.1 on Java 25**, built as a **Spring Modulith modular monolith**. Pair **Spring MVC plus virtual threads** with **`SseEmitter`**, and use **`JdbcClient` with PostGIS SQL** for data access. Generate **`interfaceOnly` controllers** with openapi-generator 7.26 from `contracts/`. Build with **Gradle (Kotlin DSL)** and ship a **JVM image with the Java 25 AOT cache** (Project Leyden). GraalVM native image stays as a measured fallback, not the default. This is Stack A in §12.
+**TL;DR.** Use **Spring Boot 4.1 on Java 25**, built as a **Spring Modulith modular monolith**. Pair **Spring MVC plus virtual threads** with **`SseEmitter`**, and use **`JdbcClient` with PostGIS SQL** for data access. Generate **`interfaceOnly` controllers** with openapi-generator 7.26 from `contracts/`. Build with **Gradle (Kotlin DSL)** and ship a **JVM image with the Java 25 AOT cache** (Project Leyden). GraalVM native image is a measured fallback. This is Stack A in §12.
 
 ---
 
@@ -26,10 +26,10 @@ Scope: the Java implementation of the shared OpenAPI 3.1 contract, deployed at `
 | GraalVM | Oracle **discontinued Native Image for Java SE product customers** and moved the team's focus to GraalJS/GraalPy. Startup and footprint goals go to OpenJDK **Project Leyden**. Community builds continue: Liberica NIK 25.0.4 (Jul 2026), Mandrel 25. | [InfoWorld](https://www.infoworld.com/article/4061937/graalvm-25-arrives-backed-by-jdk-25.html), [Liberica NIK](https://docs.bell-sw.com/liberica-nik/25.0.4b1-25.0.4b10/general/release-notes/), [Quarkus/Mandrel](https://quarkus.io/blog/tag/mandrel) |
 | GitHub Actions (public repo) | Linux runner 4 vCPU / 16 GB / 14 GB SSD, free | [GitHub docs](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) |
 
-**Three consequences that the other backends share** (flag these to the system architect):
-1. **750 h per workspace cannot keep four backends warm.** One always-on service uses about 744 h a month. If all four backends sit in one Render workspace, at most one can be kept warm. The others must accept cold starts, or each must live in its own workspace (check the ToS).
-2. **Email cannot use SMTP on 587/465/25 from Render free.** Use the provider's HTTPS API, or an alternative SMTP port such as 2525 or 2587 if the provider offers one (unverified per provider).
-3. **The schedulers live inside sleeping processes.** In-process `@Scheduled` jobs do not run while Render has the service spun down, so ingestion needs an **external trigger** (see §8).
+Consequences shared by all four backends:
+1. One always-on service uses about 744 h a month, so one Render workspace (750 h) keeps at most one backend warm. The others accept cold starts or each use their own workspace (ToS to check).
+2. Render free blocks SMTP on 587/465/25. Email uses the provider's HTTPS API, or a port such as 2525 or 2587 where offered (unverified per provider).
+3. In-process `@Scheduled` jobs do not run while the service is spun down, so ingestion needs an **external trigger** (§8).
 
 ---
 
@@ -44,20 +44,19 @@ Scope: the Java implementation of the shared OpenAPI 3.1 contract, deployed at `
 | OAuth2 login plus server sessions | Spring Security `oauth2Login` is the reference implementation | `quarkus-oidc` web-app flow; sessions are encrypted cookie tokens by default | `micronaut-security-oauth2`; session or cookie JWT |
 | Modularity verification | **Spring Modulith** (module tests, event registry, docs) | none built in (ArchUnit) | none built in (ArchUnit) |
 | Hiring signal (JP/PH enterprise, IBM) | Highest | Growing (Red Hat shops) | Niche |
-| Fit with user's background | Direct (Spring at IBM) | New learning | New learning |
+| Fit with existing experience | Direct (Spring at IBM) | New learning | New learning |
 
 Benchmark numbers: [gillius.org, "Java 25 Startup Performance for Spring Boot, Quarkus, and Micronaut"](https://gillius.org/blog/2025/10/java-25-framework-startup.html) (Boot 3.5.6, Quarkus 3.28.1, Micronaut 4.5.4, GraalVM 25). The direction agrees with [MadDevs](https://maddevs.io/blog/spring-boot-vs-quarkus) and [JavaCodeGeeks](https://www.javacodegeeks.com/2025/12/spring-boot-vs-quarkus-vs-micronaut-the-ultimate-2026-showdown.html). Absolute numbers differ between sources. Versions: [Quarkus releases](https://quarkus.io/releases), [Micronaut announcements](https://micronaut.io/category/release-announcements/), Maven Central.
 
-**Pros of Quarkus and Micronaut:** about 30–40% less RSS on the JVM and about 2× less in native mode. Build-time DI means native builds need fewer hints.
-**Cons:** both are weaker portfolio signals for this user and this market. The "senior Java" story is mostly about Spring Security, transactions, modularity and testing, which are the user's daily tools. The memory gap is real, but on 512 MB the JVM fits Spring Boot with tuning (§2).
+Quarkus and Micronaut use about 30–40% less RSS on the JVM and about 2× less native, and build-time DI needs fewer native hints. Spring was chosen for its stronger hiring signal in this market and daily use at IBM (Security, transactions, modularity, testing); tuned, Spring Boot fits 512 MB (§2).
 
 ### Java 21 vs 25
 
-Java 25 wins here. It is LTS like 21, Boot 4.1 supports 17–26, and four of its features matter for this app:
+Java 25 is chosen: it is LTS like 21, Boot 4.1 supports 17–26, and four of its features matter here:
 - **AOT cache (JEP 483 + 514 + 515, Leyden):** Spring Boot supports it only on 25+ ([Spring Boot AOT cache](https://docs.spring.io/spring-boot/reference/packaging/aot-cache.html)). Leyden measured 42% faster PetClinic startup with JEP 483 and a further warm-up gain of about 19% with JEP 515 ([happycoders](https://www.happycoders.eu/java/ahead-of-time-class-loading-and-linking/)).
-- **JEP 491** (JDK 24+): `synchronized` no longer pins virtual threads ([InfoQ](https://infoq.com/articles/virtual-threads-after-jdk24)). That removes the main virtual-thread caveat for JDBC drivers and libraries such as mail.
-- **Compact object headers (JEP 519)**, a product feature in 25 and opt-in via `-XX:+UseCompactObjectHeaders`, shrink the heap, which is cheap headroom on 512 MB. *(Typical savings are not measured for this app.)*
-- Scoped values and flexible constructor bodies help style and are not essential.
+- **JEP 491** (JDK 24+): `synchronized` no longer pins virtual threads ([InfoQ](https://infoq.com/articles/virtual-threads-after-jdk24)). This removes the main virtual-thread caveat for JDBC drivers and mail libraries.
+- **Compact object headers (JEP 519)**, a product feature in 25, opt-in via `-XX:+UseCompactObjectHeaders`, shrink the heap: cheap headroom on 512 MB. *(Savings not measured for this app.)*
+- Scoped values and flexible constructor bodies help style only.
 
 **Recommendation:** Spring Boot **4.1.x** on **Java 25** (Temurin or Liberica). Plan the move to 4.2 when it goes GA (expected Nov 2026, not verified). Quarkus is documented as Stack C for comparison.
 
@@ -73,7 +72,7 @@ Java 25 wins here. It is LTS like 21, Boot 4.1 supports 17–26, and four of its
 | Metaspace + code cache + threads + direct buffers | 110–150 MB (`-XX:ReservedCodeCacheSize=48m`, `-Xss512k`) | small |
 | Expected steady RSS | **about 300–380 MB** | **about 120–180 MB** |
 
-Basis: Boot 3.5 JVM measured 389 MB max RSS untuned and 149 MB native ([gillius.org](https://gillius.org/blog/2025/10/java-25-framework-startup.html)). This app adds Security, OAuth2 client, Modulith and Actuator, but trims Tomcat threads (virtual threads make the platform pool irrelevant), uses SerialGC and disables JMX. Container tuning advice: [snapdeploy (512 MB Boot guide)](https://snapdeploy.dev/blog/spring-boot-512mb-container). **Verdict: the JVM fits 512 MB with about 130 MB headroom if tuned. Native is comfortable.**
+Basis: Boot 3.5 measured 389 MB max RSS untuned on the JVM and 149 MB native ([gillius.org](https://gillius.org/blog/2025/10/java-25-framework-startup.html)). This app adds Security, OAuth2 client, Modulith and Actuator, and trims Tomcat threads (virtual threads replace the platform pool), uses SerialGC and disables JMX ([snapdeploy 512 MB Boot guide](https://snapdeploy.dev/blog/spring-boot-512mb-container)). Tuned, the JVM fits 512 MB with about 130 MB headroom; native fits easily.
 
 ### Cold start on 0.1 CPU (estimates, the riskiest number in this document)
 
@@ -81,20 +80,20 @@ Render throttles to a tenth of a core, and JVM startup is CPU-bound (class loadi
 - **Plain JVM:** about 1.9 s on an M2 Pro becomes **roughly 20–45 s** on 0.1 CPU. The snapdeploy guide estimates 15–40 s on 0.25 vCPU.
 - **JVM with the AOT cache (Java 25, Spring AOT on):** about 40–50% less, so **roughly 10–25 s**. One anecdote measured 2.9 s → 1.4 s on an M4 with CDS, the AOT cache and Spring AOT ([itnext](https://itnext.io/optimizing-spring-boot-app-ready-50-faster-48-less-cpu-16-less-memory-zero-code-changes-de15a12fb398)).
 - **Native:** about 0.1 s on an M2 Pro becomes **roughly 1–3 s** on 0.1 CPU.
-- **Render's own spin-up adds "about one minute"** ([Render free](https://render.com/docs/free)), mostly scheduling and image pull, whatever the app does. A smaller image (native about 100 MB vs JVM about 250 MB) helps a little.
+- **Render's spin-up adds "about one minute"** ([Render free](https://render.com/docs/free)) for scheduling and image pull. A smaller image (native about 100 MB vs JVM about 250 MB) helps slightly.
 
-So a user-visible cold start is about **60–100 s on the JVM, 70–85 s with the AOT cache, and 60–65 s native**. Native saves 10–40 s on a path that is already about a minute. The edge proxy's "waking the Java backend" UX matters more than the runtime choice.
+Visible cold start: about **60–100 s on the JVM, 70–85 s with the AOT cache, 60–65 s native**. Native saves 10–40 s on a one-minute path, so the edge proxy's "waking the Java backend" UX matters more than the runtime.
 
 ### Native image costs
 
-- **Build:** a Spring Boot native compile typically takes several minutes and needs roughly 6–10 GB RAM. That fits the 16 GB GitHub runner. *(Not measured; spike item.)* Builds are not cached the way Gradle builds are.
-- **Reflection hints:** Spring Security, OAuth2 client and Spring Session ship AOT hints. Spring Security still says some features need app-provided hints ([Spring Security native](https://docs.spring.io/spring-security/reference/native-image/index.html)). Your own Jackson DTOs, generated OpenAPI models and any JTS/PostGIS types need `@RegisterReflectionForBinding`. Hibernate Spatial is not needed in the recommended stack, which removes the worst hint surface.
-- **Ecosystem risk:** Oracle stepped back from Native Image for Java SE (§0). Spring still documents native support, but the strategic direction of OpenJDK is Leyden. A portfolio that uses the platform's direction (the AOT cache) is easier to defend in an interview.
-- **Dev loop:** native-only bugs (missing hints) appear only in CI, so tests must also run against the native binary (`nativeTest`).
+- Build: several minutes and roughly 6–10 GB RAM, within the 16 GB GitHub runner *(not measured; spike item)*. Not cached like Gradle builds.
+- Reflection hints: Spring Security, OAuth2 client and Spring Session ship AOT hints, though some Security features need app hints ([Spring Security native](https://docs.spring.io/spring-security/reference/native-image/index.html)). App Jackson DTOs, generated OpenAPI models and JTS/PostGIS types need `@RegisterReflectionForBinding`. The recommended stack drops Hibernate Spatial, the largest hint surface.
+- Ecosystem: Oracle stepped back from Native Image for Java SE (§0); OpenJDK's direction is Leyden, which the AOT cache follows.
+- Dev loop: missing-hint bugs appear only in CI, so tests also run against the native binary (`nativeTest`).
 
 ### CRaC
 
-CRIU-based checkpoint/restore needs Linux checkpoint capabilities (`CAP_CHECKPOINT_RESTORE` or `CAP_SYS_ADMIN`) in the container. Render does not document granting them, and Azul's unprivileged "Warp" engine is Azul-JDK-specific. *(Not verified on Render; treat it as unavailable.)* **Rejected.**
+CRIU-based checkpoint/restore needs Linux checkpoint capabilities (`CAP_CHECKPOINT_RESTORE` or `CAP_SYS_ADMIN`) in the container. Render does not document granting them, and Azul's unprivileged "Warp" engine is Azul-JDK-specific. *(Not verified on Render; treated as unavailable.)* **Rejected.**
 
 ### Recommendation
 
@@ -106,7 +105,7 @@ JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:+UseCompactObject
 spring.threads.virtual.enabled=true, spring.jmx.enabled=false
 ```
 
-Keep a **`native` Gradle profile** built weekly in CI as proof that it works. Switch the deploy to native **only if** the spike shows RSS above 420 MB or OOM kills under load. The AOT training run must not touch Neon; disable DataSource initialization during the training run ([training-run notes](https://github.com/spring-projects/spring-lifecycle-smoke-tests/blob/main/README.adoc#training-run-configuration)).
+A **`native` Gradle profile** builds weekly in CI to prove it works. The deploy switches to native **only if** the spike shows RSS above 420 MB or OOM kills under load. The AOT training run must not touch Neon, so DataSource initialization is disabled during it ([training-run notes](https://github.com/spring-projects/spring-lifecycle-smoke-tests/blob/main/README.adoc#training-run-configuration)).
 
 ---
 
@@ -114,9 +113,9 @@ Keep a **`native` Gradle profile** built weekly in CI as proof that it works. Sw
 
 ### Options
 
-- **Classic layered** (controller → service → repository packages at the top level). Familiar, but feature boundaries blur. With five domains, a `service` package of 30 classes reads as junior work.
-- **Hexagonal (ports and adapters) everywhere.** Strong for domains with rich logic and many adapters. Here, three of five modules are read-only SQL projections; ports for them are ceremony (an interface with one implementation that forwards a SQL query).
-- **Spring Modulith modular monolith.** It packages by feature (`storms`, `exposure`, `live`, `accounts`, `alerts`). Each top-level package under the main package is a module, and its sub-packages are internal by default. `ApplicationModules.of(App.class).verify()` fails the build on cycles or illegal access. `@ApplicationModuleTest` boots one module, and `Scenario` tests events. `Documenter` generates PlantUML/C4 diagrams and module canvases. Cross-module communication uses application events with the **Event Publication Registry** (JDBC: `spring-modulith-starter-jdbc`, an outbox-like table, `@ApplicationModuleListener` = async + `REQUIRES_NEW` + after-commit; `republish-outstanding-events-on-restart`; `completion-mode=DELETE`). Source: [Modulith events reference](https://docs.spring.io/spring-modulith/reference/events.html). Current version 2.1.1 ([spring.io](https://spring.io/projects/spring-modulith)).
+- **Classic layered** (controller → service → repository): feature boundaries blur across five domains.
+- **Hexagonal everywhere:** ceremony for the three read-only SQL modules (one-implementation interfaces forwarding a query).
+- **Spring Modulith modular monolith:** packages by feature (`storms`, `exposure`, `live`, `accounts`, `alerts`). Each top-level package is a module; sub-packages are internal by default. `ApplicationModules.of(App.class).verify()` fails the build on cycles or illegal access. `@ApplicationModuleTest` boots one module, and `Scenario` tests events. `Documenter` generates PlantUML/C4 diagrams and module canvases. Cross-module communication uses application events with the **Event Publication Registry** (JDBC: `spring-modulith-starter-jdbc`, an outbox-like table, `@ApplicationModuleListener` = async + `REQUIRES_NEW` + after-commit; `republish-outstanding-events-on-restart`; `completion-mode=DELETE`). Source: [Modulith events reference](https://docs.spring.io/spring-modulith/reference/events.html). Current version 2.1.1 ([spring.io](https://spring.io/projects/spring-modulith)).
 
 ### Recommendation
 
@@ -137,9 +136,9 @@ Event flow: `live` publishes `ForecastTrackUpdated` → `alerts` listens (`@Appl
 
 ## 4. Web stack: Spring MVC + virtual threads vs WebFlux; SSE
 
-- **MVC + virtual threads** (`spring.threads.virtual.enabled=true`): blocking JDBC on cheap threads, ordinary stack traces, ordinary `@Transactional`, and Spring Security's servlet stack (the best-documented OAuth2 login). On Java 25, `synchronized` pinning is gone (JEP 491). Every SSE client holds a servlet async context rather than a platform thread, so hundreds of idle SSE clients cost KBs each.
-- **WebFlux + Reactor:** natural for streaming. But JDBC is blocking (R2DBC has no PostGIS type story, and r2dbc-postgres is less mature against PgBouncer). Reactive Security and sessions are a parallel API, and debugging is harder. Nothing here needs backpressure; a typhoon update arrives every few minutes.
-- **SSE via `SseEmitter`:** a `SseBroadcaster` keeps a `CopyOnWriteArraySet<SseEmitter>`, sends a `: keep-alive` comment every **25 s** (proxies, including Cloudflare and Render's load balancer, kill quiet streams; there is a [Render forum report of drops past 5 min](https://community.render.com/t/long-server-sent-events-disconnected/12402)), sets `id:` for `Last-Event-ID` resume and `retry:` for the client back-off, and sets the emitter timeout to about 30 min so clients reconnect cleanly. `Flux<ServerSentEvent>` also works in MVC, but adding Reactor only for this is unnecessary.
+- **MVC + virtual threads** (`spring.threads.virtual.enabled=true`): blocking JDBC on cheap threads, ordinary stack traces, ordinary `@Transactional`, and Spring Security's servlet stack (the best-documented OAuth2 login). On Java 25, `synchronized` pinning is gone (JEP 491). Each SSE client holds a servlet async context, not a platform thread, so idle clients cost KBs each.
+- **WebFlux + Reactor:** rejected. JDBC is blocking (R2DBC lacks PostGIS types; r2dbc-postgres is less mature against PgBouncer), reactive Security is a parallel API, and updates arrive every few minutes, so backpressure is not needed.
+- **SSE via `SseEmitter`:** a `SseBroadcaster` keeps a `CopyOnWriteArraySet<SseEmitter>`, sends a `: keep-alive` comment every **25 s** (proxies, including Cloudflare and Render's load balancer, kill quiet streams; there is a [Render forum report of drops past 5 min](https://community.render.com/t/long-server-sent-events-disconnected/12402)), sets `id:` for `Last-Event-ID` resume and `retry:` for the client back-off, and sets the emitter timeout to about 30 min so clients reconnect cleanly. `Flux<ServerSentEvent>` works in MVC but would add Reactor for one endpoint.
 - **Cross-backend fan-out:** `LISTEN/NOTIFY` does not work through Neon's pooler, and a direct connection would keep Neon awake. Each backend instead holds the latest `live_revision` in memory. Ingestion in this process broadcasts immediately. When the edge proxy triggers ingestion on another backend, a cheap 30–60 s poll of `SELECT max(revision)` runs **only while SSE clients are connected**, so Neon can still sleep.
 
 **Recommendation:** MVC + virtual threads + `SseEmitter`. The SSE endpoint is hand-written, because generated interfaces model `text/event-stream` poorly.
@@ -150,14 +149,14 @@ Event flow: `live` publishes `ForecastTrackUpdated` → `alerts` listens (`@Appl
 
 | Option | Pros | Cons for this app |
 |---|---|---|
-| **JPA + Hibernate Spatial 7.4** | Familiar; geography types supported (`PostgisGeography` descriptors in 7.x; [javadoc](https://docs.hibernate.org/orm/7.1/javadocs/org/hibernate/spatial/dialect/postgis/package-summary.html)) | The schema is owned by `contracts/` (so `ddl-auto=validate` at most). Queries are spatial reads returning GeoJSON, which JPQL cannot express well, so you end up writing native SQL anyway. Adds JTS types, a large native-image hint surface and memory cost. |
+| **JPA + Hibernate Spatial 7.4** | Familiar; geography types supported (`PostgisGeography` descriptors in 7.x; [javadoc](https://docs.hibernate.org/orm/7.1/javadocs/org/hibernate/spatial/dialect/postgis/package-summary.html)) | The schema is owned by `contracts/` (so `ddl-auto=validate` at most). Spatial reads returning GeoJSON need native SQL anyway. Adds JTS types, a large native-image hint surface and memory. |
 | **jOOQ 3.21 (OSS)** | Type-safe SQL, codegen from the real schema (run contracts migrations in Testcontainers, then generate). Excellent portfolio signal. | **Spatial types and functions are commercial-only** ([jOOQ GEOMETRY](https://www.jooq.org/doc/dev/manual/reference/reference-data-types/data-types-geospatial/), [commercial-only list](https://jooq.org/doc/3.17/manual/reference/commercial-only-features)), so PostGIS predicates become `DSL.field("ST_DWithin(...)")` templates. Codegen adds build complexity. |
-| **`JdbcClient` (Spring 6.1+)** | Plain SQL, which is exactly what PostGIS needs. Fluent API, record mapping, zero magic, smallest footprint, works trivially in native. SQL can live in `.sql` resources next to each module. | You write mapping by hand (records and `DataClassRowMapper`) and must discipline yourself to test SQL against real PostGIS (Testcontainers). |
-| **MyBatis (starter 4.1.0 supports Boot 4.1)** | The user's daily tool. XML mappers keep SQL out of Java, and dynamic SQL is convenient for search filters. | Reads as "bank legacy" to some reviewers. XML mappers plus annotation config add a second mapping language. Less idiomatic in a 2026 Spring showcase. |
+| **`JdbcClient` (Spring 6.1+)** | Plain SQL, which is exactly what PostGIS needs. Fluent API, record mapping, zero magic, smallest footprint, works trivially in native. SQL can live in `.sql` resources next to each module. | Hand-written mapping (records, `DataClassRowMapper`); SQL must be tested against real PostGIS (Testcontainers). |
+| **MyBatis (starter 4.1.0 supports Boot 4.1)** | Used daily at IBM. XML mappers keep SQL out of Java; dynamic SQL suits search filters. | XML mappers plus annotation config add a second mapping language. Less common in a 2026 Spring showcase. |
 
 **Pattern regardless of tool:** let PostGIS do the geometry. Return `ST_AsGeoJSON(track)::json` or `jsonb_build_object(...)` from SQL and stream it as raw JSON. Java never instantiates JTS geometry. Inputs are `ST_SetSRID(ST_MakePoint(:lon,:lat),4326)::geography` with `ST_DWithin(geog, :pt, :radius_m)` on a GiST index.
 
-**Recommendation:** **`JdbcClient`** with SQL files per module (Stack A). Use **Spring Data JDBC** only for the `accounts` aggregates (user, saved places), where simple CRUD repositories help. Stack B shows jOOQ. Mention MyBatis in the README as "what I use at work, and why I chose JdbcClient here": that shows judgement, not unfamiliarity.
+**Recommendation:** **`JdbcClient`** with SQL files per module (Stack A). Use **Spring Data JDBC** only for the `accounts` aggregates (user, saved places), where simple CRUD repositories help. Stack B shows jOOQ. Plan: the README names MyBatis as the tool used at work and gives the reason for `JdbcClient` here.
 
 ### Connection pooling against Neon
 
@@ -173,32 +172,32 @@ Event flow: `live` publishes `ForecastTrackUpdated` → `alerts` listens (`@Appl
 
 1. **openapi-generator `spring`** (7.26.0, Oct 2026) with `interfaceOnly=true`, `useSpringBoot4=true` (since 7.16), `useJackson3=true`, `useTags=true`, `skipDefaultInterface=true`, `documentationProvider=none`, `annotationLibrary=none`, `openApiNullable=false`, `useResponseEntity=true`, `useBeanValidation=true`. Controllers `implements StormsApi`. Option list: [openapi-generator spring docs](https://openapi-generator.tech/docs/generators/spring/); `useSpringBoot4`: [OpenRewrite recipe note](https://docs.openrewrite.org/recipes/java/spring/boot4/migrateopenapigeneratortospringboot4).
    - Pros: a contract change breaks compilation, and validation annotations come for free.
-   - Cons: **OAS 3.1 support is still labelled beta**. The generator's feature matrix lists `oneOf`/`anyOf`/`null` type unions as unsupported or partial, so the architect should keep 3.1 schemas in a "generator-friendly" subset (no `type: [string, "null"]` unions in shared models, discriminators for polymorphism). SSE and RFC 9457 `application/problem+json` need manual handling.
-2. **Hand-written controllers with DTO records, validated by contract tests.** Clean code that fully controls Jackson 3 and records. Drift is caught only by tests.
+   - Cons: **OAS 3.1 support is labelled beta**. The feature matrix lists `oneOf`/`anyOf`/`null` type unions as unsupported or partial, so 3.1 schemas stay in a "generator-friendly" subset (no `type: [string, "null"]` unions in shared models, discriminators for polymorphism). SSE and RFC 9457 `application/problem+json` need manual handling.
+2. **Hand-written controllers with DTO records, validated by contract tests.** Full control of Jackson 3 and records; drift is caught only by tests.
 
 ### Recommendation
 
-**Use both layers.** Generate **interfaces and models** (option 1) in a separate Gradle source set (`build/generated/openapi`, never committed). Then add a **contract test layer**:
+**Both layers:** generated **interfaces and models** (option 1) in a separate Gradle source set (`build/generated/openapi`, never committed), plus a **contract test layer**:
 - `swagger-request-validator` (Atlassian, 3.0.0) in MockMvc tests checks every response body, status and header against `contracts/openapi.yaml`.
 - The **shared conformance suite** runs in CI against the Docker Compose stack (`/api/java`).
-- springdoc is not needed at runtime: the spec in `contracts/` is the source of truth. Serve it as a static file only if the contract requires it.
+- No springdoc at runtime: `contracts/` holds the source-of-truth spec, served as a static file only if the contract requires it.
 
-RFC 9457: set `spring.mvc.problemdetails.enabled=true` and use one `@RestControllerAdvice` that maps domain exceptions to `ProblemDetail` with the contract's `type` URIs (`https://typhoon-replay.example/problems/<slug>`), `instance`, and the extension members the contract defines.
+RFC 9457: `spring.mvc.problemdetails.enabled=true` and one `@RestControllerAdvice` mapping domain exceptions to `ProblemDetail` with the contract's `type` URIs (`https://typhoon-replay.example/problems/<slug>`), `instance`, and the extension members the contract defines.
 
 ---
 
 ## 7. Security
 
-- **Login:** Spring Security 7.1 `oauth2Login()` with `google` (OIDC) and `github` (OAuth2 plus `/user` and `/user/emails`). Base path `/api/java/oauth2/authorization/{id}` and callback `/api/java/login/oauth2/code/{id}`. Set the redirect URI template to the **public origin** (`{baseUrl}` must resolve through the edge proxy, so configure `server.forward-headers-strategy=framework` and trust `X-Forwarded-*` from the Worker only). GitHub OAuth Apps accept one callback URL with sub-paths allowed, so one app can serve all four backends if the callback is `https://<site>/api/`. *(Check against GitHub docs at implementation time.)*
-- **Sessions: preference for server-side sessions in a shared Postgres table**, not signed tokens.
-  - Why: they are revocable (logout everywhere, account deletion) and kept in an `HttpOnly; Secure; SameSite=Lax` cookie that is never readable from JS. They are trivially same-origin behind the Worker and fit the "explainable" goal. One small DB lookup per authenticated request is cheap next to PostGIS queries, and anonymous public API calls skip it.
-  - Signed tokens (JWT/PASETO) avoid the lookup and work if Neon is asleep. But they need a shared signing key in four runtimes, a revocation list (which brings the table back) and careful rotation.
+- **Login:** Spring Security 7.1 `oauth2Login()` with `google` (OIDC) and `github` (OAuth2 plus `/user` and `/user/emails`). Base path `/api/java/oauth2/authorization/{id}` and callback `/api/java/login/oauth2/code/{id}`. Set the redirect URI template to the **public origin** (`{baseUrl}` must resolve through the edge proxy, so configure `server.forward-headers-strategy=framework` and trust `X-Forwarded-*` from the Worker only). GitHub OAuth Apps accept one callback URL with sub-paths allowed, so one app can serve all four backends if the callback is `https://<site>/api/`. *(Not yet verified against GitHub docs.)*
+- **Sessions: server-side, in a shared Postgres table.**
+  - Why: revocable (logout everywhere, account deletion), held in an `HttpOnly; Secure; SameSite=Lax` cookie JS cannot read, same-origin behind the Worker, and easy to explain. One small DB lookup per authenticated request is cheap next to PostGIS queries; anonymous public API calls skip it.
+  - Signed tokens (JWT/PASETO) lost: they skip the lookup and work while Neon sleeps, but need a shared signing key in four runtimes, a revocation list (which brings the table back) and careful rotation.
 - **But not Spring Session JDBC as-is.** Its schema (`SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES` with **Java-serialized `BYTEA`** attributes) is not language-neutral, so Node/Rust/Go could not read a Java-created session. Options:
   - (a) **Recommended:** a small custom `SecurityContextRepository` + `SessionStore` (about 150 lines, `JdbcClient`) over the contract-owned table, for example `sessions(id_hash bytea pk, user_id, created_at, expires_at, last_seen_at, user_agent)`, storing **the SHA-256 of the cookie value**. Authorities are reloaded from `users`. The OAuth2 authorization-request state goes in a short-lived signed cookie (`AuthorizationRequestRepository` implementation) or a `oauth_states` table, so the HTTP session is unused (`SessionCreationPolicy.NEVER`).
-  - (b) Spring Session JDBC with a custom `ConversionService` (JSON attributes) and custom table names. This still couples the contract to Spring's schema, so it is not recommended.
-- **CSRF:** Spring Security 7's `csrf.spa()` ([docs](https://docs.spring.io/spring-security/reference/7.0/servlet/exploits/csrf.html)) gives a double-submit `XSRF-TOKEN` cookie plus an `X-XSRF-TOKEN` header. Ask the architect to adopt those names for all four backends so the frontend has one code path. Safe methods and the anonymous public API are exempt; the cookie session is required only for `/me/**`.
-- **CORS:** not needed (same origin). Keep it **disabled** and document why. Allow explicit origins only for local Vite dev, if it does not use the proxy.
-- **Rate limiting:** Bucket4j **8.21.0** (`com.bucket4j:bucket4j_jdk17-core`) in a `OncePerRequestFilter`, with in-memory buckets keyed by client IP from `CF-Connecting-IP` (trusted only from the Worker) plus a session key. Use a Caffeine-bounded map. Emit the contract's headers (`RateLimit-Policy`/`RateLimit` per the IETF draft, or `X-RateLimit-*`, whichever the contract chooses) and `429` as ProblemDetail with `Retry-After`. One instance means in-memory is correct. A Postgres-backed Bucket4j (`bucket4j_jdk17-postgresql`) would add a DB write per request and keep Neon awake, so don't. Global abuse protection belongs in the Worker.
+  - (b) Spring Session JDBC with a custom `ConversionService` (JSON attributes) and custom table names. Rejected: still couples the contract to Spring's schema.
+- **CSRF:** Spring Security 7's `csrf.spa()` ([docs](https://docs.spring.io/spring-security/reference/7.0/servlet/exploits/csrf.html)) gives a double-submit `XSRF-TOKEN` cookie plus an `X-XSRF-TOKEN` header. Proposed as the names for all four backends, so the frontend has one code path. Safe methods and the anonymous public API are exempt; the cookie session is required only for `/me/**`.
+- **CORS:** **disabled** (same origin, documented). Explicit origins only for local Vite dev without the proxy.
+- **Rate limiting:** Bucket4j **8.21.0** (`com.bucket4j:bucket4j_jdk17-core`) in a `OncePerRequestFilter`, with in-memory buckets keyed by client IP from `CF-Connecting-IP` (trusted only from the Worker) plus a session key. Use a Caffeine-bounded map. Emit the contract's headers (`RateLimit-Policy`/`RateLimit` per the IETF draft, or `X-RateLimit-*`, whichever the contract chooses) and `429` as ProblemDetail with `Retry-After`. In-memory suits a single instance. Postgres-backed Bucket4j (`bucket4j_jdk17-postgresql`) was rejected: a DB write per request would keep Neon awake. Global abuse protection belongs in the Worker.
 - **Headers:** `X-Backend-Impl: java` (plus `X-Backend-Version: <git sha>`) from a servlet filter in `shared`. Add HSTS and `Content-Security-Policy` only if the API ever serves HTML (it does not).
 
 ---
@@ -209,16 +208,14 @@ RFC 9457: set `spring.mvc.problemdetails.enabled=true` and use one `@RestControl
 - **Options:**
   1. `@Scheduled` + **ShedLock 7.10.1** (`JdbcTemplateLockProvider`, `usingDbTime()`; [README](https://github.com/lukas-krecan/ShedLock/blob/master/README.md)). It uses a row in a `shedlock` table, not advisory locks, so it is safe through PgBouncer. It is idiomatic, but only runs when awake.
   2. **External cron** (Cloudflare Worker cron or GitHub Actions `schedule`) calls `POST /api/<lang>/internal/ingest` with an HMAC header. This wakes exactly one backend per tick, rotating or pinned.
-- **Recommendation:** a hybrid. The ingest use case is a plain service method guarded by ShedLock's **programmatic** `LockingTaskExecutor` on a **language-neutral lock table defined in contracts/**, for example `job_locks(name pk, locked_until, locked_at, locked_by)`. ShedLock's JDBC provider can target custom table and column names. It is invoked from:
+- **Recommendation:** a hybrid. Ingest is a plain service method guarded by ShedLock's **programmatic** `LockingTaskExecutor` on a **language-neutral lock table defined in contracts/** (for example `job_locks(name pk, locked_until, locked_at, locked_by)`; ShedLock's JDBC provider accepts custom table and column names), so a Node/Go/Rust ingester respects the same lock. Invoked from:
   - an internal endpoint (production: the external cron), and
   - `@Scheduled(cron = ...)` enabled only in the `local` profile (Compose dev).
-  
-  The architect must define the lock table so a Node/Go/Rust ingester respects the same lock.
 - **Email:** Spring Mail (`JavaMailSender`, Angus Mail 2.0.5) talks to **Mailpit** locally (SMTP 1025). In production, Render blocks 25/465/587, so either:
   - (a) use an **HTTPS API adapter** behind the `AlertMailer` port, with a `RestClient` against **Brevo** (forever-free 300/day, no card per [Brevo](https://www.sendinblue.com/free-smtp-server/)) or **Resend** (3,000/month, 100/day; [Resend](https://resend.com/blog/new-free-tier.md); card requirement not confirmed); or
   - (b) Spring Mail over an alternative port (Resend lists 2587/2465; Brevo 2525). *Port availability is not verified on the providers' pages.*
   
-  Recommend (a): a hexagonal port with two adapters is also a nice, explainable showcase. Send emails from the `alerts` module's `@ApplicationModuleListener` so a failed send leaves an incomplete event publication that is retried on the next start or tick. Store `alert_deliveries(user_id, storm_id, advisory_no)` with a unique constraint so a user never gets the same alert twice.
+  Chosen: (a), a hexagonal port with two adapters that is easy to explain. Emails go out from the `alerts` module's `@ApplicationModuleListener`, so a failed send leaves an incomplete event publication that is retried on the next start or tick. `alert_deliveries(user_id, storm_id, advisory_no)` has a unique constraint so a user never gets the same alert twice.
 
 ---
 
@@ -239,14 +236,14 @@ RFC 9457: set `spring.mvc.problemdetails.enabled=true` and use one `@RestControl
 
 | | Gradle 9.8 (Kotlin DSL) | Maven |
 |---|---|---|
-| Pros | Typed build script, configuration cache, built-in toolchains, good for generated source sets plus a native profile | The user's IBM default, declarative, simplest for reviewers |
+| Pros | Typed build script, configuration cache, built-in toolchains, good for generated source sets plus a native profile | IBM work default, declarative, simplest for reviewers |
 | Cons | Plugin and DSL churn | Verbose XML for codegen plus multiple profiles |
 
-**Recommendation: Gradle Kotlin DSL** with a version catalog (`gradle/libs.versions.toml`). It reads as current practice and makes the openapi-generator and native tasks tidy. Note in the README that the Maven equivalent is trivial.
+**Recommendation: Gradle Kotlin DSL** with a version catalog (`gradle/libs.versions.toml`): current practice, with tidy openapi-generator and native tasks. The README notes the Maven equivalent is trivial.
 
 | Image | Pros | Cons |
 |---|---|---|
-| **Paketo Buildpacks** (`bootBuildImage`) | AOT cache via one env var (`BP_JVM_AOTCACHE_ENABLED=true`), memory calculator, SBOM, native via `BP_NATIVE_IMAGE` | Opaque to reviewers. Larger builder pulls (slow on CI). Render builds from a Dockerfile or a registry image, so you push to GHCR and deploy by image. |
+| **Paketo Buildpacks** (`bootBuildImage`) | AOT cache via one env var (`BP_JVM_AOTCACHE_ENABLED=true`), memory calculator, SBOM, native via `BP_NATIVE_IMAGE` | Opaque to reviewers. Larger builder pulls (slow on CI). Render builds from a Dockerfile or a registry image, so this means pushing to GHCR and deploying by image. |
 | **Jib 3.5** | Fast, daemonless, reproducible layers | No built-in AOT-cache training step (needs a custom entrypoint), no native |
 | **Multi-stage Dockerfile** | Explicit and reviewable. Render can build it directly from the repo. Training run visible. | You own the base image and updates |
 
@@ -256,13 +253,13 @@ RFC 9457: set `spring.mvc.problemdetails.enabled=true` and use one `@RestControl
 3. Training run with `-XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh` and DB auto-config disabled.
 4. Runtime on `eclipse-temurin:25-jre` (or a distroless Java 25 image) as a non-root user.
 
-Render builds the Dockerfile itself, or CI pushes to GHCR and Render deploys the image. Keep `bootBuildImage` documented as the one-command alternative. The AOT cache is tied to the exact JDK build and classpath, so training must happen in the **same image** that runs, which a Dockerfile makes obvious.
+Render builds the Dockerfile, or CI pushes to GHCR and Render deploys the image; `bootBuildImage` stays documented as the one-command alternative. The AOT cache is tied to the exact JDK build and classpath, so training must run in the **same image** that runs the app, and a Dockerfile makes that visible.
 
 ---
 
 ## 11. Session strategy statement (for the system architect)
 
-Prefer **opaque server-side sessions in a contract-owned `sessions` table**, with the SHA-256 of a 256-bit random cookie as the key. Use a cookie named the same for all backends (for example `tr_session`), `HttpOnly; Secure; SameSite=Lax; Path=/api`, and a 30-day sliding expiry. Users can sign in on `/api/java` and keep their session on `/api/go`; this cross-backend login is something to show in the demo. Signed tokens are the fallback only if Neon cold-resume latency on authenticated requests proves unacceptable.
+Prefer **opaque server-side sessions in a contract-owned `sessions` table**, with the SHA-256 of a 256-bit random cookie as the key. Use a cookie named the same for all backends (for example `tr_session`), `HttpOnly; Secure; SameSite=Lax; Path=/api`, and a 30-day sliding expiry. A session started on `/api/java` also works on `/api/go`, and the demo shows this. Signed tokens are the fallback only if Neon cold-resume latency on authenticated requests proves unacceptable.
 
 ---
 
@@ -317,7 +314,7 @@ sequenceDiagram
   Alerts->>Alerts: AlertMailer.send(...)
 ```
 
-**What a recruiter sees:** "He knows modern Spring, not just Spring 4-era layering." Feature modules with build-enforced boundaries and generated module docs. Event-driven internals with an outbox-style registry. Virtual threads on Java 25 and Leyden AOT instead of fashionable reactive code. Contract-first with tests proving conformance. Hand-written, readable PostGIS SQL. Decisions are documented with measured trade-offs (ADRs). It is idiomatic, sized right, and easy to walk through in a 30-minute interview.
+**What a recruiter sees:** current Spring: feature modules with build-enforced boundaries and generated module docs, event-driven internals with an outbox-style registry, virtual threads and Leyden AOT on Java 25, contract-first with conformance tests, readable hand-written PostGIS SQL, and ADRs with measured trade-offs. It is easy to walk through in a 30-minute interview.
 
 ### Stack B: "Hexagonal + jOOQ + native" (the type-safety maximalist)
 
@@ -336,7 +333,7 @@ flowchart TB
 
 - **Pros:** compile-time SQL safety, smallest RAM (about 150 MB), cold boot of about 1–3 s inside Render's minute.
 - **Cons:** about 3× the files for read-only queries. jOOQ's spatial support is paywalled, so the showcase feature (PostGIS) is stringly-typed anyway. Native build of several minutes, reflection hint debugging, and Oracle's retreat from Native Image.
-- **What a recruiter sees:** "Strong engineer who likes architecture." A senior reviewer may also see over-engineering for a read-mostly API.
+- **What a recruiter sees:** architecture depth; a senior reviewer may read it as over-engineering for a read-mostly API.
 
 ### Stack C: "Quarkus native" (the footprint champion)
 
@@ -351,15 +348,15 @@ flowchart LR
 ```
 
 - **Pros:** about 70 MB RSS native, about 50 ms startup ([gillius.org](https://gillius.org/blog/2025/10/java-25-framework-startup.html)), excellent dev mode.
-- **Cons:** no Modulith equivalent. The OIDC web-app session model (encrypted token cookie) fights a shared server-side session table. It is the user's weakest framework, and its market signal is smaller in JP banking.
-- **What a recruiter sees:** "Curious, current, cloud-native." It is less of a "this is my home stack done at senior level" story.
+- **Cons:** no Modulith equivalent. The OIDC web-app session model (encrypted token cookie) conflicts with a shared server-side session table. Outside the Spring stack used at IBM, with a smaller market signal in JP banking.
+- **What a recruiter sees:** current and cloud-native, with less of a home-stack-at-senior-level story.
 
 ### Overall pick: Stack A
 
-1. It plays to the user's strengths and the market (Spring at IBM, JP enterprise).
-2. Every choice is the platform's own current direction (Boot 4.1, Java 25, virtual threads, Leyden AOT, Modulith, `JdbcClient`, `csrf.spa()`), so each is easy to defend.
-3. It fits 512 MB with headroom (estimated 300–380 MB RSS). The cold start penalty against native (an estimated extra 10–25 s on top of Render's about 60 s) is better solved at the edge (a wake-up UX) than by adding native-image complexity.
-4. It is right-sized: hexagonal only in `live` and `alerts`, where adapters really vary.
+1. Matches daily work and the market (Spring at IBM, JP enterprise).
+2. Every choice follows the platform's current direction (Boot 4.1, Java 25, virtual threads, Leyden AOT, Modulith, `JdbcClient`, `csrf.spa()`), so each is easy to defend.
+3. Fits 512 MB with headroom (estimated 300–380 MB RSS). The cold-start cost against native (an estimated extra 10–25 s on top of Render's about 60 s) is handled at the edge (a wake-up UX) instead of with native-image complexity.
+4. Right-sized: hexagonal only in `live` and `alerts`, where adapters vary.
 
 Keep Stack B's native build as a **CI-only proof** (`./gradlew nativeCompile` weekly) and as the documented escape hatch.
 
@@ -426,7 +423,7 @@ api/java/
         └── resources/seed/                           # tiny fixtures (Haiyan, Hagibis, Tacloban, Naha)
 ```
 
-Generated code goes to `build/generated/openapi` from `../../contracts/openapi.yaml` and is never committed. Migrations come from `../../contracts/db/migrations` (read-only to this project).
+Generated code: `build/generated/openapi`, from `../../contracts/openapi.yaml`, never committed. Migrations: `../../contracts/db/migrations` (read-only here).
 
 ---
 
@@ -441,4 +438,4 @@ Generated code goes to `build/generated/openapi` from `../../contracts/openapi.y
 - Libraries: [openapi-generator spring](https://openapi-generator.tech/docs/generators/spring/), [OpenRewrite useSpringBoot4 note](https://docs.openrewrite.org/recipes/java/spring/boot4/migrateopenapigeneratortospringboot4), [jOOQ geospatial (commercial)](https://www.jooq.org/doc/dev/manual/reference/reference-data-types/data-types-geospatial/), [Hibernate Spatial PostGIS 7.1](https://docs.hibernate.org/orm/7.1/javadocs/org/hibernate/spatial/dialect/postgis/package-summary.html), [ShedLock README](https://github.com/lukas-krecan/ShedLock/blob/master/README.md)
 - Email: [Resend free tier](https://resend.com/blog/new-free-tier.md), [Brevo free SMTP](https://www.sendinblue.com/free-smtp-server/)
 - GitHub: [hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
-- Versions read from Maven Central metadata on 2026-10-21: openapi-generator 7.26.0, ShedLock 7.10.1, Bucket4j 8.21.0, Testcontainers 2.0.5, Spring Modulith 2.1.1, ArchUnit 1.5.1, pgjdbc 42.7.14, jOOQ 3.21.9, MyBatis starter 4.1.0 (Boot 4.1.0), swagger-request-validator 3.0.0, Resend Java 4.28.0, native-build-tools 1.1.16, Jib 3.5.x, Quarkus 3.40.1, Micronaut platform 5.2.2, Gradle 9.8.2.
+- Versions (Maven Central metadata, 2026-10-21): openapi-generator 7.26.0, ShedLock 7.10.1, Bucket4j 8.21.0, Testcontainers 2.0.5, Spring Modulith 2.1.1, ArchUnit 1.5.1, pgjdbc 42.7.14, jOOQ 3.21.9, MyBatis starter 4.1.0 (Boot 4.1.0), swagger-request-validator 3.0.0, Resend Java 4.28.0, native-build-tools 1.1.16, Jib 3.5.x, Quarkus 3.40.1, Micronaut platform 5.2.2, Gradle 9.8.2.

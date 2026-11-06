@@ -33,15 +33,15 @@ each pull request gets its own preview URL.
 
 Switching the frontend framework means editing `deploy.config` and
 `pages_build_output_dir` in `wrangler.jsonc`. The scripts and workflows read
-both files, so they stay as they are.
+both files and need no change.
 
 ### Prerequisites
 
 - Node 24 (`.nvmrc`; run `nvm use` or `fnm use`) and npm
 - [uv](https://docs.astral.sh/uv/), only for the data pipeline
 - [just](https://just.systems) and Docker (with compose v2), for the contract, database and backends
-- No global wrangler is needed. It is a dev dependency in the root
-  `package.json` and is installed on the first run.
+- No global wrangler: it is a dev dependency in the root `package.json`,
+  installed on the first run.
 
 ### Daily commands
 
@@ -75,8 +75,8 @@ Do these once, in this order.
    - Click *Continue to summary → Create Token*. Copy the token now, because
      Cloudflare shows it only once.
 3. **Find your account ID.** Open *Workers & Pages* in the dashboard. The
-   account ID is in the right-hand sidebar. It is also the 32-character hex
-   string in the dashboard URL.
+   account ID is in the right-hand sidebar and in the dashboard URL (the
+   32-character hex string).
 4. **Add both as GitHub repository secrets.** In the GitHub repo, go to
    *Settings → Secrets and variables → Actions → New repository secret*:
    - `CLOUDFLARE_API_TOKEN`: the token from step 2
@@ -110,11 +110,11 @@ Do these once, in this order.
   tests, the production build, the size guard and the end-to-end tests. The
   verified build is kept 3 days as the `web-dist` artifact.
 - **When CI finishes on `main`**, `deploy.yml` (a `workflow_run` of CI) deploys
-  **main's newest commit** once its CI is green, from that run's artifact, with
-  `wrangler pages deploy` to production at <https://typhoon-replay.pages.dev>;
-  it never builds again, and a red CI never deploys (the run goes red). CI on
-  `main` is never cancelled, so every merge ends up live; `/deploy.json` names
-  the live commit and `live-check.yml` checks it against `main` every hour.
+  **main's newest commit** once its CI is green. It uploads that run's artifact
+  with `wrangler pages deploy` to production at <https://typhoon-replay.pages.dev>
+  without rebuilding. A red CI never deploys (the run goes red). CI on `main` is
+  never cancelled, so every merge ends up live. `/deploy.json` names the live
+  commit, and `live-check.yml` checks it against `main` every hour.
 - **When CI passes on a pull request**, `deploy.yml` deploys a preview to
   `https://pr-<number>.typhoon-replay.pages.dev` and posts the URL as a PR
   comment. The comment is updated on every push. A newer push cancels the
@@ -195,7 +195,7 @@ skip with a notice when either is missing. Locally the token comes from `HF_TOKE
 | `contracts.yml` | PRs and pushes touching `contracts/`, `compose.yaml` or `justfile` | contract lint, 3.1 and 3.0 bundles, the oasdiff breaking-change gate; migrations up, down and up against PostGIS, then the seed; Schemathesis and the contract scenarios against Prism |
 | `java.yml`, `go.yml`, `node.yml`, `rust.yml` | PRs and pushes touching that backend or `contracts/` | build and unit tests, then the conformance suite (Vitest scenarios and Schemathesis) against PostGIS 18 with the migrations and seed; on `main`, the deploy (Render for Java and Go, `wrangler deploy` for Node and Rust) and the live checks |
 | `live.yml` | after each backend deploy, weekly (Mon 03:41 UTC) and by hand | the dataset-independent part of the conformance suite against each live backend; a failure opens an issue |
-| `live-check.yml` | hourly | compares the live `/deploy.json` with `main`; stale for over 30 minutes, it fails and dispatches the deploy |
+| `live-check.yml` | hourly | compares the live `/deploy.json` with `main`; if it is stale for over 30 minutes, it fails and dispatches the deploy |
 | `budget.yml` | every 8 hours | reads the free-tier meters (Render hours and bandwidth, Cloudflare requests, Neon compute, egress and storage); opens an issue at 70 %, pauses a Render service at 85 % of the free hours, and switches the edge to static mode when a meter trips |
 | `api-load.yml` | after a successful `refresh.yml` or `backfill.yml` run, and by hand | migrates the API database (Neon) and loads the published data version in one transaction, behind a size guard for Neon Free's 1 GB |
 

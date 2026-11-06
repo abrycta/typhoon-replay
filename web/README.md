@@ -43,11 +43,11 @@ src/
 
 ## Conformance figures
 
-The Tech page's (/under-the-hood) conformance table reads `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). The file is generated, never edited by hand:
+The Tech page's (/under-the-hood) conformance table reads `src/features/under-the-hood/conformance.json`, imported at build time (no runtime fetch). The file is generated, not hand-edited:
 
 1. Each backend's workflow (`.github/workflows/{java,node,rust,go}.yml`) runs the Vitest scenarios, a full-config Schemathesis run with every check (informational, `continue-on-error`) and the gating Schemathesis run that leaves out `EXCLUDED_CHECKS` (today `positive_data_acceptance`, a known contract-side gap). `contracts/conformance/scripts/summarize.mjs` turns them into `<impl>-conformance.json` (counts, excluded checks, the full run's failures by operation, and the run's id, URL, commit and date), uploaded in the `<impl>-conformance-results` artifact.
-2. CI (`ci.yml`) runs `node web/scripts/conformance-from-ci.mjs` before every build: it takes each backend's latest passing `main` run that has that artifact and rewrites `conformance.json`. A backend whose artifact can't be found keeps its committed entry (which names its own run) with a warning. Run it locally (needs `gh`) and commit the result to refresh the committed fallback.
-3. The table links each backend's date to its run, names the excluded checks and lists the every-check run's failures. Stack and cold start are not measured by CI: they live in `catalogue.ts` and the table says so.
+2. CI (`ci.yml`) runs `node web/scripts/conformance-from-ci.mjs` before every build: it takes each backend's latest passing `main` run that has that artifact and rewrites `conformance.json`. A backend whose artifact can't be found keeps its committed entry (which names its own run) with a warning. To refresh that fallback, run it locally (needs `gh`) and commit the result.
+3. The table links each backend's date to its run, names the excluded checks and lists the every-check run's failures. Stack and cold start come from `catalogue.ts`, not CI, and the table says so.
 
 A backend-only merge rebuilds nothing on the web side, so its new figures appear with the next CI build of `main`.
 
@@ -55,7 +55,7 @@ A backend-only merge rebuilds nothing on the web side, so its new figures appear
 
 - Field colours come from Akari's sequential scale, baked into a 256-entry lookup texture; each layer has a fixed domain for every storm (wind 0–40 m/s, gust 0–60 m/s, rain 0–30 mm/h on a square-root ramp, pressure 950–1015 hPa).
 - Hourly frames are blended in the shader; the storm-following window fades out over its outer 1.5°.
-- Particles follow the webgl-wind technique (RGBA8 state, manual bilinear sampling). They are off by default when the system asks for reduced motion, and the home page does not autoplay then.
+- Particles follow the webgl-wind technique (RGBA8 state, manual bilinear sampling). With reduced motion set, they are off by default and the home page does not autoplay.
 - Best-track intensity (JTWC 1-min, JMA 10-min, with interpolation provenance) sits beside the field, which is labelled "reanalysis context" with the live field-to-best-track ratio.
 - The timeline table is the text alternative; the scrubber is a native range input with `aria-valuetext`. Keys: Space/K, ←/→ (1 h), PageUp/PageDown (6 h), Home/End.
 
@@ -73,4 +73,4 @@ Measured on the production build (`npm run size`; `node scripts/measure-lcp.mjs`
 | LCP storm page | ≤ 2.5 s | ~3.3 s (see below) |
 | First field frame, storm page | ≤ 3 s target | ~6.2 s |
 
-The storm page waits for config → dataset pointer → summary before its heading renders, and `vite preview` serves uncompressed JS; on Pages (brotli) and with the Hugging Face host answering the pointer directly, both numbers should drop, but this has not been measured on the deployed site yet.
+The storm page waits for config → dataset pointer → summary before its heading renders, and `vite preview` serves uncompressed JS. Pages serves brotli and the Hugging Face host answers the pointer directly, so both numbers are expected to drop there; the deployed site has not been measured yet.

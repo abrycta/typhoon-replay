@@ -16,7 +16,7 @@ Scenario files: `headers` (§4 headers, X-Request-Id, compression), `storms` (pa
 golden data, no nulls, 64 KB cap), `caching` (ETag/304, cross-backend ETag equality, Cache-Control classes),
 `problems` (problem+json shapes and codes; the v1 account routes answer 404 and unsafe methods 405, with no CSRF
 headers needed), `places` (search, the places-hit query for Tacloban and Naha), `live` (SSE framing, delivery within
-5 s, `Last-Event-ID` resume, heartbeat), `test-hooks` (absent unless enabled). `caching` also proves cookies are
+5 s, `Last-Event-ID` resume, heartbeat), `test-hooks` (absent unless enabled). `caching` also checks that cookies are
 ignored and never set. Contract 2.0.0 removed the auth, session, CSRF and saved-place scenarios with the account
 operations (CONTRACT-GUIDE §14).
 
@@ -42,7 +42,7 @@ just compat-table
 
 Every `describe` (or `it`) is tagged with the contract version that introduced it (`[c1.0.0]`, `[c2.0.0]`). Use
 `claims()` from `src/env.ts` to skip scenarios newer than the backend's claim; they are reported as skipped
-("not claimed"). Scenarios that survived the 2.0.0 major keep their `[c1.0.0]` tag; removed ones were deleted.
+("not claimed"). Scenarios kept through the 2.0.0 major keep their `[c1.0.0]` tag.
 
 ## Test hooks (backends implement these; CONTRACT-GUIDE §10)
 
