@@ -191,3 +191,7 @@ skip with a notice when either is missing. Locally the token comes from `HF_TOKE
 | `live-check.yml` | hourly | compares the live `/deploy.json` with `main`; stale for over 30 minutes, it fails and dispatches the deploy |
 | `budget.yml` | every 8 hours | reads the free-tier meters (Render hours and bandwidth, Cloudflare requests, Neon compute, egress and storage); opens an issue at 70 %, pauses a Render service at 85 % of the free hours, and switches the edge to static mode when a meter trips |
 | `api-load.yml` | after a successful `refresh.yml` or `backfill.yml` run, and by hand | migrates the API database (Neon) and loads the published data version in one transaction, behind a size guard for Neon Free's 1 GB |
+
+## License
+
+The code is released under the [MIT License](LICENSE). Data from third-party sources keeps its original terms and attribution, listed on the app's About page.
