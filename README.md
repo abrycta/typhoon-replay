@@ -1,7 +1,14 @@
 # Replay
 
 Replay any typhoon that hit the Philippines or Japan since 1940, hour by hour:
-track, reanalysis wind and rain fields, and the towns it affected.
+track, reanalysis wind and rain fields, and the towns it affected. Live at
+<https://replay.krtmtthw.dev>, in English and Japanese.
+
+One OpenAPI 3.1 contract is served by four interchangeable backends: Spring Boot
+(Java), Go, Node (Hono) and Rust (Axum). Each passes the same conformance suite,
+and a same-origin proxy routes `/api/{java,go,node,rust}/` to it. The replay
+itself reads precomputed data from a Hugging Face dataset and needs no backend.
+Project page: <https://krtmtthw.dev/projects/replay/>.
 
 ## Running & deploying
 
@@ -15,6 +22,7 @@ each pull request gets its own preview URL.
 | `contracts/` | The shared API contract (OpenAPI 3.1), database migrations and seed, conformance suite and mocks (see `contracts/README.md`) |
 | `api/{java,node,rust,go}/` | The four interchangeable backends serving that contract: Spring Boot (Java) and Go on Render, Node and Rust on Cloudflare Workers, all reached at `https://replay.krtmtthw.dev/api/<name>/` (see each backend's README) |
 | `pipeline/` | Python data pipeline: IBTrACS catalogue, places and exposure, ERA5 replay frames, Hugging Face publishing |
+| `edge/`, `functions/` | The same-origin edge proxy for `/api/*`, deployed as Cloudflare Pages Functions (see `edge/README.md`) |
 | `docs/architecture/` | System architecture research and the decisions log |
 | `compose.yaml` | Local services by profile: `db` (PostGIS + migrations + seed), `mock` (Prism), `java` |
 | `justfile` | Entry point for the contract and backend workflow (`just` lists recipes) |
@@ -131,10 +139,10 @@ Do these once, in this order.
 | File size | 25 MiB per file | `scripts/check-size.sh` fails the build first |
 | Files per deployment | 20,000 | Same guard; it warns above 80% |
 | Builds | 500 per month | Counts builds Cloudflare runs from Git pushes. This repo builds in GitHub Actions and uploads with wrangler. |
-| `_headers` rules | 100 | 5 used |
+| `_headers` rules | 100 | 17 used (`web/public/_headers`) |
 | Bandwidth / requests | Unlimited for static files | n/a |
-| GitHub Actions | Free on public repos; 2,000 min/month if private | Each CI run takes about a minute |
-| Pages Functions | Share the Workers quota (100k requests/day) | Not used |
+| GitHub Actions | Free on public repos; 2,000 min/month if private | A CI run takes about 4 to 5 minutes |
+| Pages Functions | Share the Workers quota (100k requests/day) | Used only for `/api/*` and `/assets/*.map` (`web/public/_routes.json`); other static files never invoke a Function |
 
 Larger data, such as the big Parquet tables, goes to Hugging Face Datasets and
 is queried in the browser with DuckDB-WASM, not served from Pages.
@@ -144,9 +152,8 @@ is queried in the browser with DuckDB-WASM, not served from Pages.
 `web/public/_headers` is copied to the build root. It sets:
 
 - a one-year immutable cache on `/assets/*` (content-hashed by the bundler)
-  and on `/frames/*`. The pipeline must therefore write new file names when it
-  re-processes a storm, never overwrite an existing file;
-- `must-revalidate` on the HTML;
+  and on `/embed-data/*`;
+- `must-revalidate` on the HTML, `/config.json` and the `/storm/*` share pages;
 - basic security headers, including a CSP that already allows DuckDB-WASM,
   MapLibre workers, Hugging Face and OpenFreeMap.
 
