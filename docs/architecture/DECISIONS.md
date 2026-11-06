@@ -84,14 +84,14 @@ Workers Logs on. Check CPU per request after deploying (Workers analytics `cpuTi
 period. Two sleeping services at that rate are ~2 × 105 h ≈ 210 h/month (28 % of 750); worst case, both awake
 around the clock, is 2 × 744 = 1,488 h, which would suspend both around day 15. Guards: edge caching (catalogue
 answers pinned to the dataset version), `stale-if-error`, no keep-alive pingers, and `.github/workflows/budget.yml`,
-a daily read of Render hours and bandwidth, Cloudflare requests (100k/day shared by Workers and Pages Functions) and
-Neon usage that opens an issue when a meter passes 70 % or is projected past 100 %. Neon's usage needs a
-`NEON_API_KEY` secret and `NEON_PROJECT_ID` variable (not set yet).
+a read every 8 hours of Render hours and bandwidth, Cloudflare requests (100k/day shared by Workers and Pages Functions) and
+Neon usage that opens an issue when a meter passes 70 % or is projected past 100 %. Neon's usage is read with the
+`NEON_API_KEY` secret and the `NEON_PROJECT_ID` variable.
 
 ## Update 2026-10-22: Render hours guard, deploys after checks, live checks
 
 Approved by Kurt.
-- **Render hours guard.** `budget.yml` (daily) estimates the workspace's free instance hours. At **85 %** of 750 it
+- **Render hours guard.** `budget.yml` (every 8 hours) estimates the workspace's free instance hours. At **85 %** of 750 it
   suspends the first running service of the repository variable `RENDER_GUARD_SERVICES` (comma-separated, in pause
   order; default `typhoon-replay-go`; services not listed, such as the Java APIs, are never paused) and opens an
   issue recording it. The first run of the next month resumes what the guard paused and closes the issue; services

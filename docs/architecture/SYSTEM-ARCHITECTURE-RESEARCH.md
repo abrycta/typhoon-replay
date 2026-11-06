@@ -2,11 +2,11 @@
 
 > **Update 2026-10-21:** accounts were dropped (no OAuth, sessions, saved places or alert email); the API is a public, read-only showcase. See `DECISIONS.md` ("Update 2026-10-21: no accounts…") and `contracts/docs/CONTRACT-GUIDE.md` §14. The account parts below are kept as research history.
 
-Status: research and recommendations, 2026-10-21. Nothing here is implemented yet.
+Status: the research behind DECISIONS.md, 2026-10-21. What was built is recorded there and in each backend's README.
 Scope: everything the four backends (Java Spring Boot, Node/TypeScript, Rust, Go) share: the contract, conformance tests, database schema and migrations, auth, the edge proxy, backend selection, repo layout, CI and free-tier capacity. Each backend's internal design belongs to its language's own docs (`api/<lang>/docs/`).
 Companion docs: [`contracts/docs/CONTRACT-GUIDE.md`](../../contracts/docs/CONTRACT-GUIDE.md) (draft rules every backend follows) and [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
 
-Product recap (from `big-data-ideas.md` §2 and `PROPOSALS.md` §E): the hour-by-hour replay is fully static (frame files on Cloudflare Pages, Parquet on Hugging Face read with DuckDB-WASM). The API exists only for four things: (1) "typhoons that hit my town" PostGIS search over about 581,721 storm-hours and the PH ADM3 / JP municipality polygons; (2) a live tracker of active storms pushed over SSE; (3) accounts (Google/GitHub OAuth2, saved places, email alerts); (4) a public documented REST API. Constraint: free tiers only, no credit card.
+Product recap (as planned on 2026-10-21): the hour-by-hour replay is fully static (frame files on Cloudflare Pages, Parquet on Hugging Face read with DuckDB-WASM). The API exists only for four things: (1) "typhoons that hit my town" PostGIS search over about 581,721 storm-hours and the PH ADM3 / JP municipality polygons; (2) a live tracker of active storms pushed over SSE; (3) accounts (Google/GitHub OAuth2, saved places, email alerts); (4) a public documented REST API. Constraint: free tiers only.
 
 ---
 
@@ -101,7 +101,7 @@ Alternative: pb33f `openapi-changes` (3.0–3.2).
 - Clients must ignore unknown fields and unknown SSE event types (the "tolerant reader" rule). That is what makes additive changes non-breaking.
 - Backends declare the contract version they implement (§6.4).
 
-### 1.5 Generating code from the contract (names only; the language agents decide)
+### 1.5 Generating code from the contract (names only; each backend's own docs decide)
 
 | Language | Contract-first server options | Notes |
 |---|---|---|
@@ -186,7 +186,7 @@ Migrations are applied by one CI job on merge to `main` (direct, non-pooled Neon
 | Flyway CLI (Docker) | Plain SQL `V1__x.sql` | Mature; the Java backend team knows it | JVM image; Redgate is shifting Community distribution to include non-OSS parts ([Redgate](https://www.red-gate.com/blog/the-flyway-engine-oss-open-source-software-and-redgate)); looks "owned" by the Java backend |
 | sqitch | Plain SQL deploy/revert/verify, dependency graph | Verify scripts are nice | Perl toolchain; heavier mental model |
 
-dbmate keeps the schema language-neutral: plain SQL, which every backend agent can read.
+dbmate keeps the schema language-neutral: plain SQL, which every backend can read.
 CI adds two checks:
 - `dbmate up && dbmate rollback && dbmate up` on a fresh PostGIS;
 - `schema.sql` must be committed and unchanged after `dbmate dump`.
@@ -276,7 +276,7 @@ Exactly **one** shared ingestion job writes live-storm data, and the backends on
   - four schedulers would duplicate work;
   - every run would wake four services and burn the shared 750 h.
 
-Alternative raised by the Go agent: GitHub Actions cron calls an authenticated `POST /v1/_jobs/{ingest|mail}` (bearer secret) on one backend, rotating by day, so each language also implements ingestion.
+Alternative raised in the Go backend's research: GitHub Actions cron calls an authenticated `POST /v1/_jobs/{ingest|mail}` (bearer secret) on one backend, rotating by day, so each language also implements ingestion.
 - Pros: more showcase.
 - Cons: each run wakes a Render service (a cold start, measured at about 100 s for Java, plus work, so about 50–100 h/month of the 750), and ingestion parity must then be conformance-tested too.
 - Kept as an option for the user (OPEN-QUESTIONS); not the default. If chosen, the endpoints and the lease table above are already contract-ready.
@@ -301,7 +301,7 @@ Free plan, no card, "permanent":
 
 | Option | Pros | Cons |
 |---|---|---|
-| **A. One project, `main` branch shared by all four** (recommended) | Sessions, saved places and live events are shared, so switching backend is seamless; one pipeline load; the demo story "four languages, one database" | 100 CU-h shared (400 h awake at 0.25 CU); one noisy backend affects the others |
+| **A. One project, `main` branch shared by all four** (recommended) | Sessions, saved places and live events are shared, so switching backend keeps the same state; one pipeline load; the demo story "four languages, one database" | 100 CU-h shared (400 h awake at 0.25 CU); one noisy backend affects the others |
 | B. One project, a branch per backend | Isolation; copy-on-write branches are cheap in storage | All branches draw on the same project's 100 CU-h; branches diverge, so sessions are not shared |
 | C. One project per backend | 4 × 100 CU-h, 4 × 1 GB | Pipeline loads 4×; no shared sessions; four sets of secrets |
 
@@ -339,7 +339,7 @@ Fixes:
 - `state`, the PKCE verifier and `returnTo` go into the shared `auth.oauth_state` table, not into backend memory. So a login started on Java can be completed by Go if the user toggles mid-flow.
 - On callback: upsert `auth.user` / `auth.identity` by `(provider, subject)`. Mint 32 random bytes, store `sha256(token)` in `auth.session`, and set the cookie:
   - `__Host-tr_session=<base64url>; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=2592000`;
-  - `__Host-` requires `Path=/`, so the cookie covers `/api/*` for all impls, which is exactly what makes switching seamless.
+  - `__Host-` requires `Path=/`, so the cookie covers `/api/*` for all impls, which is what lets a session carry across backends.
 - Every authenticated request hashes the cookie and looks it up (`revoked_at IS NULL AND expires_at > now()`). `last_seen_at` is touched at most every 5 minutes, and sessions slide to 30 days.
 - CSRF: `SameSite=Lax` plus an `Origin` check on unsafe methods (must equal the site origin), plus a required `X-Requested-With: typhoon-replay` header on unsafe methods. Cheap to implement four times, and testable.
 
@@ -383,7 +383,7 @@ Provider endpoints (authorize/token/userinfo) must be configurable via env so CI
   - The static replay never waits on the API.
   - On the first API need, the SPA fires `GET /api/{impl}/healthz`. If there is no answer in 2 s, it shows "Waking the {Java} backend… (free hosting sleeps; the measured cold start, Java about 100 s)" with a progress bar, a "switch to a warm backend" button (warm = any backend that answered `/healthz` in this session), and a link to the compat page.
   - Town search falls back to a precomputed static index on Pages (the top 5,000 places → their storm lists as JSON shards), so the core feature works with all backends asleep.
-- **Edge caching to hide cold starts** (the Java agent asked for an evaluation):
+- **Edge caching to hide cold starts** (the Java backend's research asked for an evaluation):
   - **What works.** The Cache API works in Pages Functions on `*.pages.dev` ([docs](https://developers.cloudflare.com/workers/runtime-apis/cache/)). The proxy can cache public catalogue GETs (keyed by impl + path + sorted query), honour `Cache-Control` and ETags, and serve hits **without waking the backend**.
   - **Limits.**
     - The cache is **per data centre**, not replicated globally, so it only helps repeat visitors near the same PoP (Manila or Tokyo PoPs matter most).
@@ -460,7 +460,7 @@ typhoon-replay/
 | Render instance-hours | 750 h / workspace / month, shared by all free services ([docs](https://render.com/docs/free)) | 4 services × awake time | **Binding.** About 6 h/day each; no pinging; idle-close SSE |
 | Render outbound bandwidth | **5 GB / month per Hobby workspace** (cut from 100 GB; new plans 2026-04-23, legacy workspaces auto-migrated 2026-08-01); over it with no card = services spun down until next month ([docs](https://render.com/docs/outbound-bandwidth), [plans](https://render.com/docs/new-workspace-plans)) | API JSON, SSE | **Most dangerous: silent, and stops all four.** Gzip/brotli; edge-cache public GETs in the proxy (Cache API keyed by impl + URL + ETag); keep big data on Pages/HF; SSE heartbeats are comments of about 3 bytes |
 | Render build minutes | 500 / month (third-party sources) | 4 Docker builds per deploy (Java/Rust builds are slow) | Build images in GitHub Actions and push to GHCR; Render deploys a prebuilt image (verify the free tier allows image deploys) |
-| Render RAM/CPU | 512 MB, 0.1 CPU (third-party) | JVM | Java cold start matters (the Java agent reports Oracle stepping back from GraalVM Native Image toward Leyden AOT cache); edge caching (§5) hides it for public reads |
+| Render RAM/CPU | 512 MB, 0.1 CPU (third-party) | JVM | Java cold start matters (the Java backend's research reports Oracle stepping back from GraalVM Native Image toward Leyden AOT cache); edge caching (§5) hides it for public reads |
 | Render SMTP | Outbound 25/465/587 **blocked** on free services since 2025-09-26 ([changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports)) | email alerts | The mailer must not run on Render; run it in GitHub Actions (see email) |
 | Neon compute | 100 CU-h / project / month; scale to zero after 5 min | API queries + ingestion every 30 min + pipeline loads | About 400 h at 0.25 CU. Ingestion every 30 min ≈ 48 wakes × 5 min ≈ 4 h/day ≈ 30 CU-h/month. OK if capped at 0.25 CU and the backends hold no idle LISTEN connections (whether idle connections block suspend is unverified) |
 | Neon storage / egress | 1 GB, 5 GB egress / project | about 400 MB catalogue (×2 during swap) | Tight but OK; the hourly exposure stays on HF |
@@ -610,6 +610,6 @@ The design described above:
 | | |
 |---|---|
 | **For** | The Node backend is always warm; more Render headroom; shows edge-runtime skill. |
-| **Against** | Not "Node" (the workerd runtime); a long-lived SSE stream must be built differently (a Durable Object or polling `live_event` per connection), so it diverges from the other three; the 10 ms CPU limit restricts JSON-heavy endpoints. Decide with the Node agent. |
+| **Against** | Not "Node" (the workerd runtime); a long-lived SSE stream must be built differently (a Durable Object or polling `live_event` per connection), so it diverges from the other three; the 10 ms CPU limit restricts JSON-heavy endpoints. Decide with the Node backend's design. |
 
-**Recommendation: build Option A.** Keep B as the documented upgrade and C as an experiment the Node agent may propose.
+**Recommendation: build Option A.** Keep B as the documented upgrade and C as an experiment the Node backend may take up.

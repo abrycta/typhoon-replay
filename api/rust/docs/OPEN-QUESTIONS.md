@@ -18,7 +18,7 @@ Collected 2026-10-21 while researching `ARCHITECTURE-RESEARCH.md`. Each item say
 7. **CSRF rule.** Is it an Origin / `Sec-Fetch-Site` check on unsafe methods, a required custom header, or both? It must be testable by the conformance suite.
 8. **ETag semantics.** Strong or weak? Derived from a dataset version, from a content hash, or both? Is `Cache-Control` per endpoint class defined in the contract?
 9. **Problem-type registry.** What are the `type` URIs and the extension members (e.g. `traceId`, `errors[]` for validation)?
-10. **Neon storage.** Free is **1 GB/project**. 580k storm-hours fits. The per-place exposure tables ("hundreds of millions of rows" in `big-data-ideas.md`) don't. Which subset lives in Postgres and which stays in Parquet/DuckDB-WASM?
+10. **Neon storage.** Free is **1 GB/project**. 580k storm-hours fits. The per-place exposure tables ("hundreds of millions of rows" in the original sizing) don't. Which subset lives in Postgres and which stays in Parquet/DuckDB-WASM?
 11. **One Neon project for four backends.** That's **100 CU-h/month**, about 400 h at 0.25 CU, shared by all four backends' traffic and the ingest cron. Is that enough, or does each backend get its own project (the shared schema is then duplicated)?
 
 ## Hosting (verify by hand)

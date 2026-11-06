@@ -2,7 +2,7 @@
 
 Written 2026-10-21 by Kurt. This document covers how Replay keeps working when an upstream data source moves, breaks or disappears.
 
-The machinery is the shared private kit [`abrycta/data-archive-kit`](https://github.com/abrycta/data-archive-kit) (`archivekit`); its README and `docs/ADOPTING.md` hold the generic details. This file is the Typhoon-specific part: the sources, their fallbacks, how data versions are published, and the runbook.
+The machinery is the shared private kit [`abrycta/data-archive-kit`](https://github.com/abrycta/data-archive-kit) (`archivekit`); its README and `docs/ADOPTING.md` hold the generic details. This file is the Replay-specific part: the sources, their fallbacks, how data versions are published, and the runbook.
 
 ## The principle
 
@@ -114,13 +114,13 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
   published one) under `v<N>/`: `index.json`, `manifest.json`, `storms/<sid>/…`, `places/…`, `tables/*.parquet`.
   Nothing under an existing `v<N>/` is modified afterwards; the version is tagged `data-v<N>`.
 - **Incremental, no duplication.** Frame files are content-addressed (`frames/<sid>/<sha256-prefix>.*`) and
-  live outside the version directories, so a version only references them. A storm whose summary, track
-  and OG image are unchanged keeps pointing at the earlier version's folder (`index.json` `path`), and
-  frames are rebuilt only when IBTrACS changed the storm's hourly track (`trackHash`). A weekly refresh
+  live outside the version directories, so a version only references them. Every version holds every storm
+  folder (DECISIONS.md, 2026-10-21); the Hub deduplicates unchanged files, so this costs upload commits, not
+  storage. Frames are rebuilt only when IBTrACS changed the storm's hourly track (`trackHash`). A weekly refresh
   therefore uploads a few storms' files plus the version's small documents. Uploads go in commits of at
   most 500 files, paced, and every Hub commit retries a 429 after the wait the server asks for (R7).
 - **Size.** Frames are lossy WebP for drawing (about 1.3 kB per storm-hour) plus lossless 3-hourly 0.5 deg
-  grids for exact readouts (about 1.2 kB); frames go to the ~1,000 storms chosen by `typhoon.selection`.
+  grids for exact readouts (about 1.2 kB). Every storm in the catalogue (2,058 in data version 4) has frames.
 - **Gates first.** `dataset.check` verifies every file's checksum against the manifest, the 25 MiB per-file
   cap, `.tyf` headers, WebP sheets byte-identical to the `.tyf` planes, nodata, plausible ERA5 ratios and
   referential integrity of the tables; `pytest -m data` checks the catalogue, places and exposure. Batch jobs
@@ -175,7 +175,7 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
   | > 6 h, or the feed has errored | Banner: "Live updates paused: <JTWC/JMA> feed unreachable since 09:00 UTC. Showing the last known position." Links to the official JTWC, JMA and PAGASA pages |
   | > 24 h and no active advisories | The live panel collapses to "No live data" plus the official links; the historical replay is unaffected |
 
-- **Archive data in the replay.** When an input came from the archive, the replay footer reads "Best-track data as of 2026-10-18 (archived copy)", taken from `current.json`.
+- **Archive data in the replay.** When an input came from the archive, the replay footer reads "Best-track data as of 2026-10-18 (archived copy)", taken from `manifest.json` (`provenance.data_as_of`, `provenance.archive_used`).
 
 ## Runbook
 
@@ -185,7 +185,7 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
 | **A source moved** (redirect to HTML, 404, or a 301/308 flagged by health) | Fallback; the issue names the link and the redirect target | Edit the URL in `pipeline/sources.yaml` (one line), merge, and let the next health run close the issue. Check the new URL serves identical bytes (`archivekit fetch <id> --out /tmp/x`, compare the sha256) |
 | **A source is gone for good** | The archive keeps serving the last snapshot, with "data as of" in the app | Set `status: retired` on the source, note it on the About page, and consider promoting a manual mirror: write the adapter, then set `automatic: true` |
 | **The schema changed** | Missing required columns: that link fails and the next one serves (often the archive). Columns only added: a "schema drift" warning and issue; the data is used | Update `typhoon/ibtracs.py` (or the relevant parser), `required_columns` and `header_sha256` in the registry, and the tests; re-run the pipeline |
-| **Bad data was published** (should be caught by the gates) | — | Roll back: point `current.json` at the previous `data_version` (one commit). Add a test or registry check that catches the problem, then re-run |
+| **Bad data was published** (should be caught by the gates) | — | Roll back: `publish rollback --to <N>` points `latest.json` at the previous version (one commit). Add a test or registry check that catches the problem, then re-run |
 | **Archive copy corrupt** (`archive-integrity` in the error) | That run fails clearly; nothing is replaced | `archivekit restore <id> --date <older date>` to inspect; delete the bad release; re-run the snapshot workflow for that source |
 | **`token-expiry` issue** | Opens 30 days before `ARCHIVE_READ_TOKEN` expires | Regenerate the token with the same settings; update the secret in **both** repos and `health.token_expires` |
 | **Fork PR or first run without the token** | The archive step and pipeline CI skip with a notice | Nothing, or create the token |
@@ -198,13 +198,6 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
 - `pipeline/tools/use-archivekit-tag.sh`: switches the path dependency on `../../data-archive-kit` to the tagged release.
 - `abrycta/typhoon-replay-archive`: the caller workflow and README.
 
-## Setup still to do (user)
+## Token rotation
 
-1. **Create `ARCHIVE_READ_TOKEN`.** It is a fine-grained token on `data-archive-kit` and `typhoon-replay-archive`:
-   - Contents: read;
-   - Issues: read and write;
-   - 1-year expiry.
-
-   Add it as a secret here and in `typhoon-replay-archive`, and set `health.token_expires` in `sources.yaml`.
-2. **After the kit is tagged** `v1.0.0`, run `pipeline/tools/use-archivekit-tag.sh`.
-3. **Add a pipeline CI job** when the pipeline gets one. The existing `ci.yml` runs only the web checks. Use the job in the kit's `docs/ADOPTING.md` §5, which installs the kit with the token and skips with a notice when the token is absent.
+`ARCHIVE_READ_TOKEN` is a fine-grained token on `data-archive-kit` and `typhoon-replay-archive` (Contents: read; Issues: read and write; 1-year expiry), stored as a secret in both repos, with its expiry in `health.token_expires` in `sources.yaml`. The health job opens a `token-expiry` issue 30 days ahead (see the runbook).

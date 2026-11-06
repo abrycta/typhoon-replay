@@ -1,8 +1,8 @@
 # Replay frontend: architecture research
 
-Status: research only, for the owner to choose from. Nothing here is implemented.
+Status: the research behind the frontend's stack, 2026-10-21. What was built is described in `web/README.md`.
 Checked: 2026-10-21. I took versions from the npm registry (`latest` tag) and the sources linked inline. Anything I inferred rather than found in documentation says so.
-Inputs: `../../big-data-ideas.md` §2 (in the portfolio root), `PROPOSALS.md` §E, the pipeline's frame format (`pipeline/typhoon/frames.py`, `.tyf`), the current deploy placeholder (`web/`, `deploy.config`, `wrangler.jsonc`, `web/public/_headers`), and `@abrycta/akari`.
+Inputs: the product plan as of 2026-10-21, the pipeline's frame format (`pipeline/typhoon/frames.py`, `.tyf`), the deploy setup (`web/`, `deploy.config`, `wrangler.jsonc`, `web/public/_headers`), and `@abrycta/akari`.
 Companion: [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md).
 
 ---

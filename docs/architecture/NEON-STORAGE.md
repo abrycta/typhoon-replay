@@ -1,7 +1,7 @@
 # Neon storage: why a catalogue load fits the free cap
 
-Measured 2026-10-26 on the production project (Neon Free, Singapore). Kept up to date when the catalogue's shape
-changes; `tools/ops-watch.sh quota` in portfolio-docs watches the numbers below every day.
+Measured 2026-10-26 on the production project (Neon Free, Singapore), and kept up to date when the catalogue's
+shape changes. A daily quota check watches the numbers below.
 
 ## What counts against the 1 GB
 
@@ -18,7 +18,7 @@ changes; `tools/ops-watch.sh quota` in portfolio-docs watches the numbers below 
 - Replay's project is its own: Plumes uses a separate Neon project (different tenant), so neither can push the other
   over.
 
-## Why the load of 2026-10-26 failed
+## What the load of 2026-10-26 measured
 
 `typhoon.dbload` stages a complete second catalogue in `catalog_next` and swaps it in, in one transaction, so the API
 serves the old version or the new one, never a mix. Both copies exist until the commit, so a load needs

@@ -73,7 +73,7 @@ Notes:
 
 Store: `gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3`. Access is anonymous (`token='anon'`), and the store is Zarr **format 2** despite the "v3" name.
 
-- **Coverage:** attributes give **1940-01-01 → 2026-06-30 for ERA5, ERA5T to 2026-10-13**, updated 2026-10-19. This resolves the "ARCO start year" question in big-data-ideas §6: it starts in 1940.
+- **Coverage:** attributes give **1940-01-01 → 2026-06-30 for ERA5, ERA5T to 2026-10-13**, updated 2026-10-19. This settles the ARCO start year: it starts in 1940.
 - **Chunks:** every surface variable is chunked `(1 h, 721, 1440)` (one global hour), float32, blosc-lz4. The compressed objects are about 3.3 MB for u10/v10, 3.2 MB for `instantaneous_10m_wind_gust`, 2.2 MB for MSLP and 1.8–2.0 MB for `total_precipitation` (hourly accumulation, m).
 
 Variables used: u10, v10 (→ speed and direction), instantaneous 10 m gust, MSLP, total precipitation. Each frame is a storm-following 81×81 window (±10° at 0.25°) centred on the IBTrACS track, linearly interpolated to hourly: **223 frames**, 2013-11-02 18:00 → 2013-11-11 00:00 UTC.
@@ -156,7 +156,7 @@ Max ERA5 10 m wind within 2° of the IBTrACS centre, hourly:
 | Lifetime max | 87.5 | 64.3 | 28.9 | 0.33 | 0.45 | 45.0 | 971.8 vs 895 hPa |
 | Median over 144 typhoon-strength hours | | | | 0.38 | 0.53 | | |
 
-Suggested app wording: *"Wind and rain fields are ERA5 reanalysis (~28 km grid). For intense typhoons it smooths the eye wall: at Haiyan's peak, ERA5's strongest 10 m wind was about a third of the JTWC best-track estimate (0.31×) and under half of JMA's 10-minute estimate (0.42×), and its central pressure was 88 hPa too high. Use the best-track intensity for peak strength and the field for spatial extent and timing."* The Holland-vortex core blend (big-data-ideas §2 risk 1) is the main data-quality stretch goal.
+Suggested app wording: *"Wind and rain fields are ERA5 reanalysis (~28 km grid). For intense typhoons it smooths the eye wall: at Haiyan's peak, ERA5's strongest 10 m wind was about a third of the JTWC best-track estimate (0.31×) and under half of JMA's 10-minute estimate (0.42×), and its central pressure was 88 hPa too high. Use the best-track intensity for peak strength and the field for spatial extent and timing."* The Holland-vortex core blend is the main data-quality stretch goal.
 
 ## 6. Viewer
 

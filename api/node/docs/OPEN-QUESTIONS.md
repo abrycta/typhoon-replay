@@ -54,5 +54,5 @@ Each entry says who decides it ("architect" = `contracts/` owner) and my default
 19. **TypeScript 6.0 vs 7.0.** typescript-eslint 8.72 caps TS below 6.1. Revisit when it supports TS 7 (expected with the TS 7.1 programmatic API).
 20. **kysely-codegen against PostGIS types.** Confirm how `geography`/`geometry` columns come out (probably `unknown` or `string`) and add a type override in its config.
 21. **Distroless tag.** `gcr.io/distroless/nodejs24-debian13` is listed in the README; check that a `:nonroot` variant exists for nodejs24-debian13 before relying on it.
-22. **Active-storm feed sources.** Which feeds (JTWC, JMA, PAGASA, GDACS), their formats, terms and polling etiquette. Shared with the other backends; probably the architect's or a data agent's job.
+22. **Active-storm feed sources.** Which feeds (JTWC, JMA, PAGASA, GDACS), their formats, terms and polling etiquette. Shared with the other backends, so it belongs in the shared architecture docs or the pipeline.
 23. **Bilingual e-mail templates.** EN only, or EN/JA (and Filipino)? This affects the template approach.

@@ -18,3 +18,10 @@ web/.npmrc
 .env.*
 !.env*.example
 .dev.vars*
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+coverage/

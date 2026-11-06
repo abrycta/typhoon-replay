@@ -26,7 +26,7 @@ OUT = PROCESSED / "ibtracs"
 
 # PAGASA Philippine Area of Responsibility (PAR) polygon, lon/lat.
 PAR = Polygon([(120, 25), (135, 25), (135, 5), (115, 5), (115, 15), (120, 21), (120, 25)])
-# Broad PH/JP study box used in big-data-ideas.md sizing (4-46N, 116-146E).
+# Broad PH/JP study box (4-46N, 116-146E).
 STUDY_BOX = shapely.box(116, 4, 146, 46)
 JP_NEAR_DEG = 1.8  # ~200 km buffer around Japan land, in degrees (approximate)
 
