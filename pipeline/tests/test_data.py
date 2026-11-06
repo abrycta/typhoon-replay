@@ -90,7 +90,7 @@ def test_frames_honesty() -> None:
         pytest.skip("Haiyan frames not built")
     m = json.loads(p.read_text())
     h = m["era5VsBestTrack"]
-    assert 0.25 < h["jtwc"]["ratioAtPeak"] < 0.4 and 0.35 < h["jma"]["ratioAtPeak"] < 0.5   # SPIKE.md: 0.31, 0.42
+    assert 0.25 < h["jtwc"]["ratioAtPeak"] < 0.4 and 0.35 < h["jma"]["ratioAtPeak"] < 0.5   # data spike: 0.31, 0.42
     assert all(q["nodata"] == 0 and q["clipped"] == 0 for q in m["quantisation"].values())
 
 

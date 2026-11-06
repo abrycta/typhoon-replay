@@ -3,7 +3,6 @@
 Status: the research behind the frontend's stack, 2026-10-21. What was built is described in `web/README.md`.
 Checked: 2026-10-21. I took versions from the npm registry (`latest` tag) and the sources linked inline. Anything I inferred rather than found in documentation says so.
 Inputs: the product plan as of 2026-10-21, the pipeline's frame format (`pipeline/typhoon/frames.py`, `.tyf`), the deploy setup (`web/`, `deploy.config`, `wrangler.jsonc`, `web/public/_headers`), and `@abrycta/akari`.
-Companion: [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md).
 
 ---
 
@@ -205,7 +204,7 @@ src/
 
 **Streaming and decoding: a host-agnostic frame loader**
 
-Facts from `SPIKE.md`:
+Facts from the data spike:
 - `.tyf` averages 5.95 MiB per storm; the largest is 23.3 MiB.
 - All 3,076 storms come to 19.1 GB raw, 9.7 GB gzipped, or about 5.7 GB as lossless WebP sprite sheets.
 - Each sprite sheet holds one variable as an 81×81 tile grid (Haiyan: 15×15 tiles). The longest storm, at 745 frames, needs a sheet about 2,268 px wide, within the ≤4096 px texture budget.
@@ -228,7 +227,7 @@ The loader therefore lives in `src/data/frames/` behind one interface, `openStor
 - A **progress bar** shows hours buffered versus played. **Errors** (CORS, 404, 429 rate limit) fall back to the track-only replay with a message. The replay never calls the API.
 - CSP: the `connect-src` in `web/public/_headers` already allows `huggingface.co` and `*.hf.co`. Any other data host must be added there.
 - **Worker plumbing.** [Comlink 4.4.2](https://www.npmjs.com/package/comlink) (about 2 kB) gives typed worker RPC. OffscreenCanvas is fully supported from iOS 17 ([caniuse](https://caniuse.com/offscreencanvas)), but it is not needed because the map owns the GL context. Workers do only the decoding.
-**Fixes the spike viewer showed are needed** (`spike/viewer.html`):
+**Fixes the spike viewer showed are needed**:
 - **Colour and legend.** Use Akari's tested sequential scales (`@abrycta/akari/maps` `scaleColors('seq', theme)`), baked into a 256-px lookup texture per theme. Always show a legend with units (m/s, mm/h, hPa) and a toggle between m/s and kt.
   - The scale domain is **fixed per variable across all storms**, not per storm, so "compare across decades" is honest.
   - Theme changes swap only the lookup texture.
@@ -244,7 +243,7 @@ The loader therefore lives in `src/data/frames/` behind one interface, `openStor
 **Honesty about reanalysis** (a product requirement, and a good recruiter talking point):
 - ERA5 badly understates typhoon cores. At Haiyan's peak, the field's maximum 10 m wind was 26.9 m/s against JTWC 87.5 m/s and JMA 64.3 m/s, and its pressure was 971.8 hPa against 895 hPa.
 - The **intensity panel always shows best-track intensity** (with the agency and averaging period) beside the field. The field legend is titled "ERA5 reanalysis, context (about 28 km grid)".
-- A one-line "Why is the field weaker than the storm?" disclosure uses `SPIKE.md`'s suggested wording, translated EN/JA.
+- A one-line "Why is the field weaker than the storm?" disclosure uses the data spike's suggested wording, translated EN/JA.
 - The town-history and exposure figures inherit the same caveat. They are labelled "reanalysis-based exposure".
 
 - **Mid-range phone mode**, chosen from `deviceMemory`, `hardwareConcurrency`, a quick frame-time probe or user choice:
@@ -259,7 +258,7 @@ The loader therefore lives in `src/data/frames/` behind one interface, `openStor
 
 **Static data layout (proposed, for the pipeline and system architect to confirm)**
 - **Keep data off the app origin, behind `dataBaseUrl`.** The frontend treats any static host that serves CORS the same way. Two hosts are realistic:
-  - **A Hugging Face dataset**, likely given 5.7–19 GB in total. It returns 206 + CORS, so range windows (Strategy 1) are available. Rate limits for anonymous `resolve` traffic are unverified; see OPEN-QUESTIONS.
+  - **A Hugging Face dataset**, likely given 5.7–19 GB in total. It returns 206 + CORS, so range windows (Strategy 1) are available. Rate limits for anonymous `resolve` traffic are unverified.
   - **A separate Cloudflare Pages project** for data, with `Access-Control-Allow-Origin: *` and `immutable` headers. That means whole-file streaming (Strategy 2) or WebP sprites (Strategy 3). The 20k-file cap and whether Pages accepts about 6–19 GB in total are both unverified.
 - **Layout, the same on either host:**
   - `index/storms.<hash>.json`: catalogue plus per-storm manifest

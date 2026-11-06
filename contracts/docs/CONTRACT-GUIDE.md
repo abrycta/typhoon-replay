@@ -1,7 +1,7 @@
 # Replay API: contract guide
 
 > **Status: contract `2.0.0`, accepted 2026-10-21** (`1.0.0` the same day). `contracts/openapi/` is the single source of truth; this guide only explains the rules the spec can't express. Refinements made while writing the v1 spec are listed in §13; what v2 removed, and the rules it changed, in §14.
-> Background and the reasons for each rule: [`docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md`](../../docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md). Open decisions: [`docs/architecture/OPEN-QUESTIONS.md`](../../docs/architecture/OPEN-QUESTIONS.md).
+> Background and the reasons for each rule: [`docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md`](../../docs/architecture/SYSTEM-ARCHITECTURE-RESEARCH.md).
 
 The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
@@ -193,7 +193,7 @@ All anonymous `GET`s, under `/v1` except the probes.
 - Logs: one JSON object per line with `ts, level, msg, requestId, impl, method, path, status, durMs`. Never log `Cookie` or `Authorization` headers.
 - Readiness: answer `/healthz` within 1 s of the port opening. Fail `/readyz` (503 `not-ready`) until the DB is reachable and the schema version is ≥ the minimum.
 - DB use: through the Neon pooler (transaction mode). No session-level state (`SET`, `LISTEN`, session advisory locks, SQL `PREPARE`). Statement timeout 5 s. Pool max ≤ 5 per backend. Any coordination uses lease rows (`ops.job_lease`) or `SELECT … FOR UPDATE SKIP LOCKED` inside one transaction.
-- No background work: no in-process schedulers, ingestion or mail sending. These belong to the shared pipeline job (live ingestion). Optional `POST /v1/_jobs/{name}` endpoints exist only if the user picks the rotating-backend job option (see OPEN-QUESTIONS).
+- No background work: no in-process schedulers, ingestion or mail sending. These belong to the shared pipeline job (live ingestion). Optional `POST /v1/_jobs/{name}` endpoints exist only if the user picks the rotating-backend job option.
 - Rate limits: the proxy enforces per-IP limits. Backends MAY add their own, and MUST use 429 `rate-limited` + `Retry-After` if they do.
 - Request body limit 64 KB → 413 `payload-too-large`.
 - Response size budget (Render free egress is 5 GB/month for all four backends): JSON responses MUST stay ≤ 64 KB uncompressed at the maximum `limit`. Tracks are served at observed (3/6-hourly) resolution only. Hourly data, frames and polygons beyond the simplified geometry come from the static stores (Pages / Hugging Face), never from the API.

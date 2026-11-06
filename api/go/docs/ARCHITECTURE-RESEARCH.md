@@ -150,7 +150,7 @@ Source: [sqlc data types / PostGIS overrides](https://docs.sqlc.dev/en/latest/re
 - Use the **pooled endpoint** (`-pooler` host) for the app. Neon's PgBouncer supports protocol-level prepared statements (`max_prepared_statements=1000`), and pgx docs say PgBouncer ≥ 1.21 with that setting works with pgx's default `QueryExecModeCacheStatement`. If errors like `prepared statement … already exists` appear, set `default_query_exec_mode=exec` in the DSN. pgx recommends `exec` over `simple_protocol`, and says never to use `describe_exec` behind transaction pooling.
 - `pgxpool`: `MaxConns=4`, `MinConns=0` so Neon can scale to zero, `MaxConnIdleTime=2m`, `HealthCheckPeriod=1m`. Set connect timeouts long enough for Neon's cold resume (a few seconds).
 - Migrations are owned by `contracts/`. The Go service **does not migrate at boot**. Locally, Compose runs the contracts migration container. In tests, the migration files are applied to testcontainers. Use the direct (non-pooled) URL for migrations, as Neon recommends.
-- Don't rely on `LISTEN/NOTIFY` or session advisory locks over the pooler (unsupported). If a direct connection is ever used for them, it keeps a Neon compute awake (see OPEN-QUESTIONS Q5).
+- Don't rely on `LISTEN/NOTIFY` or session advisory locks over the pooler (unsupported). If a direct connection is ever used for them, it keeps a Neon compute awake.
 
 ### 5.1 Sessions vs signed tokens: **prefer server-side sessions in the shared table**
 

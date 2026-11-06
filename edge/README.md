@@ -206,8 +206,7 @@ The edge is in static mode when either of these is true (`edge/src/env.ts` `isSt
    (`deploy.yml` redeploys Pages, which resets the Pages vars to `wrangler.jsonc`), forces static mode whatever the KV
    flag says, and the budget check never changes it. Set it back to `"false"` the same way.
 
-The backends otherwise stay live, and Render bandwidth is kept down by compression and the edge cache (dataset pin;
-OPEN-QUESTIONS A.9).
+The backends otherwise stay live, and Render bandwidth is kept down by compression and the edge cache (dataset pin).
 
 ## Configuration
 
