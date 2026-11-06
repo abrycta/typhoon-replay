@@ -25,11 +25,10 @@ configs:
 Western North Pacific typhoons that affected the **Philippines or Japan since 1940**, prepared for the
 [Replay](https://replay.krtmtthw.dev) web app ([source](https://github.com/abrycta/typhoon-replay)): a storm catalogue with best tracks,
 landfalls, PAGASA and JMA names, "typhoons that hit my town" exposure for every Philippine city or
-municipality and every Japanese municipality, and hour-by-hour ERA5 wind, gust, pressure and rain fields
-that follow each storm.
+municipality and every Japanese municipality, and hourly storm-following ERA5 wind, gust, pressure and rain fields.
 
 **Current data version: {{VERSION}}** (built {{CREATED}}; best-track data as of {{DATA_AS_OF}}).
-`latest.json` at the repository root always names the published version.
+`latest.json` at the repository root names the published version.
 
 | | |
 |---|---|
@@ -43,7 +42,7 @@ that follow each storm.
 
 {{HONESTY}}
 
-Across the storms with frames in this version, the median ratio of ERA5's strongest 10 m wind near the
+Over this version's storms with frames, the median ratio of ERA5's strongest 10 m wind near the
 centre to the best-track peak (JTWC 1-minute where available) is **{{MEDIAN_RATIO}}**. Each storm's
 `summary.json` (`era5VsBestTrack`) gives its own ratios against JTWC and JMA, at the peak and over all
 typhoon-strength hours, and the ERA5-vs-best-track central pressure bias.
@@ -73,8 +72,8 @@ vN/tables.json                           this version's Parquet files (content-a
                                          exposure, hourly_tracks
 ```
 
-Every `vN/` path and every content-addressed file (`frames/`, `places/`, `tables/`) is immutable. A later version may point a storm's `path` at an earlier version's folder
-when nothing about that storm changed. Rolling back means pointing `latest.json` at an earlier version.
+Every `vN/` path and content-addressed file (`frames/`, `places/`, `tables/`) is immutable. For an unchanged storm, a later
+version may point its `path` at an earlier version's folder. Rollback: point `latest.json` at an earlier version.
 
 ### Frames
 
@@ -90,22 +89,21 @@ square-root coded, mm/h), `u`/`v` (0.6 m/s from -76.2), `wdir` (360/256 deg). 25
 - `.tyf` (`"TYF1"`, uint32 header length, JSON header, `uint8[frames][vars][81][81]`) is lossless and
   range-friendly: one hour is one contiguous byte range.
 
-Frame files are named by their sha256 and stored once under `frames/<sid>/`; every version's
-`summary.json` points at them with paths relative to the storm directory.
+Frame files are named by sha256 and stored once under `frames/<sid>/`; each version's `summary.json`
+points at them with paths relative to the storm directory.
 
-ERA5 is read chunk by chunk from NSF NCAR's ERA5 copy (AWS, with OSDF as a mirror), falling back to
-ARCO-ERA5 on Google Cloud for months NCAR has not published yet. `manifest.json` records which served.
+ERA5 is read chunk by chunk from NSF NCAR's ERA5 copy (AWS, OSDF mirror). Months NCAR has not yet published
+come from ARCO-ERA5 on Google Cloud. `manifest.json` records which source served.
 
 ### Exposure
 
 For each place and storm whose hourly centre came within 500 km of the place boundary: closest approach
 (km, and when), hours within 50/100/200/300/500 km, and the best-track sustained wind and gust (kt) while
-the centre was within each radius. This is what the Replay API serves at
-`GET /v1/places/{placeId}/storms`.
+the centre was within each radius. The Replay API serves this at `GET /v1/places/{placeId}/storms`.
 
 ## Sources and licences {#licences}
 
-This dataset combines sources with different terms. Use it with all of the attributions below.
+The sources carry different terms. Any use needs all the attributions below.
 
 - **Contains modified Copernicus Climate Change Service information** (ERA5, CC BY 4.0). Neither the European
   Commission nor ECMWF is responsible for any use of this information. Hersbach et al. (2020),
@@ -130,5 +128,5 @@ Everything else (the derived frames, tables and exposure) is CC BY 4.0 with the 
 ## Versioning
 
 Data versions are whole numbers. The pipeline (GitHub Actions in the project repo) builds a version,
-runs every data-quality gate, uploads `vN/` and only then flips `latest.json` in a single commit, tagged
-`data-vN`. If a check fails, nothing is flipped and the previous version keeps serving.
+runs every data-quality gate, uploads `vN/`, then flips `latest.json` in one commit tagged `data-vN`.
+If a check fails, nothing is flipped and the previous version keeps serving.

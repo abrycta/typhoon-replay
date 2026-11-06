@@ -1,50 +1,32 @@
 # Data resilience
 
-Written 2026-10-21 by Kurt. This document covers how Replay keeps working when an upstream data source moves, breaks or disappears.
+Written 2026-10-21 by Kurt. How Replay keeps working when an upstream data source moves, breaks or disappears.
 
-The machinery is the shared private kit [`abrycta/data-archive-kit`](https://github.com/abrycta/data-archive-kit) (`archivekit`); its README and `docs/ADOPTING.md` hold the generic details. This file is the Replay-specific part: the sources, their fallbacks, how data versions are published, and the runbook.
+The machinery is the shared private kit [`abrycta/data-archive-kit`](https://github.com/abrycta/data-archive-kit) (`archivekit`); its README and `docs/ADOPTING.md` cover the generic parts. This file covers Replay's sources, fallbacks, data-version publishing and runbook.
 
 ## The principle
 
-**The live site never depends on an upstream source at runtime.**
-- The pipeline fetches, validates and publishes processed data to hosting we control:
-  - Cloudflare Pages for the app;
-  - the Hugging Face dataset for frames and Parquet;
-  - Neon for the catalog and live tables.
-- If NCEI, geoBoundaries, JTWC or anyone else goes down, **only updates pause.** The site keeps serving the last good data.
+**The live site never depends on an upstream source at runtime.** The pipeline fetches, validates and publishes processed data to hosting we control: Cloudflare Pages (app), the Hugging Face dataset (frames, Parquet) and Neon (catalog, live tables). If NCEI, geoBoundaries, JTWC or another source goes down, only updates pause; the site serves the last good data.
 
 ## Fallback is automatic
 
-> **No human step is needed to keep the pipeline running when a source fails.**
-
-`typhoon.sources.fetch(<id>)` (which calls `archivekit.fetch`) walks the links in `pipeline/sources.yaml`:
+No human step is needed when a source fails. `typhoon.sources.fetch(<id>)` (which calls `archivekit.fetch`) walks the links in `pipeline/sources.yaml`:
 
 ```
 primary  →  official mirrors  →  private archive (latest release <id>-<YYYY-MM-DD> in abrycta/typhoon-replay-archive)
 ```
 
-- **It moves to the next link on:**
-  - a timeout, connection error or HTTP error;
-  - a URL that now redirects to an HTML page;
-  - an empty or truncated download;
-  - size bounds, a missing column or property, a row count out of bounds, a shrink of more than 2 % against the current copy, or a checksum mismatch;
-  - a failing project hook (`check_ibtracs`: SID, time and coordinate formats).
-- **The archive is a normal last link.** It downloads the release asset, verifies it against `SHA256SUMS`, then checks the raw sha256 recorded in `manifest.json`, then runs the same checks as upstream data.
-  - **A corrupt archive copy is rejected, and the run fails with a clear error.** Corrupt data is never used.
-- **Every fallback is recorded.** The serving link and the snapshot date go into:
-  - `<file>.provenance.json`;
-  - the run manifest (`data/run-manifest.json`);
-  - the published `data_version` metadata (`archive_used`, `data_as_of`). The app shows **"data as of <snapshot date>"** whenever archive data was used.
-- **A fallback never fails the run.** It logs a warning (and a `::warning::` annotation in Actions) and opens or updates the source's issue `source-health: <id>` in the private archive repo. The issue is deduplicated, and a comment is added only when the state changes.
-- **Recovery is automatic.** Every run starts at the primary again, so the first run after the primary recovers uses it. The weekly health job closes the issue once every link is healthy.
-- **Bad data never replaces good data.** Downloads go to a temporary file and are renamed into place only after every check passes. If every link fails, the local copy is untouched, `AllLinksFailed` is raised, and the issue says "updates paused".
-- **Credentials.**
-  - If `ARCHIVE_READ_TOKEN` is missing in CI, the archive step fails with a message naming the secret.
-  - In a pull request from a fork (no secrets are passed), the archive step is skipped with a notice instead.
+- Next link on: a timeout, connection or HTTP error; a redirect to an HTML page; an empty or truncated download; size bounds, a missing column or property, a row count out of bounds, a shrink of more than 2 % against the current copy, or a checksum mismatch; a failing project hook (`check_ibtracs`: SID, time and coordinate formats).
+- The archive is the last link. It verifies the release asset against `SHA256SUMS`, then the raw sha256 in `manifest.json`, then runs the upstream checks. A corrupt copy is rejected and the run fails with a clear error.
+- The serving link and snapshot date go into `<file>.provenance.json`, `data/run-manifest.json` and the published `data_version` metadata (`archive_used`, `data_as_of`). The app shows **"data as of <snapshot date>"** whenever archive data was used.
+- A fallback never fails the run. It logs a warning (`::warning::` in Actions) and opens or updates the issue `source-health: <id>` in the private archive repo (deduplicated; comments only on state change).
+- Every run starts at the primary, so recovery is automatic; the weekly health job closes the issue once every link is healthy.
+- Downloads go to a temporary file and are renamed into place only after every check passes. If every link fails, the local copy is untouched, `AllLinksFailed` is raised and the issue says "updates paused".
+- A missing `ARCHIVE_READ_TOKEN` in CI fails the archive step with a message naming the secret; fork PRs (no secrets) skip it with a notice.
 
 ## Sources and their fallback chains
 
-Verified 2026-10-21; all upstream links answered the health probe. The chain order is the order `fetch()` tries.
+Verified 2026-10-21: every upstream link answered the health probe. Chains are listed in `fetch()` order.
 
 | Source (`id`) | Automatic chain | Listed, manual (`automatic: false`) | Archived | Notes |
 |---|---|---|---|---|
@@ -63,110 +45,70 @@ Verified 2026-10-21; all upstream links answered the health probe. The chain ord
 
 ### Why the format-changing mirrors are manual
 
-HDX, MLIT, NetCDF and the shapefile zips have a different schema or format. An automatic switch would feed the pipeline data it can't parse. The archive holds identical bytes to the pinned primary, so it sits **before** them in the chain. The first design listed "geoBoundaries → HDX → archive"; this order is a deliberate change. Using a manual mirror is a runbook step.
+HDX, MLIT, NetCDF and the shapefile zips differ in schema or format, so an automatic switch would feed the pipeline data it can't parse. The archive holds the pinned primary's exact bytes, so it comes **before** them (the first design had "geoBoundaries → HDX → archive"). Using a manual mirror is a runbook step.
 
 ## The archive
 
-- **What:** `abrycta/typhoon-replay-archive`, a private repo generated by `archivekit init typhoon-replay`.
-- **Storage:** one GitHub Release per snapshot, tag `<id>-<YYYY-MM-DD>`. Each release holds the zstd asset, `manifest.json` and `SHA256SUMS`. GitHub allows up to 1,000 assets per release, each under 2 GiB.
-- **Workflow:** a weekly caller workflow runs the kit's reusable `snapshot.yml` and `health.yml`.
-- **Snapshots only when something changed.** The checks run cheapest first:
-  1. the pinned sha256 is already archived (no request at all);
-  2. a HEAD request shows the same ETag or Last-Modified;
-  3. the downloaded content has the same sha256.
-- **Compression: zstd.** Level 19 below 150 MB raw, 15 above. Measured on 2026-10-21:
+- `abrycta/typhoon-replay-archive`: private repo generated by `archivekit init typhoon-replay`; a weekly caller workflow runs the kit's reusable `snapshot.yml` and `health.yml`.
+- One GitHub Release per snapshot, tag `<id>-<YYYY-MM-DD>`, holding the zstd asset, `manifest.json` and `SHA256SUMS` (GitHub limit: 1,000 assets per release, each under 2 GiB).
+- Snapshot only on change, cheapest check first: (1) pinned sha256 already archived (no request); (2) HEAD shows the same ETag or Last-Modified; (3) downloaded content has the same sha256.
+- Compression: zstd level 19 below 150 MB raw, 15 above. Measured 2026-10-21:
 
   | File | Raw | gzip -9 | zstd -19 | zstd -15 |
   |---|---|---|---|---|
   | IBTrACS WP CSV | 114.6 MB | 9.48 MB (3.9 s) | **7.10 MB, 16.1×** (9.2 s) | — |
   | geoBoundaries PHL ADM3 | 532.1 MB | — | 108.7 MB (102 s) | **142.3 MB** (40 s) |
 
-  zstd -19 is about 25 % smaller than gzip -9 and decompresses faster. On the 532 MB GeoJSON, level 15 saves a minute of shared private-repo runner time per snapshot.
-- **Licences.** These are private copies for resilience only. Nothing in the archive is redistributed; only processed data is published, with each source's attribution.
-- **Restore by hand:**
+  zstd -19 is about 25 % smaller than gzip -9 and decompresses faster; on the 532 MB GeoJSON, level 15 saves a minute of shared private-repo runner time per snapshot.
+- Licences: private copies for resilience only; nothing in the archive is redistributed. Only processed data is published, with each source's attribution.
+- Restore by hand:
 
   ```sh
   gh release download ibtracs-wp-2026-10-21 -R abrycta/typhoon-replay-archive -D restore/
   ```
 
-  Or run `uv run python -m typhoon.sources restore ibtracs-wp --out restore/`, which also verifies the checksums.
+  or `uv run python -m typhoon.sources restore ibtracs-wp --out restore/`, which also verifies the checksums.
 
 ## Detection
 
-1. **During every pipeline run.** Fallback and failure warnings, and auto-opened issues in the archive repo (see above).
-2. **The weekly health job** runs in the private archive repo, because public repos can't call the private kit's reusable workflows. It checks every registry link with a ranged 64 KiB GET:
+1. Every pipeline run: fallback and failure warnings, and auto-opened issues in the archive repo (above).
+2. Weekly health job, in the private archive repo because public repos can't call the private kit's reusable workflows. A ranged 64 KiB GET per registry link checks:
    - reachability and status;
    - HTML instead of data;
-   - permanent redirects (a hint that the registry URL needs updating);
+   - permanent redirects (registry URL needs updating);
    - Content-Range size against the bounds;
    - the CSV header fingerprint, or the GeoJSON/XML/JSON shape.
 
-   It also checks that each archived source has a release, and the expiry of `ARCHIVE_READ_TOKEN` (an issue opens 30 days ahead). It keeps one issue per source, labelled `source-health`, and closes it when healthy.
-   - **Issues live in the private archive repo, not the public one.** Upstream URLs are public, but the issues would reveal the archive's structure and tags, and they are operational noise.
-   - **The job reads the registry from this repo's raw URL on `main`**, so it is always in sync with the pipeline.
-3. **Data-quality gates.** `pipeline/tests/test_ibtracs.py` covers row counts, SID×time uniqueness, ranges, monotonic time, units and known storms, and the frame checks follow the same pattern. A failed gate blocks publishing.
+   It also checks that each archived source has a release and the expiry of `ARCHIVE_READ_TOKEN` (issue 30 days ahead). One `source-health` issue per source, closed when healthy. Issues stay in the private repo: upstream URLs are public, but the issues would expose the archive's structure and tags and add noise. The job reads the registry from this repo's raw URL on `main`, so it stays in sync with the pipeline.
+3. Data-quality gates: `pipeline/tests/test_ibtracs.py` covers row counts, SID×time uniqueness, ranges, monotonic time, units and known storms; frame checks follow the same pattern. A failed gate blocks publishing.
 
 ## Dataset versions: atomic publish and rollback
 
-Frames and Parquet go to the Hugging Face dataset `permission-alluring/typhoon-replay` (per DECISIONS.md).
-The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (upload, verify, flip).
-- **Immutable versions.** Each run that publishes builds data version `N` (an integer, next after the
-  published one) under `v<N>/`: `index.json`, `manifest.json`, `storms/<sid>/…`, `places/…`, `tables/*.parquet`.
-  Nothing under an existing `v<N>/` is modified afterwards; the version is tagged `data-v<N>`.
-- **Incremental, no duplication.** Frame files are content-addressed (`frames/<sid>/<sha256-prefix>.*`) and
-  live outside the version directories, so a version only references them. Every version holds every storm
-  folder (DECISIONS.md, 2026-10-21); the Hub deduplicates unchanged files, so this costs upload commits, not
-  storage. Frames are rebuilt only when IBTrACS changed the storm's hourly track (`trackHash`). A weekly refresh
-  therefore uploads a few storms' files plus the version's small documents. Uploads go in commits of at
-  most 500 files, paced, and every Hub commit retries a 429 after the wait the server asks for (R7).
-- **Size.** Frames are lossy WebP for drawing (about 1.3 kB per storm-hour) plus lossless 3-hourly 0.5 deg
-  grids for exact readouts (about 1.2 kB). Every storm in the catalogue (2,058 in data version 4) has frames.
-- **Gates first.** `dataset.check` verifies every file's checksum against the manifest, the 25 MiB per-file
-  cap, `.tyf` headers, WebP sheets byte-identical to the `.tyf` planes, nodata, plausible ERA5 ratios and
-  referential integrity of the tables; `pytest -m data` checks the catalogue, places and exposure. Batch jobs
-  validate each storm's frames before uploading them. `publish.verify` then checks every uploaded file's
-  size and that a frame answers HTTP Range requests (206) with CORS.
-- **Compared with the published version.** `dataset build` and `publish flip` compare the new `index.json`
-  with the one `latest.json` points at. Every storm that vanishes, loses its replay or loses a PAGASA or JMA
-  name is logged with a reason (CI `::warning`, and `data/build/compare-v<N>.json`). More than
-  max(5, 1 %) vanished storms, max(3, 1 %) lost replays or max(5, 1 %) lost names stop the publish; a
-  reviewed, intended shrink runs Refresh with `allow-shrink`.
-- **Read errors are not "nothing published".** Only a 404 on `latest.json` with no `v1/` means a first
-  publish. A 401/403, a 5xx or 429 after retries, a network error or a body that is not JSON stops the run,
-  so it can never rebuild every storm, overwrite `v1/` or flip `latest.json` back. `next-version` is one more
-  than both `latest.json` and every `v<N>/` in the repo, and `flip` refuses a lower version than the live
-  one (only `rollback` goes back).
-- **ERA5T end.** Frames stop where ERA5 does: the plan and the frames stage read ARCO-ERA5's
-  `valid_time_stop_era5t` (fallback: `valid_time_stop`, then 12 days before now, with a CI warning) and defer
-  storms whose track runs past it. A deferred or failed storm has no published frames, so the next refresh
-  builds it. One storm whose frames fail is skipped with a warning; more than max(2, 5 %) fail the job.
-- **JMA numbers.** `check_jma` (registry hook) rejects a best-track file the parser cannot read, so the kit
-  falls back to the archive copy; if JMA is still unusable, `prepare` continues without JMA numbers and the
-  comparison above stops the publish when storms would lose their 台風第N号 designation.
-- **One pointer flip.** Only then does one commit write `README.md` (the dataset card) and `latest.json`:
+Frames and Parquet go to the Hugging Face dataset `permission-alluring/typhoon-replay` (per DECISIONS.md) via `typhoon.dataset` (assemble + gates) and `typhoon.publish` (upload, verify, flip).
+- Immutable versions: each publishing run builds data version `N` (next integer after the published one) under `v<N>/`: `index.json`, `manifest.json`, `storms/<sid>/…`, `places/…`, `tables/*.parquet`. An existing `v<N>/` is never modified; the version is tagged `data-v<N>`.
+- Incremental: frame files are content-addressed (`frames/<sid>/<sha256-prefix>.*`) outside the version directories, which only reference them. Every version holds every storm folder (DECISIONS.md, 2026-10-21); the Hub deduplicates unchanged files, so this costs upload commits, not storage. Frames are rebuilt only when IBTrACS changed a storm's hourly track (`trackHash`), so a weekly refresh uploads a few storms plus small documents. Uploads go in paced commits of at most 500 files; every Hub commit retries a 429 after the server's requested wait (R7).
+- Size: lossy WebP frames for drawing (about 1.3 kB per storm-hour) plus lossless 3-hourly 0.5 deg grids for exact readouts (about 1.2 kB). All 2,058 catalogue storms in data version 4 have frames.
+- Gates first: `dataset.check` verifies every file's checksum against the manifest, the 25 MiB per-file cap, `.tyf` headers, WebP sheets byte-identical to the `.tyf` planes, nodata, plausible ERA5 ratios and table referential integrity; `pytest -m data` checks the catalogue, places and exposure. Batch jobs validate each storm's frames before upload. `publish.verify` then checks every uploaded file's size and that a frame answers HTTP Range requests (206) with CORS.
+- Comparison with the published version: `dataset build` and `publish flip` compare the new `index.json` with the one `latest.json` points at. Each storm that vanishes, loses its replay or loses a PAGASA or JMA name is logged with a reason (CI `::warning`, `data/build/compare-v<N>.json`). More than max(5, 1 %) vanished storms, max(3, 1 %) lost replays or max(5, 1 %) lost names stop the publish; an intended, reviewed shrink runs Refresh with `allow-shrink`.
+- Read errors stop the run: only a 404 on `latest.json` with no `v1/` means a first publish. A 401/403, a 5xx or 429 after retries, a network error or a non-JSON body stops the run, so it cannot rebuild every storm, overwrite `v1/` or flip `latest.json` back. `next-version` is one more than both `latest.json` and every `v<N>/` in the repo; `flip` refuses a version lower than the live one (only `rollback` goes back).
+- ERA5T end: the plan and frames stage read ARCO-ERA5's `valid_time_stop_era5t` (fallback: `valid_time_stop`, then 12 days before now, with a CI warning) and defer storms whose track runs past it. Deferred or failed storms have no published frames, so the next refresh builds them. A storm whose frames fail is skipped with a warning; more than max(2, 5 %) failures fail the job.
+- JMA numbers: `check_jma` (registry hook) rejects a best-track file the parser cannot read, so the kit falls back to the archive copy. If JMA is still unusable, `prepare` continues without JMA numbers, and the comparison above stops the publish if storms would lose their 台風第N号 designation.
+- One pointer flip: only then does a single commit write `README.md` (the dataset card) and `latest.json`:
 
   ```json
   {"dataVersion": 1, "path": "v1/", "index": "v1/index.json", "manifest": "v1/manifest.json",
    "publishedAt": "…", "dataAsOf": "…", "archiveUsed": false, "previous": null}
   ```
 
-  `manifest.json` carries `archivekit.data_version_metadata()` (`inputs`, `archive_used`, `data_as_of`), the
-  ERA5 reads per link, the attribution of every source and the checksum of every file. The app reads
-  `latest.json` (short cache) and then only versioned, immutable paths, so a half-uploaded version is never
-  visible.
-- **Rollback** is `python -m typhoon publish rollback --to <N>`: one commit pointing `latest.json` at an
-  older version still in the repo. Nothing is deleted. Old versions stay while a retained version
-  references their folders.
-- **Database.** `typhoon.dbload` loads a version's `tables/` into the catalogue schema (COPY into
-  `catalog_next`, validate, swap all tables and insert the `dataset_version` row in one transaction).
-  Rolling the database back means loading the previous version's tables (a new, higher dataset_version).
-- **Attribution.** The dataset card lists every source's `attribution` from the registry. Derived files keep
-  CC BY-SA where it applies (PAGASA names) and ODbL for the OSM-derived romanised JP names.
+  `manifest.json` carries `archivekit.data_version_metadata()` (`inputs`, `archive_used`, `data_as_of`), ERA5 reads per link, every source's attribution and every file's checksum. The app reads `latest.json` (short cache), then only versioned, immutable paths, so a half-uploaded version is never visible.
+- Rollback: `python -m typhoon publish rollback --to <N>`, one commit pointing `latest.json` at an older version still in the repo. Nothing is deleted; old versions stay while a retained version references their folders.
+- Database: `typhoon.dbload` loads a version's `tables/` into the catalogue schema (COPY into `catalog_next`, validate, then swap all tables and insert the `dataset_version` row in one transaction). A database rollback loads the previous version's tables as a new, higher dataset_version.
+- Attribution: the dataset card lists every source's registry `attribution`. Derived files keep CC BY-SA where it applies (PAGASA names) and ODbL for the OSM-derived romanised JP names.
 
 ## Live tracker: degrading gracefully
 
-- **Recording health.** The ingestion job (GitHub Actions, every 30 min) records each feed's last success and last error per source id, e.g. an `ops.source_status` table. A failing feed pauses ingestion for that feed; `live.active_storm` keeps its last values and `updated_at`.
-- **What the UI shows, by data age:**
+- The ingestion job (GitHub Actions, every 30 min) records each feed's last success and last error per source id (e.g. an `ops.source_status` table). A failing feed pauses only its own ingestion; `live.active_storm` keeps its last values and `updated_at`.
+- UI by data age:
 
   | Age of the newest live data | UI |
   |---|---|
@@ -175,7 +117,7 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
   | > 6 h, or the feed has errored | Banner: "Live updates paused: <JTWC/JMA> feed unreachable since 09:00 UTC. Showing the last known position." Links to the official JTWC, JMA and PAGASA pages |
   | > 24 h and no active advisories | The live panel collapses to "No live data" plus the official links; the historical replay is unaffected |
 
-- **Archive data in the replay.** When an input came from the archive, the replay footer reads "Best-track data as of 2026-10-18 (archived copy)", taken from `manifest.json` (`provenance.data_as_of`, `provenance.archive_used`).
+- When an input came from the archive, the replay footer reads "Best-track data as of 2026-10-18 (archived copy)", taken from `manifest.json` (`provenance.data_as_of`, `provenance.archive_used`).
 
 ## Runbook
 
@@ -194,10 +136,10 @@ The pipeline is `typhoon.dataset` (assemble + gates) and `typhoon.publish` (uplo
 
 - `pipeline/sources.yaml`: the registry, validated against the kit's JSON Schema.
 - `pipeline/typhoon/sources.py`: the adapter (`fetch`, `registry`, the `check_ibtracs` hook). Run `python -m typhoon.sources <fetch|snapshot|health|restore|validate-registry>`.
-- `pipeline/tests/test_sources.py`: the registry contents, chain order, local pins, hook, and the WP → ALL-subset → archive path.
+- `pipeline/tests/test_sources.py`: tests the registry contents, chain order, local pins, hook and the WP → ALL-subset → archive path.
 - `pipeline/tools/use-archivekit-tag.sh`: switches the path dependency on `../../data-archive-kit` to the tagged release.
 - `abrycta/typhoon-replay-archive`: the caller workflow and README.
 
 ## Token rotation
 
-`ARCHIVE_READ_TOKEN` is a fine-grained token on `data-archive-kit` and `typhoon-replay-archive` (Contents: read; Issues: read and write; 1-year expiry), stored as a secret in both repos, with its expiry in `health.token_expires` in `sources.yaml`. The health job opens a `token-expiry` issue 30 days ahead (see the runbook).
+`ARCHIVE_READ_TOKEN` is a fine-grained token on `data-archive-kit` and `typhoon-replay-archive` (Contents: read; Issues: read and write; 1-year expiry), stored as a secret in both repos. Its expiry date is `health.token_expires` in `sources.yaml`; the health job opens a `token-expiry` issue 30 days ahead (see the runbook).

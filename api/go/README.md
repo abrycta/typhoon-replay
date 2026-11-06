@@ -10,7 +10,7 @@ Rust backends" (Go was measured on Cloudflare Workers first, via TinyGo; it ran 
 | | |
 |---|---|
 | Language | Go 1.27.3, standard library `net/http` |
-| Contract | oapi-codegen 2.8.0 (a `go.mod` tool) generates the models, parameter structs and the std-http `ServerInterface` from `contracts/dist/openapi.3.0.json`; the generated wrapper binds every parameter, the handlers check the rest of the schema (ranges, enums, patterns) |
+| Contract | oapi-codegen 2.8.0 (a `go.mod` tool) generates the models, parameter structs and the std-http `ServerInterface` from `contracts/dist/openapi.3.0.json`; the generated wrapper binds every parameter; the handlers check the rest of the schema (ranges, enums, patterns) |
 | Database | `internal/neon`: Neon serverless SQL over HTTP. One HTTPS request per transaction (read-only batch, `SET LOCAL statement_timeout = 5000`), no pool to keep the compute awake. Replaces pgx + sqlc from the recorded stack |
 | JSON | `internal/jsonw`, an append-only writer: numbers keep Postgres's exact decimal text, no `null`s |
 | Image | distroless static, nonroot, ~17 MB |
@@ -27,20 +27,19 @@ internal/jsonw/     JSON writer
 ```
 
 Optimisations and guards:
-- **One round trip per request.** The dataset version runs in the same transaction as the operation's queries; a
-  conditional request (the edge revalidating) is answered 304 from a 5 s cache of that version, without the
-  database.
-- **gzip** over 1 KB (Render bills outbound bytes), JSON built without reflection, responses ≤ 64 KB at the maximum
+- One round trip per request: the dataset version runs in the same transaction as the operation's queries. A
+  conditional request (the edge revalidating) gets a 304 from a 5 s cache of that version, without a database call.
+- gzip over 1 KB (Render bills outbound bytes), JSON built without reflection, responses ≤ 64 KB at the maximum
   `limit`.
-- **No idle work.** Nothing touches the database while no request or live stream is open, so Neon scales to zero
-  and Render sleeps after 15 minutes. One shared poller checks `live.revision` every 2 s for all open live streams (one Neon
-  round trip per tick, however many streams are open); a stream ends after 30 minutes
-  (the browser resumes with `Last-Event-ID`); at most `TR_MAX_STREAMS` (200) are open, at most
-  `TR_MAX_STREAMS_PER_CLIENT` (10) from one client address (429 above it).
-- **Edge only:** with `TR_EDGE_SECRET` set, `/v1/*` without a matching `X-Edge-Secret` gets a small 403, so the public
+- No idle work: nothing touches the database while no request or live stream is open, so Neon scales to zero
+  and Render sleeps after 15 minutes. One shared poller checks `live.revision` every 2 s for all open live streams,
+  one Neon round trip per tick however many streams are open. A stream ends after 30 minutes (the browser resumes
+  with `Last-Event-ID`). At most `TR_MAX_STREAMS` (200) streams are open, and at most `TR_MAX_STREAMS_PER_CLIENT`
+  (10) from one client address (429 above it).
+- Edge only: with `TR_EDGE_SECRET` set, `/v1/*` without a matching `X-Edge-Secret` gets a small 403, so the public
   Render URL serves only the edge; `/healthz` and `/readyz` stay open.
-- **Per-IP limit** (`TR_RATE_LIMIT_PER_MINUTE`, default 600) behind the edge's own; `X-Forwarded-For` is trusted only
-  with the edge secret (`TR_EDGE_SECRET`).
+- A per-IP limit (`TR_RATE_LIMIT_PER_MINUTE`, default 600) sits behind the edge's own. `X-Forwarded-For` is trusted
+  only with the edge secret (`TR_EDGE_SECRET`).
 
 ## Run locally
 

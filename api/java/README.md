@@ -20,9 +20,9 @@ Configuration comes only from the environment, with the names every backend shar
 `DATABASE_URL` (a `postgres://` URL, mapped onto JDBC with `prepareThreshold=0` for the Neon pooler), `TR_SITE_ORIGIN`
 (default `https://replay.krtmtthw.dev`; the origin of absolute `Link` headers), `TR_TEST_HOOKS`, `TR_LOG_LEVEL`, `PORT`.
 Java-only extras: `TR_RATE_LIMIT_PER_MINUTE` (default 600, 0 disables), `TR_MAX_STREAMS` (default 200), `TR_COMMIT`,
-`TR_EDGE_SECRET` (shared with the edge proxy's `EDGE_SECRET`: only requests carrying it in `X-Edge-Secret` have their
-`X-Forwarded-For` trusted, so the per-IP limiter keys on the visitor; anything else is keyed on the connecting address.
-When it is set, `/v1/*` without it gets a small 403, so the public Render URL serves only the edge; `/healthz` and
+`TR_EDGE_SECRET` (shared with the edge proxy's `EDGE_SECRET`: `X-Forwarded-For` is trusted only on requests that carry it
+in `X-Edge-Secret`, so the per-IP limiter keys on the visitor; other requests are keyed on the connecting address.
+When set, `/v1/*` requests without it get a small 403, so the public Render URL serves only the edge; `/healthz` and
 `/readyz` stay open), `TR_MAX_STREAMS_PER_CLIENT` (default 10 live streams per client address, 429 above it; 0 disables).
 Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.pages.dev`) only change the defaults.
 
@@ -36,6 +36,7 @@ Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.
 | `storms` | Catalogue list/search, detail, best track, places a storm passed |
 | `exposure` | Place search/nearest/detail, storms that hit a place (precomputed bands) or a point (on the fly) |
 | `live` | Snapshot and SSE stream (`SseEmitter`, snapshot or `Last-Event-ID` resume, 15 s heartbeat, one poller only while clients are connected), live-event test hook |
+
 `ModularityTests` verifies the boundaries, pins the module set (no `accounts`/`alerts` any more), forbids
 `org.springframework.security`, `Cookie` and `HttpSession` with ArchUnit, and writes PlantUML/canvas docs to
 `build/spring-modulith-docs`.
@@ -55,9 +56,9 @@ Profiles `local` (`http://localhost:8788`) and `pages` (`https://typhoon-replay.
 
 ## Conformance (contract 2.0.0, 2026-10-21, PostGIS 18-3.6, against the Docker image)
 
-Current figures come from `java.yml` on `main` and are shown, with a link to the run, in the conformance table on
-[Under the hood](https://replay.krtmtthw.dev/under-the-hood). The figures below are from one local run on
-2026-10-21, kept as a record; later contract changes added scenarios and generated cases.
+The figures below are from one local run on 2026-10-21; later contract changes added scenarios and generated cases.
+Current figures come from `java.yml` on `main` and appear, linked to the run, in the conformance table on
+[Under the hood](https://replay.krtmtthw.dev/under-the-hood).
 
 - Vitest scenarios: **85/85** (incl. `SLOW=1` heartbeat and a no-hooks instance).
 - Schemathesis, full `backend.toml`: 4 failures, all contract-side positive-data-acceptance: the shared `Cursor`
@@ -79,7 +80,7 @@ Current figures come from `java.yml` on `main` and are shown, with a link to the
 | Image on disk | 670 MB | 646 MB |
 
 Both builds measured the same day on the same seeded PostGIS 18-3.6, same JVM flags (SerialGC, `MaxRAMPercentage=60`,
-compact object headers). Earlier 0.1.0 numbers: app start 0.25 CPU 23 s with the AOT cache (43 s without).
+compact object headers). An earlier 0.1.0 run at 0.25 CPU started in 23 s with the AOT cache and 43 s without.
 
 On Render free (0.1 CPU), until 2026-10-21 the AOT cache was never used: Render's build host has enough RAM that
 `MaxRAMPercentage=60` gave the training run a heap over 32 GB, which turns compressed oops off, and the 512 MB
@@ -90,7 +91,7 @@ context refresh at `MaxRAM=512m`): cache trained at 96 GB rejected, 4.9 s; no ca
 
 - Latency on the seed (0.1.0, warm, gzip, 1 CPU; sequential p50 / p95 · 8 concurrent p95):
   storms list 1.7 / 2.8 · 61 ms; place hits 1.7 / 2.3 · 31 ms; point hits (on the fly, 500 km) 5.6 / 6.3 · 21 ms.
-  The concurrent p95 is CPU-quota throttling of the 1-CPU container.
+  The concurrent p95 reflects CPU-quota throttling of the 1-CPU container.
 
 ## Frozen showcase policy
 
@@ -101,10 +102,10 @@ security fixes, so the "Under the hood" race always compares the same code.
   BOM), resolved only from the committed lockfiles (`gradle.lockfile`, `buildscript-gradle.lockfile`,
   `settings-gradle.lockfile`, `LockMode.STRICT`); the Gradle distribution by SHA-256; the JDK 25 / JRE 25 and Node 24
   base images by digest in the `Dockerfile`; the CI actions by commit SHA.
-- **How security fixes arrive.** Renovate (`renovate.json` at the repo root) opens no routine updates for `api/**`.
-  It opens vulnerability PRs only (GitHub advisories / OSV), grouped as "java backend security", plus base-image
-  digest bumps for CVE patches, and auto-merges them when `java.yml` is green: Gradle tests (Modulith, ArchUnit,
-  Testcontainers) **and** the conformance suite against the built image. Nothing merges without conformance.
+- **How security fixes arrive.** For `api/**`, Renovate (`renovate.json` at the repo root) opens only vulnerability
+  PRs (GitHub advisories / OSV), grouped as "java backend security", plus base-image digest bumps for CVE patches. It
+  auto-merges them when `java.yml` is green: Gradle tests (Modulith, ArchUnit, Testcontainers) and the conformance
+  suite against the built image.
 - **Unfreezing for a deliberate upgrade.** Edit `libs.versions.toml` (or the Boot version), run
   `./gradlew resolveAndLockAll --write-locks`, refresh the image digests, re-measure startup/RSS above, and open a PR
   labelled `unfreeze`; the same CI (tests + conformance) gates it.

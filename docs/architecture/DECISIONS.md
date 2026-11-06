@@ -17,41 +17,40 @@ Decided 2026-10-21 by Kurt, after the research in this folder, `contracts/docs/`
 
 ## Update 2026-10-21: custom domain
 
-- The app is served at **https://replay.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). Renamed from Typhoon Replay and moved from `typhoon.krtmtthw.dev` later the same day, with no redirect from the old host (contract 2.0.2). This is System option A on the owner's domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
+- The app is served at **https://replay.krtmtthw.dev** (Porkbun DNS CNAME → `typhoon-replay.pages.dev`; Cloudflare Pages custom domain, HTTPS). Renamed from Typhoon Replay and moved from `typhoon.krtmtthw.dev` the same day, with no redirect from the old host (contract 2.0.2). This is System option A on a custom domain (option B's domain part); the API stays same-origin under `/api/{impl}/`. Alert email from the domain is a later step (sender DNS records at Porkbun).
 
 ## Update 2026-10-21: no accounts; static-first visitors; Under the hood showcase
 
 Supersedes the account parts of the table above (System: "shared, language-neutral session table" and "alert mail"; Java: "Spring Security 7"; Node: "Arctic") and the alert-email step of the custom-domain update.
 
 - **No account features.** No sign-in (Google/GitHub OAuth), sessions, `/v1/me`, saved places, alert preferences, alert email or unsubscribe. The API keeps only public reads: health/readiness, meta, storms, places, hits, live (snapshot + SSE stream), plus the live-event test hook.
-- **Visitors are served static-first.** Visitor features come from static files (Pages, Hugging Face) and the browser, not from the API, so the site works without any backend awake.
-- **The API is a showcase.** An "Under the hood" page races the same request across the backends. Reads must stay fast and identical across backends (status, headers, ETag, JSON); every response except the live stream is publicly cacheable, no cookies, no CSRF.
+- **Visitors are served static-first.** Visitor features come from static files (Pages, Hugging Face) and the browser, so the site works with every backend asleep.
+- **The API is for comparison.** An "Under the hood" page races the same request across the backends. Reads must stay fast and identical across backends (status, headers, ETag, JSON); every response except the live stream is publicly cacheable, no cookies, no CSRF.
 - **Contract 2.0.0** (breaking, removals only) is still served under `/v1`: the URL major changes only when an operation that stays changes (`contracts/docs/CONTRACT-GUIDE.md` §2, §14; `contracts/CHANGELOG.md`). Database migration `20261021000600_drop_accounts` drops `auth.*` and the `app` account tables.
 - **Four backends, unchanged build order:** contract → Java → Go → Node → Rust. The frontend is built in parallel.
 
 ## Update 2026-10-21: dataset file sizes (whole-catalogue backfill)
 
-The first whole-catalogue build (2,058 storms with frames) failed its dataset check: `v2/frames-index.json` was 30 MB, over the 25 MiB per-file cap (Cloudflare Pages). It held, per storm, the track hash and the full frame record (time, centre, per-frame `series`, every frame file's path, size and sha256, ~14 kB), which `summary.json` already carries for the app. Only the pipeline reads it (to reuse frames whose track did not change, and in the check).
+The first whole-catalogue build (2,058 storms with frames) failed its dataset check: `v2/frames-index.json` was 30 MB, over Cloudflare Pages' 25 MiB per-file cap. Per storm it held the track hash and the full frame record (time, centre, per-frame `series`, each frame file's path, size and sha256; ~14 kB), which `summary.json` already carries for the app. Only the pipeline reads it, to reuse frames whose track did not change and in the check.
 
 - **Frames index sharded by season**: `v<N>/frames-index/<season>.json` (largest ~0.5 MB; ~29 MB in all). `index.json` names the shards with `framesIndexShards: "v<N>/frames-index/{season}.json"` instead of `framesIndex`. The pipeline still reads v1's single `frames-index.json`, so building on the published v1 works. Kept as data rather than re-derived from 2,058 `summary.json` files: reuse then costs ~70 requests, not ~2,000. The web app never fetches it.
 - **File checksums moved out of `manifest.json`** into `v<N>/files.json` (manifest names it in `fileList`): with every frame file listed the manifest was 5.2 MB (1.5 MB gzip), and the app fetches it on every page for the footer. The pipeline and `publish` read either form.
-- **Every version holds every storm folder.** The build used to drop an unchanged storm's folder and point its `path` at an earlier version, but the app reads `v<N>/storms/<sid>/` (web/docs/DATA-LAYOUT.md), so those storms would have 404ed after the flip. Unchanged files are deduplicated by the Hub, so this costs upload commits, not storage.
+- **Every version holds every storm folder.** The build used to drop an unchanged storm's folder and point its `path` at an earlier version, but the app reads `v<N>/storms/<sid>/` (web/docs/DATA-LAYOUT.md), so those storms would have 404ed after the flip. The Hub deduplicates unchanged files, so this adds upload commits but no storage.
 - **Budgets in the dataset check:** 25 MiB for any file (hosting cap); 2.5 MB raw for `index.json` (the browse catalogue, ~185 kB gzip); **1 MB raw for every other file fetched before a page can draw**: `manifest.json`, `places/index.json`, each storm's `summary.json` and `track.json`. JSON gzips about 8×, so 1 MB is ~125 kB transferred and well under 50 ms to parse on a mid-range phone; today the largest is a 105 kB `track.json`.
 - **Backfill `reuse_run` input:** a publish that fails after its frames job succeeded can be redone from that run's artifacts (the prepared catalogue and the `frames.json` files, kept 7 days) without rebuilding frames. The data-quality gates, the dataset check and the upload verification still run.
 
 ## Update 2026-10-22: hosting the Go, Node and Rust backends (free tiers only)
 
-System option A planned four Render services that sleep. Render's free plan gives **750 instance hours per
-workspace per month, shared by every free service**; running out suspends all of them (the live Java backend
-included) until the next month, and outbound bandwidth is 5 GB/month shared (an overage bills the card on file).
-Four Render services could need up to 4 × 744 h. So only Java and Go use Render; Node and Rust run on Cloudflare
-Workers, which consume no Render hours.
+Render's free plan gives **750 instance hours per workspace per month, shared by every free service**; running out
+suspends all of them (Java included) until the next month. Outbound bandwidth is 5 GB/month shared, and overage bills
+the card on file. Four services could need up to 4 × 744 h, so only Java and Go use Render; Node and Rust run on
+Cloudflare Workers, which use no Render hours.
 
 | Backend | Hosting | Database access | Why |
 |---|---|---|---|
 | Java | Render free web service (unchanged) | JDBC, Neon pooled URL | Already live |
-| Go | **Render free web service, sleeps after 15 min** | Neon serverless SQL over HTTP (`api/go/internal/neon`) | Measured on Workers first (TinyGo 0.43 → wasm, workers-go): it passed conformance, but starting a Go instance cost **15–55 ms CPU at p50** per request against the free plan's 10 ms ("a Worker that consistently hits the limit has its execution terminated"). A shared instance per isolate does not help: requests land on fresh isolates. Native Go on Render has no such limit and keeps the recorded stack (Go 1.27, net/http, oapi-codegen). |
-| Node | **Cloudflare Worker** `replay-api-node` (workers.dev + service binding from the edge) | Neon serverless HTTP | Fastify 5 cannot run on Workers: its boot generates code from strings (`EvalError: Code generation from strings disallowed`, measured with `nodejs_compat`). The Node backend takes the closest contract-first stack that fits (decided by its build, recorded in `api/node/`). |
+| Go | **Render free web service, sleeps after 15 min** | Neon serverless SQL over HTTP (`api/go/internal/neon`) | On Workers (TinyGo 0.43 → wasm, workers-go) it passed conformance, but Go instance startup cost **15–55 ms CPU at p50** per request against the free plan's 10 ms ("a Worker that consistently hits the limit has its execution terminated"). A shared instance per isolate does not help, because requests land on fresh isolates. Native Go on Render has no such limit and keeps the recorded stack (Go 1.27, net/http, oapi-codegen). |
+| Node | **Cloudflare Worker** `replay-api-node` (workers.dev + service binding from the edge) | Neon serverless HTTP | Fastify 5 cannot run on Workers: its boot generates code from strings (`EvalError: Code generation from strings disallowed`, measured with `nodejs_compat`). The Node backend uses the closest contract-first stack that fits (recorded in `api/node/`). |
 | Rust | **Cloudflare Worker** `replay-api-rust` (workers-rs, wasm) | Neon serverless HTTP via the Workers fetch API | Axum 0.8 routers run on workers-rs; SQLx needs Tokio sockets, which Workers lack, so queries go over Neon's HTTP endpoint. |
 
 **Rust stack** (2026-10-22, recorded in `api/rust/README.md`): workers-rs 0.8.7 + Axum 0.8.9 compiled to wasm (Rust 1.99.1), typify-generated contract types, Neon serverless HTTP through `worker::Fetch` (one batch per request, dataset version included) instead of SQLx. Measured: 554 KiB gzip bundle, 5–6 ms startup; CPU p50 per request (Workers analytics, 25-request bursts) 1.5 ms for `/healthz`, 4–5 ms for meta, storm and place detail, 8–10 ms for tracks and hit lists, with cold isolates at 20–80 ms in the tail. SSE streams end after 90 s (subrequest cap), as on Node.
@@ -62,8 +61,8 @@ Kysely 0.29 only to compile SQL. Trade-off: no Fastify plugin ecosystem, and SSE
 
 **Neon over HTTP, not Hyperdrive** (for the Workers backends and Go): one HTTPS request per transaction
 (`POST https://{host}/sql`, read-only batch with `SET LOCAL statement_timeout = 5000`), no connection held between
-requests. Hyperdrive (free: 100k queries/day) keeps a pool of origin connections, and open connections stop Neon's
-compute from scaling to zero; an always-on 0.25 CU compute is ~186 CU-h/month against the free 100. CI runs the same
+requests. Hyperdrive (free: 100k queries/day) holds a pool of origin connections, which stop Neon's compute scaling to
+zero; an always-on 0.25 CU compute uses ~186 CU-h/month against the free 100. CI runs the same
 protocol against PostGIS through Neon's open-source proxy (`ghcr.io/timowilhelm/local-neon-http-proxy`, by digest).
 
 **Edge routing.** One entry per backend, additive: its origin in `BACKEND_ORIGINS` (Pages vars in `wrangler.jsonc`),
@@ -80,13 +79,13 @@ vars `TR_SITE_ORIGIN`, `TR_TEST_HOOKS` ("0" in production), `TR_RATE_LIMIT_PER_M
 `NEON_HTTP_URL` for local runs; a rate limiting binding `RATE_LIMITER` (free; namespace ids 1002 node, 1003 rust);
 Workers Logs on. Check CPU per request after deploying (Workers analytics `cpuTimeP50`): the free plan allows 10 ms.
 
-**Budget.** Render hours, estimated from CPU samples: Java ran ~6.3 h in its first ~44 h live, a busy development
-period. Two sleeping services at that rate are ~2 × 105 h ≈ 210 h/month (28 % of 750); worst case, both awake
-around the clock, is 2 × 744 = 1,488 h, which would suspend both around day 15. Guards: edge caching (catalogue
-answers pinned to the dataset version), `stale-if-error`, no keep-alive pingers, and `.github/workflows/budget.yml`,
-a read every 8 hours of Render hours and bandwidth, Cloudflare requests (100k/day shared by Workers and Pages Functions) and
-Neon usage that opens an issue when a meter passes 70 % or is projected past 100 %. Neon's usage is read with the
-`NEON_API_KEY` secret and the `NEON_PROJECT_ID` variable.
+**Budget.** Render hours, estimated from CPU samples: Java ran ~6.3 h in its first ~44 h live (active development).
+Two sleeping services at that rate need ~2 × 105 h ≈ 210 h/month (28 % of 750); the worst case, both awake around
+the clock, is 2 × 744 = 1,488 h, which would suspend both around day 15. Guards: edge caching (catalogue answers
+pinned to the dataset version), `stale-if-error`, no keep-alive pingers, and `.github/workflows/budget.yml`, which
+every 8 hours reads Render hours and bandwidth, Cloudflare requests (100k/day shared by Workers and Pages Functions)
+and Neon usage (`NEON_API_KEY` secret, `NEON_PROJECT_ID` variable), and opens an issue when a meter passes 70 % or
+is projected past 100 %.
 
 ## Update 2026-10-22: Render hours guard, deploys after checks, live checks
 
@@ -94,19 +93,19 @@ Approved by Kurt.
 - **Render hours guard.** `budget.yml` (every 8 hours) estimates the workspace's free instance hours. At **85 %** of 750 it
   suspends the first running service of the repository variable `RENDER_GUARD_SERVICES` (comma-separated, in pause
   order; default `typhoon-replay-go`; services not listed, such as the Java APIs, are never paused) and opens an
-  issue recording it. The first run of the next month resumes what the guard paused and closes the issue; services
-  suspended by hand are left alone. The 70 % alert issue stays. While Go is suspended the edge answers
+  issue recording it. The next month's first run resumes what the guard paused and closes the issue; services
+  suspended by hand stay suspended. The 70 % alert issue stays. While Go is suspended the edge answers
   `backend-paused` (Render's "suspended" page) and the Tech page shows "paused this month" / 「今月は一時停止中」.
   The logic is tested with mocked APIs (`scripts/budget-check.test.mjs`, run before every check) and has a dry run
   (`workflow_dispatch` with `dry_run`, the default for manual runs).
 - **Deploys only after checks.** Render's auto-deploy is off for `typhoon-replay-java` and `typhoon-replay-go`;
   `java.yml` and `go.yml` deploy a push to `main` through the Render API (`scripts/render-deploy.mjs`) once their
   tests and conformance pass. (Render's "after CI checks pass" trigger would wait on every check of the commit,
-  including the live check that itself waits for the deploy.)
+  including the live check, which waits for the deploy.)
 - **Live checks.** `live.yml` runs the deployed-instance subset of the conformance suite (headers, caching, problems,
   test hooks absent) against each backend's own URL after its deploy, and weekly against every backend in
-  `BACKEND_ORIGINS`. `storms` and `places` are excluded: they assert the fixture database's exact answers, which
-  production's full catalogue cannot match; `live` needs the test hooks, off in production. A failure opens an
+  `BACKEND_ORIGINS`. `storms` and `places` are excluded because they assert the fixture database's exact answers,
+  which production's full catalogue cannot match; `live` needs the test hooks, which are off in production. A failure opens an
   issue; a paused backend is skipped. A Worker backend calls it after `wrangler deploy` (`node.yml`, and Rust likewise).
 
 ## Frozen showcase policy
