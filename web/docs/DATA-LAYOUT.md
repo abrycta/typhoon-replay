@@ -70,4 +70,4 @@ No visitor page calls the API: place search and storms-near-a-place are answered
 ## Found while building the fixture
 
 - `storms.parquet` flags **Faxai 2019 (2019242N14180) as a Philippine landfall**: its first segment crosses the antimeridian (179.6°E → 180.1°E) and the segment test treats it as spanning the globe. The fixture script drops segment hits far outside the country box; the pipeline's `seg_hits_*` should unwrap longitudes first.
-- `first_ph_landfall_time` is up to 3 h late (as SPIKE.md notes); the storm page shows it as the landfall date only.
+- `first_ph_landfall_time` is up to 3 h late (as the data spike noted); the storm page shows it as the landfall date only.

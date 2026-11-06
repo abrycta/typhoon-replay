@@ -41,7 +41,7 @@ Checked on 2026-10-21. Package versions come from `npm view` on that day. Hostin
 |---|---|---|---|
 | Render free web service | **512 MB RAM, 0.1 CPU** | [Render instance types](https://render.com/docs/compute-plans) | Keep the heap small (`--max-old-space-size≈300`), avoid heavy frameworks and agents, and use a small `pg` pool (5). |
 | Render spin-down | After **15 min without inbound traffic**; waking takes **about 1 minute** | [Render free docs](https://render.com/docs/free) | An in-process cron does not run while asleep, so ingestion needs an external trigger. Cold start is dominated by Render, not by Node. |
-| Render hours | **750 free instance-hours per workspace per month**; sleeping services don't count | [Render free docs](https://render.com/docs/free) | **Four backends in one workspace share 750 h.** Keeping all four awake (4 × 730 h) is impossible. See OPEN-QUESTIONS. |
+| Render hours | **750 free instance-hours per workspace per month**; sleeping services don't count | [Render free docs](https://render.com/docs/free) | **Four backends in one workspace share 750 h.** Keeping all four awake (4 × 730 h) is impossible. |
 | Render SMTP | Free services **cannot send to ports 25, 465 or 587** (since 2025-09-26) | [Render free docs](https://render.com/docs/free), [changelog](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports) | Production e-mail must go over an HTTPS API. Nodemailer SMTP is for local Mailpit only. |
 | Render free misc | No persistent disk, no background workers or cron jobs on free; may restart at any time | [Render free docs](https://render.com/docs/free) | Stateless process. In-memory state (SSE hub, rate-limit counters) is best-effort. |
 | Neon free | $0, **no card**; **100 CU-hours per project per month**; scale-to-zero after **5 min**, cannot be disabled; 1 GB storage per project; PostGIS included; pooling on all plans | [Neon pricing](https://neon.com/pricing) | Anything that holds a connection or polls often (`LISTEN`, DB health checks, tight polling) keeps compute awake and burns CU-hours. |
@@ -223,7 +223,7 @@ For the ~1.6k PH ADM3 and ~1.7k JP municipalities, use the **precomputed exposur
 | Lucia v3 | **Deprecated** | No. |
 | **Arctic 3.7 + hand-rolled sessions** (`@oslojs/crypto` for SHA-256, or `node:crypto`) | Arctic does only the OAuth 2.0 / OIDC client part (authorization URL, PKCE, code exchange) for Google and GitHub | **Pick.** The contract owns the endpoints (`GET /auth/{provider}/start`, `GET /auth/{provider}/callback`, `POST /auth/logout`, `GET /me`) and the tables (`users`, `oauth_accounts`, `sessions`). |
 
-Flow: `start` creates a `state` and (for Google) a PKCE `code_verifier`, stores them in a short-lived `__Host-oauth` cookie (HttpOnly, 10 min) and redirects. `callback` checks `state` and exchanges the code. Then it upserts `users` / `oauth_accounts` (GitHub needs `/user/emails` for a verified primary e-mail), creates the session row, sets `__Host-tr_session` (HttpOnly, Secure, SameSite=Lax, Path=/) and redirects to the SPA. **Redirect URIs:** the OAuth apps must register one callback per backend (`/api/node/auth/google/callback`, …), or the contract picks one canonical callback path that the Worker routes. See OPEN-QUESTIONS.
+Flow: `start` creates a `state` and (for Google) a PKCE `code_verifier`, stores them in a short-lived `__Host-oauth` cookie (HttpOnly, 10 min) and redirects. `callback` checks `state` and exchanges the code. Then it upserts `users` / `oauth_accounts` (GitHub needs `/user/emails` for a verified primary e-mail), creates the session row, sets `__Host-tr_session` (HttpOnly, Secure, SameSite=Lax, Path=/) and redirects to the SPA. **Redirect URIs:** the OAuth apps must register one callback per backend (`/api/node/auth/google/callback`, …), or the contract picks one canonical callback path that the Worker routes.
 
 ### CSRF
 
@@ -247,7 +247,7 @@ The API is same-origin behind the Worker, uses `SameSite=Lax` cookies and takes 
 - **Queues:**
   - **No BullMQ.** It needs Redis. Upstash's free tier is 500k commands/month, and [Upstash's own BullMQ page](https://upstash.com/docs/redis/integrations/bullmq) warns that BullMQ accesses Redis even when idle, which would exhaust that quota.
   - **No pg-boss** (12.38) either: polling Postgres would keep Neon awake. An **outbox table** is enough for alert e-mails.
-- **Which backend ingests?** All four share one DB. Either every backend implements ingestion and the lock or lease makes duplicate triggers harmless, or one designated backend ingests and the others only read. See OPEN-QUESTIONS.
+- **Which backend ingests?** All four share one DB. Either every backend implements ingestion and the lock or lease makes duplicate triggers harmless, or one designated backend ingests and the others only read.
 
 ### SSE
 
@@ -291,7 +291,7 @@ Use Vitest `projects` to split `unit` (no Docker) from `integration` (Docker), a
 
 - **pino 10** via Fastify's logger: JSON logs, `reqId` from `CF-Ray` or generated, redaction of `cookie`/`authorization`. Pretty output in development via `pino-pretty`.
 - One `onSend` hook adds **`X-Backend-Impl: node`** (plus perhaps `X-Backend-Version: <git sha>`) and `Server-Timing: db;dur=…` for the demo.
-- **OpenTelemetry** (`@opentelemetry/sdk-node` 0.223, `auto-instrumentations-node` 0.81): **opt-in** via `OTEL_ENABLED=1` with only the `http`, `fastify` and `pg` instrumentations, loaded with `--import ./otel.js`. The full auto-instrumentation bundle costs tens of MB of RAM and start-up time, which matters on 512 MB and 0.1 CPU. Whether to send to a free OTLP backend is a cross-backend decision (OPEN-QUESTIONS).
+- **OpenTelemetry** (`@opentelemetry/sdk-node` 0.223, `auto-instrumentations-node` 0.81): **opt-in** via `OTEL_ENABLED=1` with only the `http`, `fastify` and `pg` instrumentations, loaded with `--import ./otel.js`. The full auto-instrumentation bundle costs tens of MB of RAM and start-up time, which matters on 512 MB and 0.1 CPU. Whether to send to a free OTLP backend is a cross-backend decision.
 
 ### Build
 

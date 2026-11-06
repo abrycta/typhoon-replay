@@ -4,7 +4,7 @@
 
 Status: the research behind DECISIONS.md, 2026-10-21. What was built is recorded there and in each backend's README.
 Scope: everything the four backends (Java Spring Boot, Node/TypeScript, Rust, Go) share: the contract, conformance tests, database schema and migrations, auth, the edge proxy, backend selection, repo layout, CI and free-tier capacity. Each backend's internal design belongs to its language's own docs (`api/<lang>/docs/`).
-Companion docs: [`contracts/docs/CONTRACT-GUIDE.md`](../../contracts/docs/CONTRACT-GUIDE.md) (draft rules every backend follows) and [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
+Companion docs: [`contracts/docs/CONTRACT-GUIDE.md`](../../contracts/docs/CONTRACT-GUIDE.md) (draft rules every backend follows).
 
 Product recap (as planned on 2026-10-21): the hour-by-hour replay is fully static (frame files on Cloudflare Pages, Parquet on Hugging Face read with DuckDB-WASM). The API exists only for four things: (1) "typhoons that hit my town" PostGIS search over about 581,721 storm-hours and the PH ADM3 / JP municipality polygons; (2) a live tracker of active storms pushed over SSE; (3) accounts (Google/GitHub OAuth2, saved places, email alerts); (4) a public documented REST API. Constraint: free tiers only.
 
@@ -54,7 +54,7 @@ Product recap (as planned on 2026-10-21): the hour-by-hour replay is fully stati
 - `oneOf` only with a `discriminator` (for SSE events and problem subtypes).
 
 CI publishes two bundles: `openapi.json` (3.1, canonical) and `openapi.3.0.json` (down-converted; only for generators that need it).
-Revisit 3.2 when oasdiff, Redocly and at least two of the four generators handle `itemSchema` (tracked in OPEN-QUESTIONS).
+Revisit 3.2 when oasdiff, Redocly and at least two of the four generators handle `itemSchema`.
 
 ### 1.2 Spec layout
 
@@ -244,7 +244,7 @@ CREATE TABLE ops.job_lease (job text PRIMARY KEY, holder text, lease_until times
 
 Stays **off Postgres**:
 - per-place **hourly** exposure (hundreds of millions of rows) and ERA5 field statistics: Parquet on Hugging Face, queried in the browser by DuckDB-WASM;
-- frame files: about 19 GB raw / about 5.7 GB WebP for all 3,076 storms per `SPIKE.md`, so a Hugging Face dataset is the likely home, since Pages' total-size limit is unverified;
+- frame files: about 19 GB raw / about 5.7 GB WebP for all 3,076 storms per the data spike, so a Hugging Face dataset is the likely home, since Pages' total-size limit is unverified;
 - full-resolution polygons and the IBTrACS raw CSV.
 
 The API returns *which* storms hit a place. The browser fetches the hour-by-hour detail from the static stores.
@@ -257,7 +257,7 @@ The API returns *which* storms hit a place. The browser fetches the hour-by-hour
    - Swapping per table keeps the peak storage at about "everything + the largest table" instead of 2×, which matters on 1 GB (§3.3a).
    - Foreign keys between catalog tables are avoided (the pipeline validates instead), so tables swap independently.
 
-Risk: prepared statements re-plan on invalidation, so this should work through Neon's pooler, but verify (OPEN-QUESTIONS).
+Risk: prepared statements re-plan on invalidation, so this should work through Neon's pooler, but verify.
 
 ### 3.4a Ingestion, alerts and jobs: one shared owner (confirmed model)
 
@@ -279,7 +279,7 @@ Exactly **one** shared ingestion job writes live-storm data, and the backends on
 Alternative raised in the Go backend's research: GitHub Actions cron calls an authenticated `POST /v1/_jobs/{ingest|mail}` (bearer secret) on one backend, rotating by day, so each language also implements ingestion.
 - Pros: more showcase.
 - Cons: each run wakes a Render service (a cold start, measured at about 100 s for Java, plus work, so about 50–100 h/month of the 750), and ingestion parity must then be conformance-tested too.
-- Kept as an option for the user (OPEN-QUESTIONS); not the default. If chosen, the endpoints and the lease table above are already contract-ready.
+- Kept as an option; not the default. If chosen, the endpoints and the lease table above are already contract-ready.
 
 Cloudflare Worker cron was rejected for ingestion: 10 ms CPU per run on Free is too little for parsing feeds and spatial matching.
 
@@ -407,7 +407,7 @@ Provider endpoints (authorize/token/userinfo) must be configurable via env so CI
 ```
 typhoon-replay/
   web/                    # Vite SPA (exists)
-  functions/api/[[path]].ts  # Pages Function proxy (Pages expects functions/ at the project root; see OPEN-QUESTIONS)
+  functions/api/[[path]].ts  # Pages Function proxy (Pages expects functions/ at the project root)
   contracts/              # openapi/, db/, conformance/, docs/, CHANGELOG.md
   api/java/ api/node/ api/rust/ api/go/   # each: Dockerfile, src, docs/, impl.json
   pipeline/               # Python (exists): IBTrACS/ERA5 → Pages/HF; catalog loads; live ingestion; mailer
@@ -491,7 +491,7 @@ Verified: Hobby = 5 GB included; overage $0.15/GB, but only with a card on file.
   - Schemathesis or load tests aimed at production (forbidden; the nightly production check is a fixed read-only list of ≈ 30 requests ≈ 100 KB/night ≈ 3 MB/month);
   - SSE left open in background tabs (handled by close-on-hidden);
   - anyone exposing hourly tracks or GeoJSON polygons through the API.
-- **Guardrail (decided 2026-10-21, OPEN-QUESTIONS A.9):** no nightly static-mode job. The backends stay live; egress is kept down by gzip from Render to the edge and by the edge cache, whose catalogue entries stay fresh while the dataset version is unchanged (the dataset pin, edge/README.md). The proxy's `STATIC_MODE` flag remains as a manual emergency switch. Usage can be read from Render's API (`GET /v1/metrics/bandwidth`, hourly MB per service).
+- **Guardrail (decided 2026-10-21):** no nightly static-mode job. The backends stay live; egress is kept down by gzip from Render to the edge and by the edge cache, whose catalogue entries stay fresh while the dataset version is unchanged (the dataset pin, edge/README.md). The proxy's `STATIC_MODE` flag remains as a manual emergency switch. Usage can be read from Render's API (`GET /v1/metrics/bandwidth`, hourly MB per service).
 
 ### 7.2 Email options, and the "buy a domain" decision
 

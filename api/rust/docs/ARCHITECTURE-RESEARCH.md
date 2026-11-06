@@ -30,7 +30,7 @@ Scope: the Rust implementation of the shared OpenAPI 3.1 contract (`/api/rust/*`
 | Constraint | Fact (source) | Consequence for Rust |
 |---|---|---|
 | Render free instance | **512 MB RAM, 0.1 CPU** ([compute plans](https://render.com/docs/compute-plans.md)) | Rust idles at tens of MB (estimate). Pin `TOKIO_WORKER_THREADS=2` (a 0.1-CPU quota rounds `available_parallelism` to 1, and a second thread keeps SSE plus a slow query from stalling each other). Use `max_blocking_threads` defaults. |
-| Spin-down | After **15 min** with no inbound HTTP; wake takes **about 1 minute**. **750 instance-hours/workspace/month** ([Render free](https://render.com/docs/free)) | In-process schedulers don't run while asleep. Four always-on backends would need 4 × 730 h, which is more than 750 h (see OPEN-QUESTIONS). |
+| Spin-down | After **15 min** with no inbound HTTP; wake takes **about 1 minute**. **750 instance-hours/workspace/month** ([Render free](https://render.com/docs/free)) | In-process schedulers don't run while asleep. Four always-on backends would need 4 × 730 h, which is more than 750 h. |
 | Outbound SMTP | Free web services **can't use ports 25, 465 or 587** ([Render free](https://render.com/docs/free)) | Use Resend SMTPS on **2465** ([Resend SMTP](https://resend.com/docs/send-with-smtp)) or an HTTP email API. |
 | Bandwidth | Hobby workspace **5 GB/month** outbound. Without a card, services **spin down until next month** when it runs out ([Render bandwidth](https://render.com/docs/outbound-bandwidth)). It was cut from 100 GB on 2026-08-01 ([review](https://jwatte.com/blog/render-com-platform-review.md)) | ETag/304 and `Cache-Control` so the Cloudflare edge serves repeat reads aren't optional. Use gzip/br compression (`tower-http`). Keep SSE payloads small. |
 | Build minutes | Hobby: 500/month (same review) | Compile in GitHub Actions instead and deploy a prebuilt image from GHCR. |
@@ -147,7 +147,7 @@ Use `axum::extract::FromRef` for sub-state (`State<PgPool>` in handlers that onl
 4. **Offline mode:** commit `.sqlx/`. CI sets `SQLX_OFFLINE=true` for build and clippy, and one job runs `cargo sqlx prepare --workspace --check` against a PostGIS service container with `contracts/migrations` applied. The Docker build sets `SQLX_OFFLINE=true` and needs no DB.
 5. Dynamic filters (optional search params) use `sqlx::QueryBuilder` (still parameterised) or `($3::text IS NULL OR basin = $3)` patterns, so macros keep checking.
 6. **Pool against Neon:** `PgPoolOptions::new().max_connections(5).min_connections(0).idle_timeout(240s).acquire_timeout(10s)` with `test_before_acquire(true)`, which survives Neon resuming from suspend. Use TLS via `tls-rustls-ring-webpki` (pure Rust, easiest for any target). Connect to the direct endpoint, or to the pooler, since protocol-level prepared statements are supported. Run statements on a fresh connection after suspend (Neon drops session state).
-7. Migrations: **don't** embed `sqlx::migrate!` as the owner. `contracts/` owns them. Use `#[sqlx::test(migrations = "../../contracts/migrations")]` only if the file naming matches SQLx's `<version>_<name>.sql` convention; otherwise a small test helper applies the files in order (see OPEN-QUESTIONS).
+7. Migrations: **don't** embed `sqlx::migrate!` as the owner. `contracts/` owns them. Use `#[sqlx::test(migrations = "../../contracts/migrations")]` only if the file naming matches SQLx's `<version>_<name>.sql` convention; otherwise a small test helper applies the files in order.
 
 ---
 
@@ -171,7 +171,7 @@ Use `axum::extract::FromRef` for sub-state (`State<PgPool>` in handlers that onl
 - `oauth2` 5.0.0: authorization-code + **PKCE** + `state`. Keep the pre-login `state`/`pkce_verifier`/`return_to` in a short-lived **signed, encrypted cookie** (`axum-extra` `PrivateCookieJar`, 10 min) or a `oauth_flow` row (to be decided by the shared schema). After callback, fetch userinfo (Google `openidconnect`-style userinfo or `https://api.github.com/user` + `/user/emails`) with `reqwest`.
 - Skew: `oauth2`'s optional `reqwest` feature is **reqwest ^0.12**, and reqwest is 0.13.5. Either use reqwest 0.12 everywhere, or (cleaner) disable oauth2's reqwest feature and implement its `AsyncHttpClient` adapter in about 20 lines over reqwest 0.13.
 - Since both providers aren't OIDC (GitHub), `openidconnect` 4.0.1 isn't worth it.
-- Callback URLs: `/api/rust/auth/{provider}/callback`. Each backend needs its own redirect URI registered, or the edge routes a shared `/api/auth/*` to one backend (see OPEN-QUESTIONS).
+- Callback URLs: `/api/rust/auth/{provider}/callback`. Each backend needs its own redirect URI registered, or the edge routes a shared `/api/auth/*` to one backend.
 
 ### 6.4 CSRF
 - `SameSite=Lax` + same-origin edge already blocks classic cross-site POSTs. Add an **Origin / `Sec-Fetch-Site` check middleware** on unsafe methods (OWASP "verifying origin with standard headers"). It's tiny and language-neutral, so the conformance suite can test it. Optionally require a custom header (`X-Requested-With`), which forces a CORS preflight. Token-based `axum-csrf` 0.11 isn't needed.
@@ -376,8 +376,7 @@ api/rust/
 │           └── live_sse.rs
 ├── xtask/                     # gen-contract, prepare-sqlx, seed
 └── docs/
-    ├── ARCHITECTURE-RESEARCH.md
-    └── OPEN-QUESTIONS.md
+    └── ARCHITECTURE-RESEARCH.md
 ```
 
 ---

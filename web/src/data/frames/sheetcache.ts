@@ -14,7 +14,7 @@ export const SHEET_CACHE_PREFIX = "replay-frames-";
 export const SHEET_CACHE_NAME = `${SHEET_CACHE_PREFIX}v1`;
 
 /**
- * 200 MB. A storm's sheets average about 2.8 MB (SPIKE.md: about 5.7 GB for 2,058 storms) and the largest are
+ * 200 MB. A storm's sheets average about 2.8 MB (data spike: about 5.7 GB for 2,058 storms) and the largest are
  * around 15-20 MB, so this keeps several dozen storms: a long session of browsing and comparing replays. It stays
  * well inside every browser's per-origin quota (Chromium and Firefox allow a share of free disk; Safari prompts or
  * evicts above about 1 GB) so it does not crowd out the rest of the site's storage on a small phone.

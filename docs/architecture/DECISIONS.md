@@ -12,7 +12,7 @@ Decided 2026-10-21 by Kurt, after the research in this folder, `contracts/docs/`
 | Go | **Stack A: standard library + oapi-codegen.** Go 1.27 net/http, oapi-codegen strict server, kin-openapi validation, pgx + sqlc. | `api/go/docs/ARCHITECTURE-RESEARCH.md` §9, §11 |
 | Build order | **Contract first, then Java, then Go, Node, Rust.** The frontend is built in parallel against the mock server. | — |
 | Contract | **OpenAPI 3.1, portable subset** (no nulls, no type arrays; SSE described with `x-sse-events`). Revisit 3.2 when tooling catches up. | `contracts/docs/CONTRACT-GUIDE.md` |
-| Storm frames | **Hugging Face dataset** (range requests, CORS), kept off the app origin. | `web/docs/ARCHITECTURE-RESEARCH.md`, `SPIKE.md` |
+| Storm frames | **Hugging Face dataset** (range requests, CORS), kept off the app origin. | `web/docs/ARCHITECTURE-RESEARCH.md` |
 | Languages (v1) | **English + Japanese.** PAGASA local names shown beside international names. | — |
 
 ## Update 2026-10-21: custom domain
