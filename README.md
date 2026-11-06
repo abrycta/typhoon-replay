@@ -1,7 +1,7 @@
 # Replay
 
-Replay any typhoon that hit the Philippines or Japan, hour by hour: track,
-reanalysis wind and rain fields, and the towns it affected.
+Replay any typhoon that hit the Philippines or Japan since 1940, hour by hour:
+track, reanalysis wind and rain fields, and the towns it affected.
 
 ## Running & deploying
 
@@ -13,7 +13,7 @@ each pull request gets its own preview URL.
 |---|---|
 | `web/` | The frontend (Vite + React + TanStack, Akari), live at https://replay.krtmtthw.dev (see `web/README.md`) |
 | `contracts/` | The shared API contract (OpenAPI 3.1), database migrations and seed, conformance suite and mocks (see `contracts/README.md`) |
-| `api/{java,node,rust,go}/` | The four interchangeable backends (research docs so far) |
+| `api/{java,node,rust,go}/` | The four interchangeable backends serving that contract: Spring Boot (Java) and Go on Render, Node and Rust on Cloudflare Workers, all reached at `https://replay.krtmtthw.dev/api/<name>/` (see each backend's README) |
 | `pipeline/` | Python data pipeline: IBTrACS catalogue, places and exposure, ERA5 replay frames, Hugging Face publishing |
 | `docs/architecture/` | System architecture research and the decisions log |
 | `compose.yaml` | Local services by profile: `db` (PostGIS + migrations + seed), `mock` (Prism), `java` |
@@ -21,7 +21,7 @@ each pull request gets its own preview URL.
 | `deploy.config` | App directory and the install, check, build, dev and preview commands |
 | `wrangler.jsonc` | Pages project name (`typhoon-replay`) and build output directory |
 | `scripts/` | `dev.sh`, `preview.sh`, `deploy.sh`, `ci.sh`, `check-size.sh`, `link-akari.sh` |
-| `.github/workflows/` | `ci.yml` (checks), `deploy.yml` (Pages deploys) and `contracts.yml` (contract lint, breaking changes, migrations, smoke tests) |
+| `.github/workflows/` | `ci.yml` and `deploy.yml` (see [What happens on push](#what-happens-on-push-and-on-pull-requests)), the data jobs (see [Data pipeline](#data-pipeline-and-workflows)), and the contract, backend, live and budget checks (see [Contract, backend and operations workflows](#contract-backend-and-operations-workflows)) |
 
 Switching the frontend framework means editing `deploy.config` and
 `pages_build_output_dir` in `wrangler.jsonc`. The scripts and workflows read
@@ -40,7 +40,6 @@ both files, so they stay as they are.
 ```sh
 scripts/dev.sh               # dev server with hot reload (installs deps first if needed)
 scripts/dev.sh --host        # same, reachable from other devices on your LAN
-scripts/dev.sh --sample      # run the pipeline's sample-data step first (once it has one)
 scripts/dev.sh --akari-local # use the local ../akari design-system checkout
 
 scripts/ci.sh                # what CI runs: install, typecheck, lint, test, build, size guard
@@ -56,10 +55,10 @@ Each script has a `--help`. `npm run dev`, `npm run preview` and the other
 
 ### One-time setup
 
-Do these once, in this order. Nothing here needs a credit card.
+Do these once, in this order.
 
 1. **Create a Cloudflare account.** Sign up at <https://dash.cloudflare.com/sign-up>
-   with an email address and verify it. Pages is on the free plan by default.
+   with an email address and verify it.
 2. **Create an API token.** In the Cloudflare dashboard, go to *My Profile →
    API Tokens → Create Token → Create Custom Token*.
    - Name: `typhoon-replay deploy` (any name works).
@@ -83,7 +82,7 @@ Do these once, in this order. Nothing here needs a credit card.
 5. **Optional: deploy from your machine.** Copy `.env.deploy.example` to
    `.env.deploy` (gitignored) and fill in the same two values, or export them
    in your shell.
-6. **Later, when the app uses Akari (`@abrycta/akari` on GitHub Packages):**
+6. **Install Akari (`@abrycta/akari` on GitHub Packages).** The app's UI comes from it:
    - Create a classic personal access token under *GitHub → Settings →
      Developer settings → Personal access tokens → Tokens (classic) → Generate
      new token (classic)*. Select only the `read:packages` scope.
@@ -131,7 +130,7 @@ Do these once, in this order. Nothing here needs a credit card.
 |---|---|---|
 | File size | 25 MiB per file | `scripts/check-size.sh` fails the build first |
 | Files per deployment | 20,000 | Same guard; it warns above 80% |
-| Builds | 500 per month | Cloudflare documents this for builds it runs from Git pushes. This repo builds in GitHub Actions and uploads with wrangler, so it should not apply (the docs don't say so explicitly) |
+| Builds | 500 per month | Counts builds Cloudflare runs from Git pushes. This repo builds in GitHub Actions and uploads with wrangler. |
 | `_headers` rules | 100 | 5 used |
 | Bandwidth / requests | Unlimited for static files | n/a |
 | GitHub Actions | Free on public repos; 2,000 min/month if private | Each CI run takes about a minute |
@@ -181,3 +180,14 @@ Secrets: `ARCHIVE_READ_TOKEN` (installs the private `archivekit` through a git `
 reads the archive fallback) and `HF_TOKEN` (a Hugging Face write token for `permission-alluring`). Jobs
 skip with a notice when either is missing. Locally the token comes from `HF_TOKEN` or the Keychain item
 `huggingface-token`.
+
+### Contract, backend and operations workflows
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `contracts.yml` | PRs and pushes touching `contracts/`, `compose.yaml` or `justfile` | contract lint, 3.1 and 3.0 bundles, the oasdiff breaking-change gate; migrations up, down and up against PostGIS, then the seed; Schemathesis and the contract scenarios against Prism |
+| `java.yml`, `go.yml`, `node.yml`, `rust.yml` | PRs and pushes touching that backend or `contracts/` | build and unit tests, then the conformance suite (Vitest scenarios and Schemathesis) against PostGIS 18 with the migrations and seed; on `main`, the deploy (Render for Java and Go, `wrangler deploy` for Node and Rust) and the live checks |
+| `live.yml` | after each backend deploy, weekly (Mon 03:41 UTC) and by hand | the dataset-independent part of the conformance suite against each live backend; a failure opens an issue |
+| `live-check.yml` | hourly | compares the live `/deploy.json` with `main`; stale for over 30 minutes, it fails and dispatches the deploy |
+| `budget.yml` | every 8 hours | reads the free-tier meters (Render hours and bandwidth, Cloudflare requests, Neon compute, egress and storage); opens an issue at 70 %, pauses a Render service at 85 % of the free hours, and switches the edge to static mode when a meter trips |
+| `api-load.yml` | after a successful `refresh.yml` or `backfill.yml` run, and by hand | migrates the API database (Neon) and loads the published data version in one transaction, behind a size guard for Neon Free's 1 GB |
