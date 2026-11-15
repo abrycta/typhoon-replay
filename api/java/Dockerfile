@@ -6,7 +6,7 @@
 # for a security fix (the tag stays), and the dependency lockfiles keep the jar's contents fixed.
 
 # --- 1. The contract bundle (contracts/dist/openapi.json), generated from the split YAML -----------------------
-FROM node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS contract
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS contract
 WORKDIR /contracts
 COPY contracts/package.json contracts/package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
@@ -14,7 +14,7 @@ COPY contracts/ ./
 RUN npm run bundle
 
 # --- 2. Build the jar (interfaces generated from the bundle) ---------------------------------------------------
-FROM eclipse-temurin:25-jdk@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641 AS build
+FROM eclipse-temurin:25-jdk@sha256:b8705e936964c228dfce359e63dbf08f6c69cb380ed1d576b1f6b1064f15567d AS build
 WORKDIR /src/api/java
 COPY api/java/gradlew api/java/settings.gradle.kts api/java/build.gradle.kts api/java/*.lockfile ./
 COPY api/java/gradle ./gradle
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -q bootJar -Pc
  && mv /app/typhoon-replay-api-*.jar /app/app.jar
 
 # --- 3. Runtime image with an AOT cache trained on this exact JRE and class path ------------------------------
-FROM eclipse-temurin:25-jre@sha256:78f1f183913482ef390c2722f46c3f0ce76ada341d69590e7c482ec943ee72d5 AS runtime
+FROM eclipse-temurin:25-jre@sha256:a640968ae55027b322cedd5f8228b01a84baff0b9e9360e47601c6a111ba1699 AS runtime
 RUN groupadd --system app && useradd --system --gid app --home /app app && install -d -o app -g app /app
 WORKDIR /app
 COPY --from=build --chown=app:app /app ./
