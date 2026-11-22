@@ -6,7 +6,7 @@
 # for a security fix (the tag stays), and the dependency lockfiles keep the jar's contents fixed.
 
 # --- 1. The contract bundle (contracts/dist/openapi.json), generated from the split YAML -----------------------
-FROM node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS contract
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS contract
 WORKDIR /contracts
 COPY contracts/package.json contracts/package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
